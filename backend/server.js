@@ -9,26 +9,14 @@ const workoutLogRoutes = require("./routes/workoutLogs");
 
 const app = express();
 
-const allowedOrigins = [
-    "http://localhost:3000",
-    "https://rasifiters.netlify.app"
-];
-
-// Enable CORS for frontend requests
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
-    credentials: true,
+    origin: ["http://localhost:3000", "https://rasifiters.netlify.app"],
+    credentials: true
 }));
 
 app.use(express.json());
 
-// ✅ Register Routes
+// Register Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/workouts", workoutRoutes);

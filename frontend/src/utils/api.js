@@ -1,4 +1,7 @@
-const API_URL = "http://localhost:5001/api";
+const API_URL =
+    window.location.hostname === "localhost"
+        ? "http://localhost:5001/api" // Local Development
+        : "https://your-backend-url.com/api"; // Deployed API
 
 const api = {
     getWorkoutLogs: async (date) => {
