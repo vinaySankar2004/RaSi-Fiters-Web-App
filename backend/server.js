@@ -10,9 +10,13 @@ const workoutLogRoutes = require("./routes/workoutLogs");
 const app = express();
 
 app.use(cors({
-    origin: ["http://localhost:3000", "https://rasifiters.netlify.app"],
+    origin: ["http://localhost:3000", "https://rasifiters.netlify.app", "https://rasi-fiters-api.onrender.com"],
     credentials: true
 }));
+
+app.get("/", (req, res) => {
+    res.send("Rasi Fiters API is running!");
+});
 
 app.use(express.json());
 
