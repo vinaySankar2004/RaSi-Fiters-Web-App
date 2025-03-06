@@ -10,6 +10,8 @@ const DashboardTable = () => {
     const [logs, setLogs] = useState([]);
     const [members, setMembers] = useState([]);
     const [workouts, setWorkouts] = useState([]);
+    const [open, setOpen] = useState(false);
+    const [editData, setEditData] = useState(null);
 
     const fetchLogs = useCallback(async () => {
         try {
