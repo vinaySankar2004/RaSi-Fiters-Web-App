@@ -11,21 +11,20 @@ const Login = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
+    useEffect(() => {}, []);
+
     const handleLogin = async () => {
         setError(null);
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, {
-                username,
-                password,
-            });
+            const data = await api.login(username, password);
 
             // Store token & user info in localStorage
-            localStorage.setItem("token", response.data.token);
+            localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify({ username }));
 
             navigate("/dashboard");
         } catch (err) {
-            setError(err.response?.status === 401 ? "Invalid username or password." : "Something went wrong. Please try again later.");
+            setError("Invalid username or password.");
         }
     };
 
