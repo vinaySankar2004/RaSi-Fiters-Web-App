@@ -1,7 +1,6 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Box, TextField, Button, Typography, Paper, Alert } from "@mui/material";
-import axios from "axios";
 import Navbar from "../components/Navbar";
 import api from "../utils/api";
 
