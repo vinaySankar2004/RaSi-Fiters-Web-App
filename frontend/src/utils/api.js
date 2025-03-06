@@ -1,7 +1,4 @@
-const API_URL =
-    window.location.hostname === "localhost"
-        ? "http://localhost:5001/api" // Local Development
-        : "https://rasi-fiters-api.onrender.com"; // Deployed API
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
 const api = {
     getWorkoutLogs: async (date) => {

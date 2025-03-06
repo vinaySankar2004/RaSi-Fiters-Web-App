@@ -11,33 +11,24 @@ const Login = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetch();
-    }, []);
-
-    fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-    })
-
     const handleLogin = async () => {
         setError(null);
         try {
-            const response = await axios.post("http://localhost:5001/api/auth/login", {
+            const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, {
                 username,
                 password,
             });
 
             // Store token & user info in localStorage
             localStorage.setItem("token", response.data.token);
-            localStorage.setItem("user", JSON.stringify({ username })); // Fix: Ensure correct format
+            localStorage.setItem("user", JSON.stringify({ username }));
 
             navigate("/dashboard");
         } catch (err) {
             setError(err.response?.status === 401 ? "Invalid username or password." : "Something went wrong. Please try again later.");
         }
     };
+
 
     // Submit on Enter Key
     const handleKeyDown = (event) => {
