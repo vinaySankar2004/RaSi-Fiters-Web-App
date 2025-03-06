@@ -25,8 +25,6 @@ const Login = () => {
         }
     };
 
-
-    // Submit on Enter Key
     const handleKeyDown = (event) => {
         if (event.key === "Enter") {
             handleLogin();

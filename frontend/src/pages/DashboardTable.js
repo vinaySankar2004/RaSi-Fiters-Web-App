@@ -160,10 +160,10 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
         }
     };
 
-    // ✅ Submit when Enter is pressed
+    // Submit when Enter is pressed
     const handleKeyDown = (e) => {
         if (e.key === "Enter") {
-            e.preventDefault(); // Prevent unintended form submission
+            e.preventDefault();
             handleSubmit();
         }
     };

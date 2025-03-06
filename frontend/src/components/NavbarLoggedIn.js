@@ -33,7 +33,6 @@ const NavbarLoggedIn = () => {
     return (
         <AppBar position="static" color="primary">
             <Toolbar>
-                {/* App Logo/Title (Clickable - Goes to Dashboard) */}
                 <Typography variant="h6" sx={{ flexGrow: 1, cursor: "pointer" }} onClick={() => navigate("/dashboard")}>
                     RASI FIT'ERS
                 </Typography>

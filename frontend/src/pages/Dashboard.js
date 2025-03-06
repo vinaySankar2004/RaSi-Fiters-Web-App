@@ -23,7 +23,6 @@ const Dashboard = () => {
                 <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>Select a Day</Typography>
 
                 <Box sx={{ mt: 3, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                    {/* Enlarged Calendar with Proper Spacing */}
                     <Box sx={{ width: "100%", maxWidth: "450px", p: 2, "& .react-calendar": { width: "100%", fontSize: "1.2rem" } }}>
                         <Calendar
                             onChange={setSelectedDate}

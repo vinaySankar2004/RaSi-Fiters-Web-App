@@ -5,14 +5,14 @@ const router = express.Router();
 // GET all members
 router.get("/", async (req, res) => {
     try {
-        console.log("🔍 Fetching all members...");
+        console.log("Fetching all members...");
         const members = await Member.findAll({
             order: [["member_name", "ASC"]], // Sort by member_name (A-Z)
         });
-        console.log("✅ Members retrieved:", members);
+        console.log("Members retrieved:", members);
         res.json(members);
     } catch (err) {
-        console.error("🔥 ERROR FETCHING MEMBERS:", err);
+        console.error("ERROR FETCHING MEMBERS:", err);
         res.status(500).json({ error: "Failed to fetch members.", details: err.message });
     }
 });

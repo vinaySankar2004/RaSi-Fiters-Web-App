@@ -55,7 +55,6 @@ const Workouts = () => {
         }
     };
 
-    // Handle delete workout
     const handleDelete = async (workout_name) => {
         if (window.confirm("Are you sure you want to delete this workout?")) {
             try {
