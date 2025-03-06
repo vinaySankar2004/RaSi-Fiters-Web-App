@@ -1,5 +1,5 @@
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
-console.log("API URL:", API_URL);
+console.log("API URL:", process.env.REACT_APP_API_URL);
 
 const api = {
     login: async (username, password) => {
