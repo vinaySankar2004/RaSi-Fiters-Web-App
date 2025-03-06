@@ -11,8 +11,6 @@ const Login = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {}, []);
-
     const handleLogin = async () => {
         setError(null);
         try {
