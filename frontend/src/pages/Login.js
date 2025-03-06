@@ -1,12 +1,24 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Box, TextField, Button, Typography, Paper, Alert } from "@mui/material";
+import {
+    Container,
+    Box,
+    TextField,
+    Button,
+    Typography,
+    Paper,
+    Alert,
+    IconButton,
+    InputAdornment
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import api from "../utils/api";
 
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
@@ -15,7 +27,7 @@ const Login = () => {
         try {
             const data = await api.login(username, password);
 
-            // Store token & user info in localStorage
+            // Store token and user info in localStorage
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify({ username }));
 
@@ -51,12 +63,26 @@ const Login = () => {
                         />
                         <TextField
                             label="Password"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             variant="outlined"
                             fullWidth
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             onKeyDown={handleKeyDown}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            onMouseDown={() => setShowPassword(true)}
+                                            onMouseUp={() => setShowPassword(false)}
+                                            onMouseLeave={() => setShowPassword(false)}
+                                            edge="end"
+                                        >
+                                            {showPassword ? <Visibility /> : <VisibilityOff />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
                         />
                         <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
                             Login
