@@ -9,7 +9,8 @@ import {
     Paper,
     Alert,
     IconButton,
-    InputAdornment
+    InputAdornment,
+    CircularProgress
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
@@ -20,10 +21,13 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async () => {
         setError(null);
+        setLoading(true);
+
         try {
             const data = await api.login(username, password);
 
@@ -34,6 +38,8 @@ const Login = () => {
             navigate("/dashboard");
         } catch (err) {
             setError("Invalid username or password.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -84,8 +90,15 @@ const Login = () => {
                                 ),
                             }}
                         />
-                        <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
-                            Login
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            onClick={handleLogin}
+                            disabled={loading} // Disable button when logging in
+                            sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                        >
+                            {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
                         </Button>
                     </Box>
                 </Paper>
