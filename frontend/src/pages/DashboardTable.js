@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import { useParams } from "react-router-dom";
 import { Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Select, MenuItem } from "@mui/material";
 import { Delete, Edit, Add, Refresh } from "@mui/icons-material";
@@ -10,16 +10,8 @@ const DashboardTable = () => {
     const [logs, setLogs] = useState([]);
     const [members, setMembers] = useState([]);
     const [workouts, setWorkouts] = useState([]);
-    const [open, setOpen] = useState(false);
-    const [editData, setEditData] = useState(null);
 
-    useEffect(() => {
-        fetchLogs();
-        fetchMembers();
-        fetchWorkouts();
-    }, [date]);
-
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         try {
             const data = await api.getWorkoutLogs(date);
             console.log("Fetched logs:", data);
@@ -28,17 +20,23 @@ const DashboardTable = () => {
             console.error("Error fetching logs:", error);
             setLogs([]);
         }
-    };
+    }, [date]);
 
-    const fetchMembers = async () => {
+    const fetchMembers = useCallback(async () => {
         const data = await api.getMembers();
         setMembers(data);
-    };
+    }, []);
 
-    const fetchWorkouts = async () => {
+    const fetchWorkouts = useCallback(async () => {
         const data = await api.getWorkouts();
         setWorkouts(data);
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchLogs();
+        fetchMembers();
+        fetchWorkouts();
+    }, [fetchLogs, fetchMembers, fetchWorkouts]);
 
     const handleDelete = async (log) => {
         if (window.confirm("Are you sure you want to delete this log?")) {
