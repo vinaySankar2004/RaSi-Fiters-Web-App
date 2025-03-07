@@ -1,33 +1,33 @@
 /* Dashboard Container */
 .dashboard-container {
-    text-align: center;
-    margin-top: 100px;
-    color: white;
+    text-align: center !important;
+    margin-top: 100px !important;
+    color: white !important;
 }
 
 /* Title */
 .dashboard-title {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: #ffcc00;
+    font-size: 2.5rem !important;
+    font-weight: bold !important;
+    margin-bottom: 20px !important;
+    color: #ffcc00 !important;
 }
 
 /* Calendar */
 .calendar-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 20px;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-bottom: 20px !important;
 }
 
 /* Custom Calendar */
 .custom-calendar {
     background: rgba(30, 30, 30, 0.8) !important;
-    backdrop-filter: blur(10px);
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px) !important;
+    border-radius: 10px !important;
+    padding: 15px !important;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4) !important;
 }
 
 .custom-calendar abbr {
@@ -37,7 +37,7 @@
 .custom-calendar .react-calendar__tile--active {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     color: black !important;
-    border-radius: 6px;
+    border-radius: 6px !important;
 }
 
 .custom-calendar .react-calendar__tile {
@@ -46,16 +46,16 @@
 
 /* Select Button */
 .dashboard-button {
-    background: linear-gradient(45deg, #ffcc00, #ff9900);
-    color: black;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    transition: all 0.3s ease-in-out;
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    color: black !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    transition: all 0.3s ease-in-out !important;
 }
 
 .dashboard-button:hover {
-    background: linear-gradient(45deg, #ff9900, #ffcc00);
-    transform: scale(1.05);
+    background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
+    transform: scale(1.05) !important;
 }
