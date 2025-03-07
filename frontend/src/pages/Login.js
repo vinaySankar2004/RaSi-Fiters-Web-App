@@ -79,12 +79,10 @@ const Login = () => {
                                 endAdornment: (
                                     <InputAdornment position="end">
                                         <IconButton
-                                            onMouseDown={() => setShowPassword(true)}
-                                            onMouseUp={() => setShowPassword(false)}
-                                            onMouseLeave={() => setShowPassword(false)}
+                                            onClick={() => setShowPassword((prev) => !prev)}
                                             edge="end"
                                         >
-                                            {showPassword ? <Visibility /> : <VisibilityOff />}
+                                            {showPassword ? <VisibilityOff /> : <Visibility />}
                                         </IconButton>
                                     </InputAdornment>
                                 ),
