@@ -40,6 +40,14 @@
     margin-bottom: 15px !important;
 }
 
+.dashboard-add-button,
+.dashboard-refresh-button {
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    color: black !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-weight: bold !important;
+}
 /* ADD LOG BUTTON */
 .dashboard-add-button {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
@@ -51,12 +59,6 @@
 
 .dashboard-add-button:hover {
     background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
-}
-
-/* REFRESH BUTTON */
-.dashboard-refresh-button {
-    color: white !important;
-    transition: transform 0.2s ease-in-out !important;
 }
 
 .dashboard-refresh-button:hover {
