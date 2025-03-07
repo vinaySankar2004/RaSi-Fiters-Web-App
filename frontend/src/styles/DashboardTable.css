@@ -1,0 +1,33 @@
+.dashboard-container {
+    text-align: center !important;
+    padding-top: 110px !important;
+}
+
+.dashboard-title {
+    font-size: 2rem !important;
+    font-weight: bold !important;
+    color: #ffcc00 !important;
+    margin-bottom: 20px !important;
+}
+
+.dashboard-table-container {
+    background: rgba(20, 20, 20, 0.9) !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+}
+
+.table-header-row th {
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    color: black !important;
+    font-size: 1.3rem !important;
+}
+
+.table-body-row td {
+    color: white !important;
+    font-size: 1.1rem !important;
+}
+
+.dashboard-dialog .MuiPaper-root {
+    background: rgba(20, 20, 20, 0.95) !important;
+    color: white !important;
+}

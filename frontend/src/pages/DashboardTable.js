@@ -1,9 +1,30 @@
-import React, {useState, useEffect, useCallback} from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Container, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Select, MenuItem } from "@mui/material";
+import {
+    Container,
+    Typography,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    IconButton,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    Select,
+    MenuItem,
+    Box
+} from "@mui/material";
 import { Delete, Edit, Add, Refresh } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import api from "../utils/api";
+import "../styles/DashboardTable.css"; // Apply new styling
 
 const DashboardTable = () => {
     const { date } = useParams();
@@ -17,9 +38,8 @@ const DashboardTable = () => {
         try {
             const utcDate = new Date(date);
             const formattedDate = utcDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-
             const data = await api.getWorkoutLogs(formattedDate);
-            setLogs(Array.isArray(data) ? data : []); // Ensure array format
+            setLogs(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching logs:", error);
             setLogs([]);
@@ -70,42 +90,41 @@ const DashboardTable = () => {
     return (
         <>
             <NavbarLoggedIn />
-            <Container sx={{ mt: 4, textAlign: "center" }}>
-                <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>Workout Log for {date}</Typography>
+            <Container className="dashboard-container">
+                <Typography variant="h4" className="dashboard-title">Workout Log for {date}</Typography>
 
-                {/* Buttons moved to the top */}
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <Button variant="contained" color="primary" onClick={() => handleOpen()}>
+                <Box className="dashboard-actions">
+                    <Button className="dashboard-add-button" onClick={() => handleOpen()}>
                         <Add /> Add Log
                     </Button>
-                    <IconButton color="primary" onClick={fetchLogs}>
+                    <IconButton className="dashboard-refresh-button" onClick={fetchLogs}>
                         <Refresh />
                     </IconButton>
-                </div>
+                </Box>
 
-                <TableContainer component={Paper} sx={{ mt: 2 }}>
+                <TableContainer component={Paper} className="dashboard-table-container">
                     <Table>
                         <TableHead>
-                            <TableRow sx={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-                                <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Member</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Workout</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Duration (mins)</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                            <TableRow className="table-header-row">
+                                <TableCell>#</TableCell>
+                                <TableCell>Member</TableCell>
+                                <TableCell>Workout</TableCell>
+                                <TableCell>Duration (mins)</TableCell>
+                                <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {logs.map((log, index) => (
-                                <TableRow key={`${log.member_name}-${log.workout_name}-${log.date}`} sx={{ "&:hover": { backgroundColor: "#f9f9f9" } }}>
+                                <TableRow key={`${log.member_name}-${log.workout_name}-${log.date}`} className="table-body-row">
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{log.member_name}</TableCell>
                                     <TableCell>{log.workout_name}</TableCell>
                                     <TableCell>{log.duration}</TableCell>
                                     <TableCell>
-                                        <IconButton color="primary" onClick={() => handleOpen(log)}>
+                                        <IconButton className="edit-button" onClick={() => handleOpen(log)}>
                                             <Edit />
                                         </IconButton>
-                                        <IconButton color="error" onClick={() => handleDelete(log)}>
+                                        <IconButton className="delete-button" onClick={() => handleDelete(log)}>
                                             <Delete />
                                         </IconButton>
                                     </TableCell>
@@ -136,7 +155,7 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
             setWorkout("");
             setDuration("");
         }
-    }, [editData, open]); // Reset fields when modal opens
+    }, [editData, open]);
 
     const handleSubmit = async () => {
         try {
@@ -162,40 +181,25 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
         }
     };
 
-    // Submit when Enter is pressed
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            handleSubmit();
-        }
-    };
-
     return (
-        <Dialog open={open} onClose={handleClose}>
-            <DialogTitle>{editData ? "Edit Log" : "Add Log"}</DialogTitle>
-            <DialogContent onKeyDown={handleKeyDown}>
-                <Select fullWidth value={member} onChange={(e) => setMember(e.target.value)}>
+        <Dialog open={open} onClose={handleClose} className="dashboard-dialog">
+            <DialogTitle className="dialog-title">{editData ? "Edit Log" : "Add Log"}</DialogTitle>
+            <DialogContent className="dialog-content">
+                <Select fullWidth value={member} onChange={(e) => setMember(e.target.value)} className="dialog-input">
                     {members.map((m) => (
                         <MenuItem key={m.member_name} value={m.member_name}>{m.member_name}</MenuItem>
                     ))}
                 </Select>
-                <Select fullWidth value={workout} onChange={(e) => setWorkout(e.target.value)} sx={{ mt: 2 }}>
+                <Select fullWidth value={workout} onChange={(e) => setWorkout(e.target.value)} className="dialog-input" sx={{ mt: 2 }}>
                     {workouts.map((w) => (
                         <MenuItem key={w.workout_name} value={w.workout_name}>{w.workout_name}</MenuItem>
                     ))}
                 </Select>
-                <TextField
-                    fullWidth
-                    label="Duration (mins)"
-                    type="number"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    sx={{ mt: 2 }}
-                />
+                <TextField fullWidth label="Duration (mins)" type="number" value={duration} onChange={(e) => setDuration(e.target.value)} className="dialog-input" sx={{ mt: 2 }} />
             </DialogContent>
             <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
-                <Button onClick={handleSubmit} variant="contained" color="primary">{editData ? "Modify" : "Add"}</Button>
+                <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
+                <Button className="save-button" onClick={handleSubmit}>{editData ? "Modify" : "Add"}</Button>
             </DialogActions>
         </Dialog>
     );
