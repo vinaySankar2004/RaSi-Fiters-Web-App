@@ -57,7 +57,7 @@ const DashboardTable = () => {
         }
 
         fetchLogs();
-    }, [navigate, date]);
+    }, [navigate, date, fetchLogs]);
 
     const fetchMembers = useCallback(async () => {
         const data = await api.getMembers();
