@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children }) => {
 
     if (loading) return null;  // Wait until check is done
 
-    return isAuthenticated && isAdmin ? children : <Navigate to="/login" />;
+    return isAuthenticated && isAdmin ? children : <Navigate to="/dashboard" />;
 };
 
 function App() {
