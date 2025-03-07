@@ -97,6 +97,17 @@
     color: white !important;
 }
 
+/* DISABLED INPUTS - IMPROVE VISIBILITY */
+.dialog-input.Mui-disabled {
+    color: rgba(255, 255, 255, 0.6) !important; /* Lighten text for better contrast */
+    opacity: 1 !important; /* Ensure visibility is not reduced */
+}
+
+/* PLACEHOLDER TEXT */
+.dialog-input input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
 .dialog-input label,
 .dialog-input input {
     color: white !important;
