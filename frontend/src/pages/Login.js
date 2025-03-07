@@ -14,7 +14,6 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
-import api from "../utils/api";
 import "../styles/Login.css";
 
 const Login = () => {
@@ -30,12 +29,29 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const data = await api.login(username, password);
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify({ username }));
-            navigate("/dashboard");
+            const response = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log("Login Response:", data); // Debugging log
+
+                // Store token & role in localStorage
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("role", data.role);
+
+                // Redirect user after login
+                window.location.href = "/dashboard"; // Forces a full page reload
+            } else {
+                setError(data.message || "Invalid username or password.");
+            }
         } catch (err) {
-            setError("Invalid username or password.");
+            console.error("Login Error:", err);
+            setError("Something went wrong. Please try again.");
         } finally {
             setLoading(false);
         }
