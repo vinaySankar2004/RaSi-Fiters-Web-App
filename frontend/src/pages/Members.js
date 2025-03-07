@@ -21,6 +21,7 @@ import {
 import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import api from "../utils/api";
+import "../styles/Members.css"; // Apply custom styling
 
 const Members = () => {
     const [members, setMembers] = useState([]);
@@ -82,41 +83,41 @@ const Members = () => {
     return (
         <>
             <NavbarLoggedIn />
-            <Container sx={{ mt: 4, textAlign: "center" }}>
-                <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>Members List</Typography>
+            <Container className="members-container">
+                <Typography variant="h4" className="members-title">Members List</Typography>
 
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Button variant="contained" color="primary" onClick={() => handleOpen()}>
+                <Box className="members-actions">
+                    <Button className="members-add-button" onClick={() => handleOpen()}>
                         <Add /> Add Member
                     </Button>
-                    <IconButton color="primary" onClick={fetchMembers}>
+                    <IconButton className="members-refresh-button" onClick={fetchMembers}>
                         <Refresh />
                     </IconButton>
                 </Box>
 
-                <TableContainer component={Paper} sx={{ mt: 3 }}>
+                <TableContainer component={Paper} className="members-table-container">
                     <Table>
                         <TableHead>
-                            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                                <TableCell sx={{ fontWeight: "bold" }}>#</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Member Name</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Gender</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Age</TableCell>
-                                <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                            <TableRow className="table-header-row">
+                                <TableCell>#</TableCell>
+                                <TableCell>Member Name</TableCell>
+                                <TableCell>Gender</TableCell>
+                                <TableCell>Age</TableCell>
+                                <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {members.map((member, index) => (
-                                <TableRow key={member.member_name} hover>
+                                <TableRow key={member.member_name} className="table-body-row">
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{member.member_name}</TableCell>
                                     <TableCell>{member.gender}</TableCell>
                                     <TableCell>{member.age}</TableCell>
                                     <TableCell>
-                                        <IconButton color="primary" onClick={() => handleOpen(member)}>
+                                        <IconButton className="edit-button" onClick={() => handleOpen(member)}>
                                             <Edit />
                                         </IconButton>
-                                        <IconButton color="error" onClick={() => handleDelete(member.member_name)}>
+                                        <IconButton className="delete-button" onClick={() => handleDelete(member.member_name)}>
                                             <Delete />
                                         </IconButton>
                                     </TableCell>
@@ -126,16 +127,16 @@ const Members = () => {
                     </Table>
                 </TableContainer>
 
-                <Dialog open={open} onClose={handleClose}>
-                    <DialogTitle>{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
-                    <DialogContent>
-                        <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} sx={{ mt: 2 }} />
-                        <TextField fullWidth label="Gender" value={newMember.gender} onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })} sx={{ mt: 2 }} />
-                        <TextField fullWidth label="Age" type="number" value={newMember.age} onChange={(e) => setNewMember({ ...newMember, age: e.target.value })} sx={{ mt: 2 }} />
+                <Dialog open={open} onClose={handleClose} className="members-dialog">
+                    <DialogTitle className="dialog-title">{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
+                    <DialogContent className="dialog-content">
+                        <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} className="dialog-input" />
+                        <TextField fullWidth label="Gender" value={newMember.gender} onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })} className="dialog-input" />
+                        <TextField fullWidth label="Age" type="number" value={newMember.age} onChange={(e) => setNewMember({ ...newMember, age: e.target.value })} className="dialog-input" />
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={handleClose}>Cancel</Button>
-                        <Button onClick={handleSave} variant="contained" color="primary">{editData ? "Save Changes" : "Add"}</Button>
+                        <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
+                        <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
                     </DialogActions>
                 </Dialog>
             </Container>
