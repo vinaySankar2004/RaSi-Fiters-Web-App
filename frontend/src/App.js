@@ -7,9 +7,23 @@ import DashboardTable from "./pages/DashboardTable";
 import Members from "./pages/Members";
 import Workouts from "./pages/Workouts";
 
+import { useEffect, useState } from "react";
+
 const ProtectedRoute = ({ children }) => {
-    const isAuthenticated = localStorage.getItem("token");
-    const isAdmin = localStorage.getItem("role") === "admin";
+    const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        const role = localStorage.getItem("role");
+
+        setIsAuthenticated(!!token);
+        setIsAdmin(role === "admin");
+        setLoading(false);
+    }, []);
+
+    if (loading) return null;  // Wait until check is done
 
     return isAuthenticated && isAdmin ? children : <Navigate to="/login" />;
 };
