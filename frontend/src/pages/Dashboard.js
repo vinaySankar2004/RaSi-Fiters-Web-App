@@ -4,7 +4,7 @@ import { Container, Typography, Button, Box } from "@mui/material";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import "../styles/Dashboard.css"; // Apply new styles
+import "../styles/Dashboard.css"; // Ensure CSS is properly linked
 
 const Dashboard = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -21,17 +21,19 @@ const Dashboard = () => {
         <>
             <NavbarLoggedIn />
             <Container className="dashboard-container">
-                <Typography variant="h3" className="dashboard-title">Select a Day</Typography>
+                <Typography variant="h3" className="dashboard-title">
+                    Select a Day
+                </Typography>
 
-                <Box className="calendar-container">
+                <Box className="dashboard-calendar-wrapper">
                     <Calendar
                         onChange={setSelectedDate}
                         value={selectedDate}
-                        className="custom-calendar"
+                        className="dashboard-calendar"
                     />
                 </Box>
 
-                <Button className="dashboard-button" onClick={handleSelectDate}>
+                <Button className="dashboard-select-button" onClick={handleSelectDate}>
                     Select
                 </Button>
             </Container>
