@@ -94,12 +94,16 @@ const DashboardTable = () => {
                 <Typography variant="h4" className="dashboard-title">Workout Log for {date}</Typography>
 
                 <Box className="dashboard-actions">
-                    <Button className="dashboard-add-button" onClick={() => handleOpen()}>
-                        <Add /> Add Log
-                    </Button>
-                    <IconButton className="dashboard-refresh-button" onClick={fetchLogs}>
-                        <Refresh />
-                    </IconButton>
+                    <Box className="dashboard-add">
+                        <Button className="dashboard-add-button" onClick={() => handleOpen()}>
+                            <Add /> Add Log
+                        </Button>
+                    </Box>
+                    <Box className="dashboard-refresh">
+                        <IconButton className="dashboard-refresh-button" onClick={fetchLogs}>
+                            <Refresh />
+                        </IconButton>
+                    </Box>
                 </Box>
 
                 <TableContainer component={Paper} className="dashboard-table-container">
