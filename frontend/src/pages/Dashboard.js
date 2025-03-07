@@ -10,6 +10,15 @@ const Dashboard = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const isAuthenticated = localStorage.getItem("token");
+        const isAdmin = localStorage.getItem("role") === "admin";
+
+        if (!isAuthenticated || !isAdmin) {
+            navigate("/login");
+        }
+    }, [navigate]);
+
     const handleSelectDate = () => {
         if (selectedDate) {
             const formattedDate = selectedDate.toISOString().split("T")[0];

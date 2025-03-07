@@ -7,16 +7,23 @@ import DashboardTable from "./pages/DashboardTable";
 import Members from "./pages/Members";
 import Workouts from "./pages/Workouts";
 
+const ProtectedRoute = ({ children }) => {
+    const isAuthenticated = localStorage.getItem("token");
+    const isAdmin = localStorage.getItem("role") === "admin";
+
+    return isAuthenticated && isAdmin ? children : <Navigate to="/login" />;
+};
+
 function App() {
     return (
         <Router>
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/:date" element={<DashboardTable />} />
-                <Route path="/members" element={<Members />} />
-                <Route path="/workouts" element={<Workouts />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/dashboard/:date" element={<ProtectedRoute><DashboardTable /></ProtectedRoute>} />
+                <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
+                <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
             </Routes>
         </Router>
     );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import {
     Container,
@@ -27,12 +28,24 @@ import api from "../utils/api";
 import "../styles/DashboardTable.css"; // Apply new styling
 
 const DashboardTable = () => {
+    const navigate = useNavigate();
     const { date } = useParams();
     const [logs, setLogs] = useState([]);
     const [members, setMembers] = useState([]);
     const [workouts, setWorkouts] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
+
+    useEffect(() => {
+        const isAuthenticated = localStorage.getItem("token");
+        const isAdmin = localStorage.getItem("role") === "admin";
+
+        if (!isAuthenticated || !isAdmin) {
+            navigate("/login");
+        }
+
+        fetchLogs();
+    }, [navigate, date]);
 
     const fetchLogs = useCallback(async () => {
         try {
