@@ -1,7 +1,6 @@
 import React from "react";
 import { Box, Typography, Button, Container } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import heroImage from "../assets/hero-image.jpg"; // Ensure this file exists
 
 const HeroSection = () => {
     const navigate = useNavigate();
