@@ -1,0 +1,59 @@
+.navbar-loggedin {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.9), rgba(40, 40, 40, 0.9)) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    padding: 15px 20px !important;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3) !important;
+    z-index: 1000 !important;
+}
+
+.navbar-loggedin-logo {
+    font-weight: 700 !important;
+    font-size: 1.4rem !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    font-family: "Poppins", sans-serif !important;
+    color: #fff !important;
+    cursor: pointer !important;
+}
+
+.navbar-loggedin-links {
+    display: flex !important;
+    gap: 2rem !important;
+}
+
+.navbar-loggedin-links a {
+    color: white !important;
+    text-decoration: none !important;
+    font-size: 1rem !important;
+    transition: color 0.3s ease-in-out !important;
+}
+
+.navbar-loggedin-links a:hover {
+    color: #ffcc00 !important;
+}
+
+.navbar-user {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.8rem !important;
+    padding: 8px 14px !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    cursor: pointer !important;
+    transition: background 0.3s ease-in-out !important;
+}
+
+.navbar-user:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.navbar-avatar {
+    background-color: #ffcc00 !important;
+    color: black !important;
+    font-weight: bold !important;
+}

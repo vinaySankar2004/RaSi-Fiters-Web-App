@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import "../styles/Navbar.css"; // Reusing navbar styles
+import "../styles/NavbarLoggedIn.css"; // New CSS file
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
@@ -31,17 +31,17 @@ const NavbarLoggedIn = () => {
     };
 
     return (
-        <AppBar position="fixed" className="navbar">
+        <AppBar position="fixed" className="navbar-loggedin">
             <Toolbar>
-                <Typography variant="h6" className="navbar-logo" onClick={() => navigate("/dashboard")}>
+                <Typography variant="h6" className="navbar-loggedin-logo" onClick={() => navigate("/dashboard")}>
                     RASI FIT'ERS
                 </Typography>
 
-                <Box sx={{ display: "flex", gap: 2 }}>
-                    <Button className="navbar-link" onClick={() => navigate("/members")}>Members</Button>
-                    <Button className="navbar-link" onClick={() => navigate("/workouts")}>Workouts</Button>
-                    <Button className="navbar-link" onClick={() => navigate("/dashboard")}>Dashboard</Button>
-                    <Button className="navbar-link" onClick={() => navigate("/analytics")}>Analytics</Button>
+                <Box className="navbar-loggedin-links">
+                    <Button onClick={() => navigate("/members")} className="navbar-link">Members</Button>
+                    <Button onClick={() => navigate("/workouts")} className="navbar-link">Workouts</Button>
+                    <Button onClick={() => navigate("/dashboard")} className="navbar-link">Dashboard</Button>
+                    <Button onClick={() => navigate("/analytics")} className="navbar-link">Analytics</Button>
                 </Box>
 
                 <Box className="navbar-user" onClick={handleMenuOpen}>
