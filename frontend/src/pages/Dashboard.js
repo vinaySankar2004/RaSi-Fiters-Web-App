@@ -4,6 +4,7 @@ import { Container, Typography, Button, Box } from "@mui/material";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import "../styles/Dashboard.css"; // Apply new styles
 
 const Dashboard = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -11,7 +12,7 @@ const Dashboard = () => {
 
     const handleSelectDate = () => {
         if (selectedDate) {
-            const formattedDate = selectedDate.toISOString().split("T")[0]; // Format YYYY-MM-DD
+            const formattedDate = selectedDate.toISOString().split("T")[0];
             navigate(`/dashboard/${formattedDate}`);
         }
     };
@@ -19,21 +20,20 @@ const Dashboard = () => {
     return (
         <>
             <NavbarLoggedIn />
-            <Container sx={{ mt: 4, textAlign: "center" }}>
-                <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>Select a Day</Typography>
+            <Container className="dashboard-container">
+                <Typography variant="h3" className="dashboard-title">Select a Day</Typography>
 
-                <Box sx={{ mt: 3, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                    <Box sx={{ width: "100%", maxWidth: "450px", p: 2, "& .react-calendar": { width: "100%", fontSize: "1.2rem" } }}>
-                        <Calendar
-                            onChange={setSelectedDate}
-                            value={selectedDate}
-                        />
-                    </Box>
-
-                    <Button variant="contained" color="primary" sx={{ mt: 1 }} onClick={handleSelectDate}>
-                        Select
-                    </Button>
+                <Box className="calendar-container">
+                    <Calendar
+                        onChange={setSelectedDate}
+                        value={selectedDate}
+                        className="custom-calendar"
+                    />
                 </Box>
+
+                <Button className="dashboard-button" onClick={handleSelectDate}>
+                    Select
+                </Button>
             </Container>
         </>
     );

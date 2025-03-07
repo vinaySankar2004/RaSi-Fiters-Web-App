@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import "../styles/Navbar.css"; // Reusing navbar styles
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
-    const [username, setUsername] = useState("User"); // Default placeholder
+    const [username, setUsername] = useState("User");
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
 
     useEffect(() => {
-        // Retrieve username from localStorage
         const storedUser = JSON.parse(localStorage.getItem("user"));
         if (storedUser?.username) {
             setUsername(storedUser.username);
@@ -31,49 +31,26 @@ const NavbarLoggedIn = () => {
     };
 
     return (
-        <AppBar position="static" color="primary">
+        <AppBar position="fixed" className="navbar">
             <Toolbar>
-                <Typography variant="h6" sx={{ flexGrow: 1, cursor: "pointer" }} onClick={() => navigate("/dashboard")}>
+                <Typography variant="h6" className="navbar-logo" onClick={() => navigate("/dashboard")}>
                     RASI FIT'ERS
                 </Typography>
 
-                {/* Navigation Links */}
                 <Box sx={{ display: "flex", gap: 2 }}>
-                    <Button color="inherit" onClick={() => navigate("/members")}>Members</Button>
-                    <Button color="inherit" onClick={() => navigate("/workouts")}>Workouts</Button>
-                    <Button color="inherit" onClick={() => navigate("/dashboard")}>Dashboard</Button>
-                    <Button color="inherit" onClick={() => navigate("/analytics")}>Analytics</Button>
+                    <Button className="navbar-link" onClick={() => navigate("/members")}>Members</Button>
+                    <Button className="navbar-link" onClick={() => navigate("/workouts")}>Workouts</Button>
+                    <Button className="navbar-link" onClick={() => navigate("/dashboard")}>Dashboard</Button>
+                    <Button className="navbar-link" onClick={() => navigate("/analytics")}>Analytics</Button>
                 </Box>
 
-                {/* User Dropdown */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        ml: 2,
-                        bgcolor: "rgba(255, 255, 255, 0.1)",
-                        borderRadius: 2,
-                        px: 2,
-                        py: 1,
-                        cursor: "pointer"
-                    }}
-                    onClick={handleMenuOpen}
-                >
+                <Box className="navbar-user" onClick={handleMenuOpen}>
                     <Typography variant="body1">{username}</Typography>
-                    <Avatar sx={{ bgcolor: "secondary.main" }} />
+                    <Avatar className="navbar-avatar" />
                 </Box>
 
-                {/* Dropdown Menu */}
-                <Menu
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleMenuClose}
-                    anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-                    transformOrigin={{ vertical: "top", horizontal: "center" }}
-                    sx={{ width: "auto" }}
-                >
-                    <MenuItem onClick={handleLogout} sx={{ width: "100%" }}>Log Out</MenuItem>
+                <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose} className="navbar-dropdown">
+                    <MenuItem onClick={handleLogout}>Log Out</MenuItem>
                 </Menu>
             </Toolbar>
         </AppBar>
