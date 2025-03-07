@@ -46,15 +46,18 @@
     border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
-.login-input input:-webkit-autofill {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: white !important;
+.login-input input:-webkit-autofill,
+.login-input input:-webkit-autofill:hover,
+.login-input input:-webkit-autofill:focus,
+.login-input input:-webkit-autofill:active {
+    background-color: transparent !important;
     -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.1) inset !important;
+    box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.1) inset !important;
+    color: white !important;
 }
 
-.login-input input:-webkit-autofill:focus {
-    background-color: rgba(255, 255, 255, 0.2) !important;
-    -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.2) inset !important;
+/* Ensure text remains visible */
+.login-input input {
     color: white !important;
 }
 
@@ -78,7 +81,7 @@
     color: white !important;
     border-radius: 8px !important;
     padding: 12px !important;
-    margin-bottom: 12px !important; /* 🔥 Increased margin to push input down */
+    margin-bottom: 12px !important;
 }
 
 @keyframes fadeIn {
