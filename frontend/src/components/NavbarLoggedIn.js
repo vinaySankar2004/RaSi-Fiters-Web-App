@@ -33,12 +33,12 @@ const NavbarLoggedIn = () => {
     return (
         <AppBar position="fixed" className="navbar-loggedin">
             <Toolbar className="navbar-loggedin-toolbar">
-                {/* Logo Section */}
+                {/* Logo Section - Ensure same weight as Navbar */}
                 <Typography variant="h6" className="navbar-loggedin-logo" onClick={() => navigate("/dashboard")}>
                     RASI FIT'ERS
                 </Typography>
 
-                {/* Navigation Links */}
+                {/* Navigation Links - Positioned to the left of Admin */}
                 <Box className="navbar-loggedin-links">
                     <Button onClick={() => navigate("/members")} className="navbar-loggedin-link">Members</Button>
                     <Button onClick={() => navigate("/workouts")} className="navbar-loggedin-link">Workouts</Button>
@@ -46,7 +46,7 @@ const NavbarLoggedIn = () => {
                     <Button onClick={() => navigate("/analytics")} className="navbar-loggedin-link">Analytics</Button>
                 </Box>
 
-                {/* User Profile Dropdown */}
+                {/* User Profile Section */}
                 <Box className="navbar-loggedin-user" onClick={handleMenuOpen}>
                     <Typography variant="body1" className="navbar-loggedin-username">{username}</Typography>
                     <Avatar className="navbar-loggedin-avatar" />

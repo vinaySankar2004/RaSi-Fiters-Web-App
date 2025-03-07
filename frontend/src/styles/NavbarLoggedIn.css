@@ -22,9 +22,9 @@
     width: 100% !important;
 }
 
-/* Logo Styling - Match Original Navbar */
+/* Logo Styling - Ensure same weight as Navbar */
 .navbar-loggedin-logo {
-    font-weight: 700 !important;
+    font-weight: 600 !important; /* Match weight to Navbar */
     font-size: 1.4rem !important;
     letter-spacing: 1px !important;
     text-transform: uppercase !important;
@@ -33,12 +33,12 @@
     cursor: pointer !important;
 }
 
-/* Navigation Links */
+/* Navigation Links - Moved right before Admin */
 .navbar-loggedin-links {
     display: flex !important;
     gap: 1.5rem !important;
-    margin-right: auto !important;
-    margin-left: 2rem !important;
+    margin-left: auto !important; /* Pushes nav links to the right */
+    margin-right: 2rem !important;
 }
 
 .navbar-loggedin-link {
