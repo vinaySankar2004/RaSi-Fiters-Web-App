@@ -1,3 +1,4 @@
+/* Full Page Background */
 .login-container {
     height: 100vh;
     display: flex;
@@ -7,28 +8,41 @@
     color: white;
 }
 
+/* Enhanced Glassmorphic Login Box */
 .login-box {
-    background: rgba(30, 30, 30, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(30, 30, 30, 0.5);  /* Transparent dark */
+    backdrop-filter: blur(15px); /* Blur effect */
+    -webkit-backdrop-filter: blur(15px);
     padding: 30px;
     border-radius: 12px;
     text-align: center;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.4);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Soft border */
+    animation: fadeIn 0.6s ease-in-out; /* Smooth fade effect */
 }
 
+/* Soft glow effect on hover */
+.login-box:hover {
+    border-color: rgba(255, 204, 0, 0.6);
+    box-shadow: 0px 0px 20px rgba(255, 204, 0, 0.3);
+}
+
+/* Login Title */
 .login-title {
     font-size: 1.8rem;
     font-weight: bold;
     margin-bottom: 20px;
+    color: white;
 }
 
+/* Input Fields */
 .login-input {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     color: white;
 }
 
+/* Button */
 .login-button {
     background: linear-gradient(45deg, #ffcc00, #ff9900);
     color: black !important;
@@ -44,8 +58,21 @@
     transform: scale(1.05);
 }
 
+/* Error Alert */
 .login-alert {
     background: rgba(255, 0, 0, 0.1);
     color: white;
     border-radius: 8px;
+}
+
+/* Fade-in Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
