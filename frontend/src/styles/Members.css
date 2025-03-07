@@ -27,16 +27,18 @@
     padding: 15px !important;
 }
 
-/* TABLE HEADER */
+/* TABLE HEADER - ORANGE BACKGROUND */
 .table-header-row {
-    background: rgba(40, 40, 40, 0.8) !important;
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     font-weight: bold !important;
-    color: white !important;
+    color: black !important;
+    font-size: 1.1rem !important; /* Slightly larger */
 }
 
-/* TABLE BODY */
+/* TABLE BODY ROW - WHITE TEXT */
 .table-body-row {
     color: white !important;
+    font-size: 1rem !important; /* Slightly larger */
 }
 
 /* TABLE ROW HOVER */
