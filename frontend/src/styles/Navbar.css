@@ -1,0 +1,25 @@
+.navbar {
+    background: rgba(0, 0, 0, 0.6); /* Glass effect */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 10px 20px;
+}
+
+.navbar-logo {
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.navbar-button {
+    color: white !important;
+    border: 2px solid white;
+    padding: 5px 15px !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease-in-out;
+}
+
+.navbar-button:hover {
+    background: white !important;
+    color: black !important;
+}
