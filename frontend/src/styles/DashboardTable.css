@@ -31,3 +31,34 @@
     background: rgba(20, 20, 20, 0.95) !important;
     color: white !important;
 }
+
+/* DASHBOARD ACTIONS - FLEX CONTAINER FOR BUTTONS */
+.dashboard-actions {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 15px !important;
+}
+
+/* ADD LOG BUTTON */
+.dashboard-add-button {
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    color: black !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-weight: bold !important;
+}
+
+.dashboard-add-button:hover {
+    background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
+}
+
+/* REFRESH BUTTON */
+.dashboard-refresh-button {
+    color: white !important;
+    transition: transform 0.2s ease-in-out !important;
+}
+
+.dashboard-refresh-button:hover {
+    transform: scale(1.1) !important;
+}
