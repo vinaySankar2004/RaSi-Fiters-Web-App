@@ -7,7 +7,7 @@ const Navbar = () => {
     const navigate = useNavigate();
 
     return (
-        <AppBar position="sticky" className="navbar">
+        <AppBar position="fixed" className="navbar">
             <Toolbar>
                 <Typography
                     variant="h6"

@@ -11,6 +11,7 @@
     z-index: 1000; /* Ensure it stays on top */
 }
 
+/* Navbar Logo */
 .navbar-logo {
     font-weight: 700;
     font-size: 1.4rem;
@@ -20,6 +21,7 @@
     color: #fff;
 }
 
+/* Navbar Button */
 .navbar-button {
     color: white !important;
     border: 2px solid white;
@@ -31,9 +33,4 @@
 .navbar-button:hover {
     background: white !important;
     color: black !important;
-}
-
-body, html {
-    margin: 0;
-    padding: 0;
 }
