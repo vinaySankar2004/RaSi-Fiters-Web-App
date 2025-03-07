@@ -96,15 +96,30 @@
     background: rgba(255, 204, 0, 0.2) !important;
 }
 
-/* Remove Background Darkening Effect */
-.MuiPopover-root {
-    background: transparent !important; /* Prevents the overlay effect */
+/* Fix Dropdown Design to Match Theme */
+.navbar-loggedin-dropdown .MuiPaper-root {
+    background: rgba(20, 20, 20, 0.95) !important;
+    color: white !important;
+    width: 120px !important; /* Ensure consistency */
+    padding: 8px 0px !important;
+    border-radius: 6px !important;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Fix Dropdown Width to Match User Box */
-.navbar-loggedin-dropdown .MuiPaper-root {
-    width: auto !important; /* Adjusts to match the width dynamically */
-    min-width: 100px !important; /* Ensures consistency */
-    padding: 5px 10px !important;
+/* Fix Log Out Button */
+.navbar-loggedin-dropdown .MuiMenuItem-root {
+    color: white !important;
+    font-size: 1rem !important;
     text-align: center !important;
+    padding: 10px 15px !important;
+}
+
+/* Hover Effect for Dropdown */
+.navbar-loggedin-dropdown .MuiMenuItem-root:hover {
+    background: rgba(255, 204, 0, 0.2) !important;
+}
+
+/* Ensure No Overlay Effect */
+.MuiPopover-root {
+    background: transparent !important;
 }

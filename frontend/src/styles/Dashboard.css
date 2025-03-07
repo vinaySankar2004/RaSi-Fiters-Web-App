@@ -1,6 +1,7 @@
+/* Fix Overlapping Issue */
 .dashboard-container {
     text-align: center !important;
-    padding-top: 80px !important;
+    padding-top: 110px !important; /* Increased from 80px to prevent overlap */
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
