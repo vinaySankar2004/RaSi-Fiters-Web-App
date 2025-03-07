@@ -1,9 +1,14 @@
 .navbar {
-    background: linear-gradient(135deg, rgba(20, 20, 20, 0.8), rgba(40, 40, 40, 0.8)) !important;
+    position: fixed !important; /* Fully stick to the top */
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.9), rgba(40, 40, 40, 0.9));
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 10px 20px;
+    padding: 15px 20px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 1000; /* Ensure it stays on top */
 }
 
 .navbar-logo {
@@ -26,4 +31,9 @@
 .navbar-button:hover {
     background: white !important;
     color: black !important;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
 }
