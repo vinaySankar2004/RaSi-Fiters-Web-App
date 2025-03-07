@@ -1,6 +1,6 @@
 .dashboard-container {
     text-align: center !important;
-    padding-top: 100px !important;
+    padding-top: 80px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -9,10 +9,10 @@
 }
 
 .dashboard-title {
-    font-size: 2rem !important;
+    font-size: 2.2rem !important;
     font-weight: bold !important;
     color: #ffcc00 !important;
-    margin-bottom: 20px !important;
+    margin-bottom: 15px !important;
 }
 
 .dashboard-calendar-wrapper {
@@ -25,10 +25,11 @@
 .dashboard-calendar {
     background: rgba(20, 20, 20, 0.85) !important;
     border-radius: 12px !important;
-    padding: 20px !important;
+    padding: 25px !important;
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3) !important;
     color: white !important;
     font-size: 1.2rem !important;
+    width: 350px !important;
 }
 
 .react-calendar__navigation button {
@@ -42,17 +43,23 @@
     color: #ffcc00 !important;
 }
 
+.react-calendar__tile {
+    color: #A0A0A0 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    transition: background 0.3s ease-in-out !important;
+}
+
+.react-calendar__tile--now {
+    background: none !important;
+    color: #A0A0A0 !important;
+}
+
 .react-calendar__tile--active {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     color: black !important;
     border-radius: 8px !important;
     font-weight: bold !important;
-}
-
-.react-calendar__tile {
-    padding: 12px !important;
-    border-radius: 8px !important;
-    transition: background 0.3s ease-in-out !important;
 }
 
 .react-calendar__tile:hover {
@@ -62,12 +69,12 @@
 .dashboard-select-button {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     color: black !important;
-    padding: 12px 24px !important;
+    padding: 12px 28px !important;
     border-radius: 8px !important;
     font-size: 1.1rem !important;
     font-weight: bold !important;
     transition: all 0.3s ease-in-out !important;
-    margin-top: 20px !important;
+    margin-top: 25px !important;
 }
 
 .dashboard-select-button:hover {
