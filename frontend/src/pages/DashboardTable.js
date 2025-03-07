@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import {
     Container,
@@ -28,7 +27,6 @@ import api from "../utils/api";
 import "../styles/DashboardTable.css"; // Apply new styling
 
 const DashboardTable = () => {
-    const navigate = useNavigate();
     const { date } = useParams();
     const [logs, setLogs] = useState([]);
     const [members, setMembers] = useState([]);
@@ -49,15 +47,8 @@ const DashboardTable = () => {
     }, [date]);
 
     useEffect(() => {
-        const isAuthenticated = localStorage.getItem("token");
-        const isAdmin = localStorage.getItem("role") === "admin";
-
-        if (!isAuthenticated || !isAdmin) {
-            navigate("/login");
-        }
-
         fetchLogs();
-    }, [navigate, date, fetchLogs]);
+    }, [fetchLogs]);
 
     const fetchMembers = useCallback(async () => {
         const data = await api.getMembers();

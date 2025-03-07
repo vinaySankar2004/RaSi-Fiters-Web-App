@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from "react";
-import { useNavigate } from "react-router-dom";
 import { Container, Typography, Button, Box } from "@mui/material";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -8,16 +7,9 @@ import "../styles/Dashboard.css"; // Ensure CSS is properly linked
 
 const Dashboard = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const navigate = useNavigate();
 
     useEffect(() => {
-        const isAuthenticated = localStorage.getItem("token");
-        const isAdmin = localStorage.getItem("role") === "admin";
-
-        if (!isAuthenticated || !isAdmin) {
-            navigate("/login");
-        }
-    }, [navigate]);
+    }, []);
 
     const handleSelectDate = () => {
         if (selectedDate) {

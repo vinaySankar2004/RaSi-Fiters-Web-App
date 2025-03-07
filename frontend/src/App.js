@@ -18,18 +18,16 @@ const ProtectedRoute = ({ children }) => {
         const token = localStorage.getItem("token");
         const role = localStorage.getItem("role");
 
-        setIsAuthenticated(!!token); // Convert token to boolean
-        setIsAdmin(role === "admin");
+        if (token && role === "admin") {
+            setIsAuthenticated(true);
+            setIsAdmin(true);
+        }
         setLoading(false);
     }, []);
 
-    if (loading) return null; // Prevents React from rendering too early
+    if (loading) return null; // Prevent rendering until check is complete
 
-    if (!isAuthenticated || !isAdmin) {
-        return <Navigate to="/login" replace />;
-    }
-
-    return children;
+    return isAuthenticated && isAdmin ? children : <Navigate to="/login" replace />;
 };
 
 function App() {

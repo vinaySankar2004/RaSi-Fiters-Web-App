@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Container,
     Box,
@@ -21,6 +22,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleLogin = async () => {
         setError(null);
@@ -43,7 +45,7 @@ const Login = () => {
                 localStorage.setItem("role", data.role);
 
                 // Redirect user after login
-                window.location.href = "/dashboard"; // Forces a full page reload
+                navigate("/dashboard");
             } else {
                 setError(data.message || "Invalid username or password.");
             }

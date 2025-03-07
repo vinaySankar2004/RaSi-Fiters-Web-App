@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
     Container,
     Typography,
@@ -25,22 +24,10 @@ import api from "../utils/api";
 import "../styles/Workouts.css"; // Apply new styling
 
 const Workouts = () => {
-    const navigate = useNavigate();
     const [workouts, setWorkouts] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
     const [newWorkout, setNewWorkout] = useState({ workout_name: "" });
-
-    useEffect(() => {
-        const isAuthenticated = localStorage.getItem("token");
-        const isAdmin = localStorage.getItem("role") === "admin";
-
-        if (!isAuthenticated || !isAdmin) {
-            navigate("/login");
-        }
-
-        fetchWorkouts();
-    }, [navigate]);
 
     const fetchWorkouts = async () => {
         try {
@@ -51,6 +38,10 @@ const Workouts = () => {
             setWorkouts([]);
         }
     };
+
+    useEffect(() => {
+        fetchWorkouts();
+    }, [fetchWorkouts]);
 
     const handleOpen = (workout = null) => {
         setEditData(workout);

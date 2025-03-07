@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
     Container, Typography, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, IconButton, Button, Dialog,
@@ -11,22 +10,10 @@ import api from "../utils/api";
 import "../styles/Members.css";
 
 const Members = () => {
-    const navigate = useNavigate();
     const [members, setMembers] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
     const [newMember, setNewMember] = useState({ member_name: "", gender: "", age: "" });
-
-    useEffect(() => {
-        const isAuthenticated = localStorage.getItem("token");
-        const isAdmin = localStorage.getItem("role") === "admin";
-
-        if (!isAuthenticated || !isAdmin) {
-            navigate("/login");
-        }
-
-        fetchMembers();
-    }, [navigate]);
 
     const fetchMembers = async () => {
         try {
@@ -37,6 +24,10 @@ const Members = () => {
             setMembers([]);
         }
     };
+
+    useEffect(() => {
+        fetchMembers();
+    }, [fetchMembers]);
 
     const handleOpen = (member = null) => {
         setEditData(member);

@@ -1,6 +1,28 @@
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 console.log("API URL:", process.env.REACT_APP_API_URL);
 
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+    };
+};
+
+// Helper function to handle API errors
+const handleApiResponse = async (response) => {
+    if (!response.ok) {
+        if (response.status === 401) {
+            console.error("Unauthorized request, redirecting to login...");
+            localStorage.removeItem("token"); // Clear invalid token
+            window.location.href = "/login"; // Force login redirect
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.message || "API request failed");
+    }
+    return response.json();
+};
+
 const api = {
     login: async (username, password) => {
         const response = await fetch(`${API_URL}/auth/login`, {
@@ -9,31 +31,32 @@ const api = {
             body: JSON.stringify({ username, password }),
         });
 
-        if (!response.ok) {
-            throw new Error("Invalid credentials");
-        }
-
-        return response.json();
+        return handleApiResponse(response);
     },
 
     getWorkoutLogs: async (date) => {
-        const formattedDate = new Date(date).toISOString().split("T")[0]; // Keep it in correct format
+        const formattedDate = new Date(date).toISOString().split("T")[0];
+        const response = await fetch(`${API_URL}/workout-logs?date=${formattedDate}`, {
+            headers: getAuthHeaders(),
+        });
 
-        const response = await fetch(`${API_URL}/workout-logs?date=${formattedDate}`);
-        return response.json();
+        return handleApiResponse(response);
     },
+
     addWorkoutLog: async (log) => {
         const response = await fetch(`${API_URL}/workout-logs`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(log),
         });
-        return response.json();
+
+        return handleApiResponse(response);
     },
+
     updateWorkoutLog: async (log) => {
         const response = await fetch(`${API_URL}/workout-logs`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 member_name: log.member_name,
                 workout_name: log.workout_name,
@@ -41,78 +64,97 @@ const api = {
                 duration: log.duration,
             }),
         });
-        return response.json();
+
+        return handleApiResponse(response);
     },
+
     deleteWorkoutLog: async (log) => {
-        await fetch(`${API_URL}/workout-logs`, {
+        const response = await fetch(`${API_URL}/workout-logs`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 member_name: log.member_name,
                 workout_name: log.workout_name,
                 date: log.date,
             }),
         });
+
+        return handleApiResponse(response);
     },
 
     getMembers: async () => {
-        try {
-            const response = await fetch(`${API_URL}/members`);
-            const data = await response.json();
-            console.log("API Response (Members):", data);
-            return Array.isArray(data) ? data : [];
-        } catch (error) {
-            console.error("API Error (getMembers):", error);
-            return []; // Return empty array on failure
-        }
+        const response = await fetch(`${API_URL}/members`, {
+            headers: getAuthHeaders(),
+        });
+
+        return handleApiResponse(response);
     },
 
     addMember: async (member) => {
         const response = await fetch(`${API_URL}/members`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(member),
         });
-        return response.json();
+
+        return handleApiResponse(response);
     },
 
     updateMember: async (member_name, updatedMember) => {
         const response = await fetch(`${API_URL}/members/${member_name}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(updatedMember),
         });
-        return response.json();
+
+        return handleApiResponse(response);
     },
 
     deleteMember: async (member_name) => {
-        await fetch(`${API_URL}/members/${member_name}`, { method: "DELETE" });
+        const response = await fetch(`${API_URL}/members/${member_name}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+
+        return handleApiResponse(response);
     },
 
     getWorkouts: async () => {
-        const response = await fetch(`${API_URL}/workouts`);
-        return response.json();
+        const response = await fetch(`${API_URL}/workouts`, {
+            headers: getAuthHeaders(),
+        });
+
+        return handleApiResponse(response);
     },
+
     addWorkout: async (workout) => {
         const response = await fetch(`${API_URL}/workouts`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(workout),
         });
-        return response.json();
+
+        return handleApiResponse(response);
     },
+
     updateWorkout: async (workout_name, updatedWorkout) => {
         const response = await fetch(`${API_URL}/workouts/${workout_name}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify(updatedWorkout),
         });
-        return response.json();
-    },
-    deleteWorkout: async (workout_name) => {
-        await fetch(`${API_URL}/workouts/${workout_name}`, { method: "DELETE" });
+
+        return handleApiResponse(response);
     },
 
+    deleteWorkout: async (workout_name) => {
+        const response = await fetch(`${API_URL}/workouts/${workout_name}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+
+        return handleApiResponse(response);
+    },
 };
 
 export default api;
