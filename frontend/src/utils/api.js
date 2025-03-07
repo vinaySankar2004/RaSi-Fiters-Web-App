@@ -17,7 +17,9 @@ const api = {
     },
 
     getWorkoutLogs: async (date) => {
-        const response = await fetch(`${API_URL}/workout-logs?date=${date}`);
+        const formattedDate = new Date(date).toISOString().split("T")[0]; // Keep it in correct format
+
+        const response = await fetch(`${API_URL}/workout-logs?date=${formattedDate}`);
         return response.json();
     },
     addWorkoutLog: async (log) => {
