@@ -95,3 +95,16 @@
 .navbar-loggedin-dropdown .MuiMenuItem-root:hover {
     background: rgba(255, 204, 0, 0.2) !important;
 }
+
+/* Remove Background Darkening Effect */
+.MuiPopover-root {
+    background: transparent !important; /* Prevents the overlay effect */
+}
+
+/* Fix Dropdown Width to Match User Box */
+.navbar-loggedin-dropdown .MuiPaper-root {
+    width: auto !important; /* Adjusts to match the width dynamically */
+    min-width: 100px !important; /* Ensures consistency */
+    padding: 5px 10px !important;
+    text-align: center !important;
+}
