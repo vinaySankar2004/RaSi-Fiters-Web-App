@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import "../styles/NavbarLoggedIn.css"; // Using the new CSS file
+import "../styles/NavbarLoggedIn.css"; // Ensure styles match Navbar
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
@@ -32,24 +32,27 @@ const NavbarLoggedIn = () => {
 
     return (
         <AppBar position="fixed" className="navbar-loggedin">
-            <Toolbar>
+            <Toolbar className="navbar-loggedin-toolbar">
+                {/* Logo Section */}
                 <Typography variant="h6" className="navbar-loggedin-logo" onClick={() => navigate("/dashboard")}>
                     RASI FIT'ERS
                 </Typography>
 
+                {/* Navigation Links */}
                 <Box className="navbar-loggedin-links">
-                    <Button onClick={() => navigate("/members")} className="navbar-link">Members</Button>
-                    <Button onClick={() => navigate("/workouts")} className="navbar-link">Workouts</Button>
-                    <Button onClick={() => navigate("/dashboard")} className="navbar-link">Dashboard</Button>
-                    <Button onClick={() => navigate("/analytics")} className="navbar-link">Analytics</Button>
+                    <Button onClick={() => navigate("/members")} className="navbar-loggedin-link">Members</Button>
+                    <Button onClick={() => navigate("/workouts")} className="navbar-loggedin-link">Workouts</Button>
+                    <Button onClick={() => navigate("/dashboard")} className="navbar-loggedin-link">Dashboard</Button>
+                    <Button onClick={() => navigate("/analytics")} className="navbar-loggedin-link">Analytics</Button>
                 </Box>
 
-                <Box className="navbar-user" onClick={handleMenuOpen}>
-                    <Typography variant="body1">{username}</Typography>
-                    <Avatar className="navbar-avatar" />
+                {/* User Profile Dropdown */}
+                <Box className="navbar-loggedin-user" onClick={handleMenuOpen}>
+                    <Typography variant="body1" className="navbar-loggedin-username">{username}</Typography>
+                    <Avatar className="navbar-loggedin-avatar" />
                 </Box>
 
-                <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose} className="navbar-dropdown">
+                <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose} className="navbar-loggedin-dropdown">
                     <MenuItem onClick={handleLogout}>Log Out</MenuItem>
                 </Menu>
             </Toolbar>

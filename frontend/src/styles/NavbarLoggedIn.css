@@ -1,3 +1,4 @@
+/* NAVBAR LOGGED IN - Ensuring consistency with Navbar */
 .navbar-loggedin {
     position: fixed !important;
     top: 0 !important;
@@ -11,9 +12,17 @@
     z-index: 1000 !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
 }
 
+/* Toolbar Consistency */
+.navbar-loggedin-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+}
+
+/* Logo Styling - Match Original Navbar */
 .navbar-loggedin-logo {
     font-weight: 700 !important;
     font-size: 1.4rem !important;
@@ -24,6 +33,7 @@
     cursor: pointer !important;
 }
 
+/* Navigation Links */
 .navbar-loggedin-links {
     display: flex !important;
     gap: 1.5rem !important;
@@ -31,7 +41,7 @@
     margin-left: 2rem !important;
 }
 
-.navbar-loggedin-links a {
+.navbar-loggedin-link {
     color: white !important;
     text-decoration: none !important;
     font-size: 1rem !important;
@@ -39,12 +49,12 @@
     font-weight: 500 !important;
 }
 
-.navbar-loggedin-links a:hover {
+.navbar-loggedin-link:hover {
     color: #ffcc00 !important;
 }
 
-/* User Profile */
-.navbar-user {
+/* User Profile Section */
+.navbar-loggedin-user {
     display: flex !important;
     align-items: center !important;
     gap: 0.8rem !important;
@@ -55,12 +65,33 @@
     transition: background 0.3s ease-in-out !important;
 }
 
-.navbar-user:hover {
+.navbar-loggedin-user:hover {
     background: rgba(255, 255, 255, 0.2) !important;
 }
 
-.navbar-avatar {
+.navbar-loggedin-username {
+    font-size: 1rem !important;
+    color: white !important;
+    font-weight: 500 !important;
+}
+
+/* Avatar Styling */
+.navbar-loggedin-avatar {
     background-color: #ffcc00 !important;
     color: black !important;
     font-weight: bold !important;
+}
+
+/* Dropdown Menu */
+.navbar-loggedin-dropdown {
+    background: rgba(20, 20, 20, 0.9) !important;
+    color: white !important;
+}
+
+.navbar-loggedin-dropdown .MuiMenuItem-root {
+    color: white !important;
+}
+
+.navbar-loggedin-dropdown .MuiMenuItem-root:hover {
+    background: rgba(255, 204, 0, 0.2) !important;
 }
