@@ -50,15 +50,10 @@
 .login-input input:-webkit-autofill:hover,
 .login-input input:-webkit-autofill:focus,
 .login-input input:-webkit-autofill:active {
-    background-color: transparent !important;
-    -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.1) inset !important;
+    -webkit-text-fill-color: white !important;  /* Ensure text remains white */
+    transition: background-color 5000s ease-in-out 0s !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
     box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.1) inset !important;
-    color: white !important;
-}
-
-/* Ensure text remains visible */
-.login-input input {
-    color: white !important;
 }
 
 .login-button {
