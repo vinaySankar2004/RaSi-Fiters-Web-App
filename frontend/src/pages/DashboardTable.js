@@ -36,17 +36,6 @@ const DashboardTable = () => {
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
 
-    useEffect(() => {
-        const isAuthenticated = localStorage.getItem("token");
-        const isAdmin = localStorage.getItem("role") === "admin";
-
-        if (!isAuthenticated || !isAdmin) {
-            navigate("/login");
-        }
-
-        fetchLogs();
-    }, [navigate, date]);
-
     const fetchLogs = useCallback(async () => {
         try {
             const utcDate = new Date(date);
@@ -58,6 +47,17 @@ const DashboardTable = () => {
             setLogs([]);
         }
     }, [date]);
+
+    useEffect(() => {
+        const isAuthenticated = localStorage.getItem("token");
+        const isAdmin = localStorage.getItem("role") === "admin";
+
+        if (!isAuthenticated || !isAdmin) {
+            navigate("/login");
+        }
+
+        fetchLogs();
+    }, [navigate, date]);
 
     const fetchMembers = useCallback(async () => {
         const data = await api.getMembers();
