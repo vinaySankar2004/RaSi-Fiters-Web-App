@@ -27,7 +27,7 @@ const Members = () => {
 
     useEffect(() => {
         fetchMembers();
-    }, [fetchMembers]);
+    }, []);
 
     const handleOpen = (member = null) => {
         setEditData(member);

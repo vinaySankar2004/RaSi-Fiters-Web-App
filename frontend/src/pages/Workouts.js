@@ -41,7 +41,7 @@ const Workouts = () => {
 
     useEffect(() => {
         fetchWorkouts();
-    }, [fetchWorkouts]);
+    }, []);
 
     const handleOpen = (workout = null) => {
         setEditData(workout);
