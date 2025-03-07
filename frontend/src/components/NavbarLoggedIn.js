@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import "../styles/NavbarLoggedIn.css"; // New CSS file
+import "../styles/NavbarLoggedIn.css"; // Using the new CSS file
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
