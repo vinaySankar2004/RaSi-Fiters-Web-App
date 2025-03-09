@@ -16,9 +16,20 @@ const handleApiResponse = async (response) => {
             console.error("Unauthorized request, redirecting to login...");
             localStorage.removeItem("token"); // Clear invalid token
             window.location.href = "/login"; // Force login redirect
+            throw new Error("Unauthorized. Please log in again.");
         }
-        const errorData = await response.json();
-        throw new Error(errorData.message || "API request failed");
+        
+        // Check if the response is JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || errorData.error || "API request failed");
+        } else {
+            // Handle non-JSON responses (like HTML)
+            const text = await response.text();
+            console.error("Received non-JSON response:", text.substring(0, 100) + "...");
+            throw new Error(`Server returned non-JSON response (${response.status})`);
+        }
     }
     return response.json();
 };

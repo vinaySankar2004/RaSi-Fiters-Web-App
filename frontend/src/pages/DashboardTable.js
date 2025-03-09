@@ -186,6 +186,7 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
             handleClose();
         } catch (error) {
             console.error("Error saving log:", error);
+            alert(`Error saving log: ${error.message}`);
         }
     };
 
