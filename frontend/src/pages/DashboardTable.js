@@ -36,9 +36,7 @@ const DashboardTable = () => {
 
     const fetchLogs = useCallback(async () => {
         try {
-            const utcDate = new Date(date);
-            const formattedDate = utcDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-            const data = await api.getWorkoutLogs(formattedDate);
+            const data = await api.getWorkoutLogs(date);
             setLogs(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching logs:", error);

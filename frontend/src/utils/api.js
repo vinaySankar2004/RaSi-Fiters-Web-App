@@ -46,8 +46,7 @@ const api = {
     },
 
     getWorkoutLogs: async (date) => {
-        const formattedDate = new Date(date).toISOString().split("T")[0];
-        const response = await fetch(`${API_URL}/workout-logs?date=${formattedDate}`, {
+        const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
             headers: getAuthHeaders(),
         });
 

@@ -10,9 +10,8 @@ router.get("/", async (req, res) => {
             return res.status(400).json({ error: "Date is required." });
         }
 
-        date = new Date(date).toISOString().split("T")[0];
-
-        console.log("Fetching logs for date (UTC):", date);
+        // Use the date parameter directly without timezone conversion
+        console.log("Fetching logs for date:", date);
         const logs = await WorkoutLog.findAll({
             where: {
                 date: {
@@ -37,14 +36,14 @@ router.post("/", async (req, res) => {
             return res.status(400).json({ error: "All fields are required." });
         }
 
-        const formattedDate = new Date(date).toISOString().split("T")[0];
+        // Use the date parameter directly without timezone conversion
         
         // Check if log already exists
         const existingLog = await WorkoutLog.findOne({
             where: {
                 member_name,
                 workout_name,
-                date: formattedDate
+                date
             }
         });
 
@@ -55,7 +54,7 @@ router.post("/", async (req, res) => {
         const newLog = await WorkoutLog.create({
             member_name,
             workout_name,
-            date: formattedDate,
+            date,
             duration
         });
 
@@ -75,13 +74,13 @@ router.put("/", async (req, res) => {
             return res.status(400).json({ error: "All fields are required." });
         }
 
-        const formattedDate = new Date(date).toISOString().split("T")[0];
+        // Use the date parameter directly without timezone conversion
         
         const log = await WorkoutLog.findOne({
             where: {
                 member_name,
                 workout_name,
-                date: formattedDate
+                date
             }
         });
 
@@ -108,13 +107,13 @@ router.delete("/", async (req, res) => {
             return res.status(400).json({ error: "Member name, workout name, and date are required." });
         }
 
-        const formattedDate = new Date(date).toISOString().split("T")[0];
+        // Use the date parameter directly without timezone conversion
         
         const log = await WorkoutLog.findOne({
             where: {
                 member_name,
                 workout_name,
-                date: formattedDate
+                date
             }
         });
 

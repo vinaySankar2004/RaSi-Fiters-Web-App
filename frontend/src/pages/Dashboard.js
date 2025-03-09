@@ -15,7 +15,12 @@ const Dashboard = () => {
 
     const handleSelectDate = () => {
         if (selectedDate) {
-            const formattedDate = selectedDate.toISOString().split("T")[0];
+            // Format date in YYYY-MM-DD format without timezone conversion
+            const year = selectedDate.getFullYear();
+            const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(selectedDate.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+            
             navigate(`/dashboard/${formattedDate}`);
         }
     };
