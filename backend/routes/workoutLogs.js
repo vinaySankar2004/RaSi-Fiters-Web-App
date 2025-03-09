@@ -28,4 +28,107 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Add a new workout log
+router.post("/", async (req, res) => {
+    try {
+        const { member_name, workout_name, date, duration } = req.body;
+        
+        if (!member_name || !workout_name || !date || !duration) {
+            return res.status(400).json({ error: "All fields are required." });
+        }
+
+        const formattedDate = new Date(date).toISOString().split("T")[0];
+        
+        // Check if log already exists
+        const existingLog = await WorkoutLog.findOne({
+            where: {
+                member_name,
+                workout_name,
+                date: formattedDate
+            }
+        });
+
+        if (existingLog) {
+            return res.status(400).json({ error: "Workout log already exists for this member, workout, and date." });
+        }
+
+        const newLog = await WorkoutLog.create({
+            member_name,
+            workout_name,
+            date: formattedDate,
+            duration
+        });
+
+        res.status(201).json(newLog);
+    } catch (err) {
+        console.error("Error adding workout log:", err);
+        res.status(500).json({ error: "Failed to add workout log." });
+    }
+});
+
+// Update a workout log
+router.put("/", async (req, res) => {
+    try {
+        const { member_name, workout_name, date, duration } = req.body;
+        
+        if (!member_name || !workout_name || !date || !duration) {
+            return res.status(400).json({ error: "All fields are required." });
+        }
+
+        const formattedDate = new Date(date).toISOString().split("T")[0];
+        
+        const log = await WorkoutLog.findOne({
+            where: {
+                member_name,
+                workout_name,
+                date: formattedDate
+            }
+        });
+
+        if (!log) {
+            return res.status(404).json({ error: "Workout log not found." });
+        }
+
+        log.duration = duration;
+        await log.save();
+
+        res.json(log);
+    } catch (err) {
+        console.error("Error updating workout log:", err);
+        res.status(500).json({ error: "Failed to update workout log." });
+    }
+});
+
+// Delete a workout log
+router.delete("/", async (req, res) => {
+    try {
+        const { member_name, workout_name, date } = req.body;
+        
+        if (!member_name || !workout_name || !date) {
+            return res.status(400).json({ error: "Member name, workout name, and date are required." });
+        }
+
+        const formattedDate = new Date(date).toISOString().split("T")[0];
+        
+        const log = await WorkoutLog.findOne({
+            where: {
+                member_name,
+                workout_name,
+                date: formattedDate
+            }
+        });
+
+        if (!log) {
+            return res.status(404).json({ error: "Workout log not found." });
+        }
+
+        await log.destroy();
+
+        res.json({ message: "Workout log deleted successfully." });
+    } catch (err) {
+        console.error("Error deleting workout log:", err);
+        res.status(500).json({ error: "Failed to delete workout log." });
+    }
+});
+
 module.exports = router;
