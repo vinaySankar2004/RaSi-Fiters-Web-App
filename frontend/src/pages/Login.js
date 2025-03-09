@@ -40,14 +40,16 @@ const Login = () => {
             if (response.ok) {
                 console.log("Login Response:", data); // Debugging log
 
-                // Store token & role in localStorage
+                // Store token in localStorage
                 localStorage.setItem("token", data.token);
-                localStorage.setItem("role", data.role);
-
-                // Redirect user after login
-                navigate("/dashboard");
+                
+                // Add a small delay to ensure token is stored before navigation
+                setTimeout(() => {
+                    // Redirect user after login
+                    navigate("/dashboard", { replace: true });
+                }, 100);
             } else {
-                setError(data.message || "Invalid username or password.");
+                setError(data.error || "Invalid username or password.");
             }
         } catch (err) {
             console.error("Login Error:", err);

@@ -1,5 +1,6 @@
 const express = require("express");
 const Member = require("../models/Member");
+const authenticateToken = require("./auth");
 const router = express.Router();
 
 // GET all members
