@@ -10,9 +10,10 @@ const NavbarLoggedIn = () => {
     const open = Boolean(anchorEl);
 
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem("user"));
-        if (storedUser?.username) {
-            setUsername(storedUser.username);
+        // Get username directly from localStorage
+        const storedUsername = localStorage.getItem("username");
+        if (storedUsername) {
+            setUsername(storedUsername);
         }
     }, []);
 
@@ -26,7 +27,7 @@ const NavbarLoggedIn = () => {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        localStorage.removeItem("username"); // Also remove username on logout
         navigate("/");
     };
 

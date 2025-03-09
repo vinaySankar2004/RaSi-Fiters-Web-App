@@ -43,6 +43,9 @@ const Login = () => {
                 // Store token in localStorage
                 localStorage.setItem("token", data.token);
                 
+                // Store username in localStorage
+                localStorage.setItem("username", username);
+                
                 // Add a small delay to ensure token is stored before navigation
                 setTimeout(() => {
                     // Redirect user after login
