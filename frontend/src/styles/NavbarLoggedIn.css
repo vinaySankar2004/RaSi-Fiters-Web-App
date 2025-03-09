@@ -135,3 +135,51 @@
         white-space: nowrap;
     }
 }
+
+/* Mobile menu styles */
+.mobile-menu-button {
+    display: none !important;
+}
+
+.mobile-menu {
+    display: none;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background-color: rgba(18, 18, 18, 0.95);
+    flex-direction: column;
+    padding: 10px 0;
+    z-index: 1000;
+}
+
+.mobile-menu-item {
+    padding: 12px 20px !important;
+    text-align: left;
+    width: 100%;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    /* Hide desktop links */
+    .navbar-loggedin-links {
+        display: none !important;
+    }
+    
+    /* Show mobile menu button */
+    .mobile-menu-button {
+        display: flex !important;
+        color: white !important;
+    }
+    
+    /* Show mobile menu when open */
+    .mobile-menu.open {
+        display: flex;
+    }
+    
+    /* Ensure the toolbar has space for the menu button */
+    .navbar-loggedin-toolbar {
+        padding: 0 16px !important;
+        justify-content: space-between !important;
+    }
+}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem } from "@mui/material";
+import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem, IconButton } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
 import "../styles/NavbarLoggedIn.css"; // Ensure styles match Navbar
 
@@ -7,6 +8,7 @@ const NavbarLoggedIn = () => {
     const navigate = useNavigate();
     const [username, setUsername] = useState("User");
     const [anchorEl, setAnchorEl] = useState(null);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const open = Boolean(anchorEl);
 
     useEffect(() => {
@@ -25,10 +27,19 @@ const NavbarLoggedIn = () => {
         setAnchorEl(null);
     };
 
+    const toggleMobileMenu = () => {
+        setMobileMenuOpen(!mobileMenuOpen);
+    };
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("username"); // Also remove username on logout
         navigate("/");
+    };
+
+    const handleNavigation = (path) => {
+        navigate(path);
+        setMobileMenuOpen(false); // Close mobile menu after navigation
     };
 
     return (
@@ -39,7 +50,16 @@ const NavbarLoggedIn = () => {
                     RASI FIT'ERS
                 </Typography>
 
-                {/* Navigation Links - Positioned to the left of Admin */}
+                {/* Mobile Menu Button */}
+                <IconButton 
+                    className="mobile-menu-button" 
+                    onClick={toggleMobileMenu}
+                    edge="start"
+                >
+                    <MenuIcon />
+                </IconButton>
+
+                {/* Desktop Navigation Links */}
                 <Box className="navbar-loggedin-links">
                     <Button onClick={() => navigate("/members")} className="navbar-loggedin-link">Members</Button>
                     <Button onClick={() => navigate("/workouts")} className="navbar-loggedin-link">Workouts</Button>
@@ -57,6 +77,14 @@ const NavbarLoggedIn = () => {
                     <MenuItem onClick={handleLogout}>Log Out</MenuItem>
                 </Menu>
             </Toolbar>
+
+            {/* Mobile Menu */}
+            <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
+                <Button onClick={() => handleNavigation("/members")} className="mobile-menu-item">Members</Button>
+                <Button onClick={() => handleNavigation("/workouts")} className="mobile-menu-item">Workouts</Button>
+                <Button onClick={() => handleNavigation("/dashboard")} className="mobile-menu-item">Dashboard</Button>
+                <Button onClick={() => handleNavigation("/analytics")} className="mobile-menu-item">Analytics</Button>
+            </div>
         </AppBar>
     );
 };

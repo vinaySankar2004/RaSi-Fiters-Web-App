@@ -6,7 +6,7 @@
     "@date-io/date-fns": "^3.2.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^6.4.6",
+    "@mui/icons-material": "^6.4.7",
     "@mui/lab": "^6.0.0-beta.29",
     "@mui/material": "^6.4.6",
     "@mui/x-date-pickers": "^7.27.1",
@@ -41,11 +41,13 @@
     ]
   },
   "eslintConfig": {
-    "extends": ["react-app", "react-app/jest"],
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
     "rules": {
       "no-unused-vars": "warn",
       "react-hooks/exhaustive-deps": "warn"
     }
   }
 }
-
