@@ -120,12 +120,18 @@ const Members = () => {
                         <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} className="dialog-input" />
                         
                         <FormControl fullWidth className="dialog-input">
-                            <InputLabel id="gender-label">Gender</InputLabel>
+                            <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
                             <Select
                                 labelId="gender-label"
                                 value={newMember.gender}
                                 label="Gender"
                                 onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
+                                sx={{ 
+                                    color: 'white',
+                                    '& .MuiSelect-icon': {
+                                        color: 'white'
+                                    }
+                                }}
                             >
                                 <MenuItem value="Male">Male</MenuItem>
                                 <MenuItem value="Female">Female</MenuItem>
@@ -133,7 +139,20 @@ const Members = () => {
                             </Select>
                         </FormControl>
                         
-                        <TextField fullWidth label="Age" type="number" value={newMember.age} onChange={(e) => setNewMember({ ...newMember, age: e.target.value })} className="dialog-input" />
+                        <TextField 
+                            fullWidth 
+                            label="Age" 
+                            type="number" 
+                            value={newMember.age} 
+                            onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (value >= 0 || e.target.value === '') {
+                                    setNewMember({ ...newMember, age: e.target.value });
+                                }
+                            }} 
+                            inputProps={{ min: 0 }}
+                            className="dialog-input" 
+                        />
                     </DialogContent>
                     <DialogActions>
                         <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
