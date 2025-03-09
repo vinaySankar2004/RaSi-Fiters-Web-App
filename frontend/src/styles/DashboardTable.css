@@ -32,7 +32,6 @@
     color: white !important;
 }
 
-/* DASHBOARD ACTIONS - FLEX CONTAINER FOR BUTTONS */
 .dashboard-actions {
     display: flex !important;
     justify-content: space-between !important;
@@ -41,13 +40,11 @@
     width: 100% !important;
 }
 
-/* ADD BUTTON - ALIGNED LEFT */
 .dashboard-add {
     display: flex !important;
     justify-content: flex-start !important;
 }
 
-/* REFRESH BUTTON - ALIGNED RIGHT */
 .dashboard-refresh {
     display: flex !important;
     justify-content: flex-end !important;
@@ -66,15 +63,12 @@
     background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
 }
 
-/* Minimal mobile adjustments */
 @media (max-width: 768px) {
-    /* Make sure the table container allows horizontal scrolling */
     .dashboard-table-container {
         overflow-x: auto;
         max-width: 100%;
     }
     
-    /* Ensure action buttons don't wrap awkwardly */
     .dashboard-actions {
         flex-wrap: wrap;
     }

@@ -4,7 +4,7 @@ import { Container, Typography, Button, Box } from "@mui/material";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
-import "../styles/Dashboard.css"; // Ensure CSS is properly linked
+import "../styles/Dashboard.css"; 
 
 const Dashboard = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -17,7 +17,7 @@ const Dashboard = () => {
         if (selectedDate) {
             // Format date in YYYY-MM-DD format without timezone conversion
             const year = selectedDate.getFullYear();
-            const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const month = String(selectedDate.getMonth() + 1).padStart(2, '0'); 
             const day = String(selectedDate.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
             

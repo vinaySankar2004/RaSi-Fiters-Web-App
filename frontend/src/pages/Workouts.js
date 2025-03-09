@@ -21,7 +21,7 @@ import {
 import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import api from "../utils/api";
-import "../styles/Workouts.css"; // Apply new styling
+import "../styles/Workouts.css"; 
 
 const Workouts = () => {
     const [workouts, setWorkouts] = useState([]);

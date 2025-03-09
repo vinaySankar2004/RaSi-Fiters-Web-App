@@ -38,15 +38,11 @@ const Login = () => {
             const data = await response.json();
 
             if (response.ok) {
-                console.log("Login Response:", data); // Debugging log
+                console.log("Login Response:", data); 
 
-                // Store token in localStorage
                 localStorage.setItem("token", data.token);
-                
-                // Store username in localStorage
                 localStorage.setItem("username", username);
                 
-                // Add a small delay to ensure token is stored before navigation
                 setTimeout(() => {
                     // Redirect user after login
                     navigate("/dashboard", { replace: true });

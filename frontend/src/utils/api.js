@@ -9,7 +9,6 @@ const getAuthHeaders = () => {
     };
 };
 
-// Helper function to handle API errors
 const handleApiResponse = async (response) => {
     if (!response.ok) {
         if (response.status === 401) {

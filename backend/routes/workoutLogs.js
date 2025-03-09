@@ -10,7 +10,6 @@ router.get("/", async (req, res) => {
             return res.status(400).json({ error: "Date is required." });
         }
 
-        // Use the date parameter directly without timezone conversion
         console.log("Fetching logs for date:", date);
         const logs = await WorkoutLog.findAll({
             where: {
@@ -36,9 +35,6 @@ router.post("/", async (req, res) => {
             return res.status(400).json({ error: "All fields are required." });
         }
 
-        // Use the date parameter directly without timezone conversion
-        
-        // Check if log already exists
         const existingLog = await WorkoutLog.findOne({
             where: {
                 member_name,
@@ -73,8 +69,6 @@ router.put("/", async (req, res) => {
         if (!member_name || !workout_name || !date || !duration) {
             return res.status(400).json({ error: "All fields are required." });
         }
-
-        // Use the date parameter directly without timezone conversion
         
         const log = await WorkoutLog.findOne({
             where: {
@@ -106,8 +100,6 @@ router.delete("/", async (req, res) => {
         if (!member_name || !workout_name || !date) {
             return res.status(400).json({ error: "Member name, workout name, and date are required." });
         }
-
-        // Use the date parameter directly without timezone conversion
         
         const log = await WorkoutLog.findOne({
             where: {

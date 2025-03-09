@@ -24,7 +24,7 @@ import {
 import { Delete, Edit, Add, Refresh } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import api from "../utils/api";
-import "../styles/DashboardTable.css"; // Apply new styling
+import "../styles/DashboardTable.css"; 
 
 const DashboardTable = () => {
     const { date } = useParams();

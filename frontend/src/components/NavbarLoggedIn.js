@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem, IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
-import "../styles/NavbarLoggedIn.css"; // Ensure styles match Navbar
+import "../styles/NavbarLoggedIn.css"; 
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
@@ -12,7 +12,6 @@ const NavbarLoggedIn = () => {
     const open = Boolean(anchorEl);
 
     useEffect(() => {
-        // Get username directly from localStorage
         const storedUsername = localStorage.getItem("username");
         if (storedUsername) {
             setUsername(storedUsername);
@@ -33,19 +32,19 @@ const NavbarLoggedIn = () => {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        localStorage.removeItem("username"); // Also remove username on logout
+        localStorage.removeItem("username"); 
         navigate("/");
     };
 
     const handleNavigation = (path) => {
         navigate(path);
-        setMobileMenuOpen(false); // Close mobile menu after navigation
+        setMobileMenuOpen(false); 
     };
 
     return (
         <AppBar position="fixed" className="navbar-loggedin">
             <Toolbar className="navbar-loggedin-toolbar">
-                {/* Logo Section - Ensure same weight as Navbar */}
+                {/* Logo Section */}
                 <Typography variant="h6" className="navbar-loggedin-logo" onClick={() => navigate("/dashboard")}>
                     RASI FIT'ERS
                 </Typography>

@@ -1,10 +1,8 @@
-/* MEMBERS PAGE CONTAINER */
 .members-container {
     text-align: center !important;
     padding-top: 110px !important;
 }
 
-/* TITLE */
 .members-title {
     font-size: 2rem !important;
     font-weight: bold !important;
@@ -12,7 +10,6 @@
     margin-bottom: 20px !important;
 }
 
-/* ACTIONS BAR */
 .members-actions {
     display: flex !important;
     justify-content: space-between !important;
@@ -20,33 +17,28 @@
     margin-bottom: 15px !important;
 }
 
-/* TABLE */
 .members-table-container {
     background: rgba(20, 20, 20, 0.9) !important;
     border-radius: 12px !important;
     padding: 15px !important;
 }
 
-/* TABLE HEADER - ORANGE BACKGROUND */
 .table-header-row th {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     font-weight: bold !important;
     color: black !important;
-    font-size: 1.3rem !important; /* Slightly larger */
+    font-size: 1.3rem !important; 
 }
 
-/* TABLE BODY ROW - WHITE TEXT */
 .table-body-row td {
     color: white !important;
-    font-size: 1.1rem !important; /* Slightly larger */
+    font-size: 1.1rem !important; 
 }
 
-/* TABLE ROW HOVER */
 .table-body-row:hover {
     background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* BUTTONS */
 .members-add-button,
 .members-refresh-button {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
@@ -61,7 +53,6 @@
     background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
 }
 
-/* ICON BUTTONS */
 .edit-button {
     color: #ffcc00 !important;
 }
@@ -70,26 +61,22 @@
     color: red !important;
 }
 
-/* DIALOG POPUP - DARK BACKGROUND */
 .members-dialog .MuiPaper-root {
-    background: rgba(20, 20, 20, 0.95) !important; /* Dark theme */
+    background: rgba(20, 20, 20, 0.95) !important; 
     color: white !important;
     border-radius: 12px !important;
 }
 
-/* DIALOG TITLE */
 .dialog-title {
     font-size: 1.5rem !important;
     font-weight: bold !important;
     color: white !important;
 }
 
-/* DIALOG CONTENT */
 .dialog-content {
     color: white !important;
 }
 
-/* DIALOG TEXT INPUTS */
 .dialog-input {
     margin-top: 15px !important;
     background: rgba(255, 255, 255, 0.1) !important;
@@ -97,13 +84,11 @@
     color: white !important;
 }
 
-/* DISABLED INPUTS - IMPROVE VISIBILITY */
 .dialog-input.Mui-disabled {
-    color: rgba(255, 255, 255, 0.6) !important; /* Lighten text for better contrast */
-    opacity: 1 !important; /* Ensure visibility is not reduced */
+    color: rgba(255, 255, 255, 0.6) !important; 
+    opacity: 1 !important; 
 }
 
-/* PLACEHOLDER TEXT */
 .dialog-input input::placeholder {
     color: rgba(255, 255, 255, 0.5) !important;
 }
@@ -113,7 +98,6 @@
     color: white !important;
 }
 
-/* Fix Autofill Background */
 .dialog-input input:-webkit-autofill,
 .dialog-input input:-webkit-autofill:hover,
 .dialog-input input:-webkit-autofill:focus,
@@ -124,17 +108,15 @@
     box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.1) inset !important;
 }
 
-/* SAVE & CANCEL BUTTONS */
 .cancel-button {
     color: white !important;
 }
 
 .save-button {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
-    color: white !important; /* Flip font color */
+    color: white !important; 
 }
 
-/* Minimal mobile adjustments */
 @media (max-width: 768px) {
     .members-table-container {
         overflow-x: auto;

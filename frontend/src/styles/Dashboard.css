@@ -1,7 +1,6 @@
-/* Adjust positioning to move entire block down */
 .dashboard-container {
     text-align: center !important;
-    padding-top: 130px !important; /* Increased from 110px for better spacing */
+    padding-top: 130px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -9,19 +8,18 @@
     height: calc(100vh - 100px) !important;
 }
 
-/* Ensure even spacing between title, calendar, and button */
 .dashboard-title {
     font-size: 2.2rem !important;
     font-weight: bold !important;
     color: #ffcc00 !important;
-    margin-bottom: 25px !important; /* Increased for even spacing */
+    margin-bottom: 25px !important; 
 }
 
 .dashboard-calendar-wrapper {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    margin-bottom: 25px !important; /* Ensures even gap between calendar and button */
+    margin-bottom: 25px !important;
 }
 
 .dashboard-calendar {

@@ -8,10 +8,9 @@
     -webkit-backdrop-filter: blur(10px) !important;
     padding: 15px 20px !important;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3) !important;
-    z-index: 1000 !important; /* Ensure it stays on top */
+    z-index: 1000 !important; 
 }
 
-/* Navbar Logo */
 .navbar-logo {
     font-weight: 600 !important;
     font-size: 1.4rem !important;
@@ -22,7 +21,6 @@
     cursor: pointer !important;
 }
 
-/* Navbar Button */
 .navbar-button {
     color: white !important;
     border: 2px solid white !important;
