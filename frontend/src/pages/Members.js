@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import {
     Container, Typography, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, IconButton, Button, Dialog,
-    DialogActions, DialogContent, DialogTitle, TextField, Box
+    DialogActions, DialogContent, DialogTitle, TextField, Box,
+    Select, MenuItem, FormControl, InputLabel
 } from "@mui/material";
 import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
@@ -117,7 +118,21 @@ const Members = () => {
                     <DialogTitle className="dialog-title">{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
                     <DialogContent className="dialog-content">
                         <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} className="dialog-input" />
-                        <TextField fullWidth label="Gender" value={newMember.gender} onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })} className="dialog-input" />
+                        
+                        <FormControl fullWidth className="dialog-input">
+                            <InputLabel id="gender-label">Gender</InputLabel>
+                            <Select
+                                labelId="gender-label"
+                                value={newMember.gender}
+                                label="Gender"
+                                onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
+                            >
+                                <MenuItem value="Male">Male</MenuItem>
+                                <MenuItem value="Female">Female</MenuItem>
+                                <MenuItem value="Other">Other</MenuItem>
+                            </Select>
+                        </FormControl>
+                        
                         <TextField fullWidth label="Age" type="number" value={newMember.age} onChange={(e) => setNewMember({ ...newMember, age: e.target.value })} className="dialog-input" />
                     </DialogContent>
                     <DialogActions>
