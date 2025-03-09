@@ -112,3 +112,11 @@
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     color: white !important;
 }
+
+/* Minimal mobile adjustments */
+@media (max-width: 768px) {
+    .workouts-table-container {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+}

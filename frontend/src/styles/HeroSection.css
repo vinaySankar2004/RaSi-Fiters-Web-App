@@ -59,3 +59,19 @@
     border-radius: 10px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
 }
+
+/* Minimal mobile adjustments */
+@media (max-width: 768px) {
+    .hero-container {
+        flex-direction: column;
+        padding-top: 70px;
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-image {
+        max-width: 90%;
+    }
+}

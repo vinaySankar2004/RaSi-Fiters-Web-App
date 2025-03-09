@@ -65,3 +65,17 @@
 .dashboard-add-button:hover {
     background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
 }
+
+/* Minimal mobile adjustments */
+@media (max-width: 768px) {
+    /* Make sure the table container allows horizontal scrolling */
+    .dashboard-table-container {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    
+    /* Ensure action buttons don't wrap awkwardly */
+    .dashboard-actions {
+        flex-wrap: wrap;
+    }
+}

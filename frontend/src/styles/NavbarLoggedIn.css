@@ -123,3 +123,15 @@
 .MuiPopover-root {
     background: transparent !important;
 }
+
+/* Minimal mobile adjustments */
+@media (max-width: 768px) {
+    .navbar-loggedin-links {
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+    
+    .navbar-loggedin-link {
+        white-space: nowrap;
+    }
+}
