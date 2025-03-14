@@ -62,6 +62,7 @@ const Members = () => {
             handleClose();
         } catch (error) {
             console.error("Error saving member:", error);
+            alert(`Error: ${error.response?.data?.error || error.message}`);
         }
     };
 
@@ -134,7 +135,6 @@ const Members = () => {
                             <TextField 
                                 fullWidth 
                                 label="Member Name" 
-                                disabled={!!editData} 
                                 value={newMember.member_name} 
                                 onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })}
                                 onBlur={(e) => setNewMember({ ...newMember, member_name: e.target.value.trim() })}
