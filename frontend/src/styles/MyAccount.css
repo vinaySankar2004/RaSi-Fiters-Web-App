@@ -1,0 +1,135 @@
+.my-account-container {
+    padding-top: 100px;
+    padding-bottom: 40px;
+}
+
+.my-account-title {
+    color: #ffcc00;
+    margin-bottom: 30px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.my-account-tabs-container {
+    background-color: #333;
+    margin-bottom: 30px;
+}
+
+.my-account-tabs {
+    background-color: #333;
+}
+
+.my-account-tabs .MuiTab-root {
+    color: white;
+    font-weight: bold;
+}
+
+.my-account-tabs .Mui-selected {
+    color: #ffcc00;
+}
+
+.my-account-details-container,
+.my-account-workouts-container {
+    background-color: #333;
+    padding: 30px;
+    border-radius: 8px;
+}
+
+.my-account-username {
+    color: #ffcc00;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.my-account-profile-section {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    gap: 30px;
+}
+
+.my-account-avatar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.my-account-avatar {
+    width: 150px;
+    height: 150px;
+    margin-bottom: 10px;
+    background-color: #ffcc00;
+}
+
+.my-account-upload-button {
+    color: #ffcc00 !important;
+}
+
+.my-account-info-container {
+    flex: 1;
+}
+
+.my-account-info-row {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.my-account-info-label {
+    width: 120px;
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+.my-account-info-value {
+    flex: 1;
+    color: white;
+}
+
+.my-account-edit-button {
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    color: black !important;
+    font-weight: bold !important;
+    margin-top: 20px !important;
+}
+
+.my-account-section-title {
+    color: #ffcc00;
+    margin-bottom: 20px;
+}
+
+.my-account-table-header th {
+    background-color: rgba(255, 204, 0, 0.2);
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+.my-account-dialog .MuiPaper-root {
+    background-color: #333;
+    color: white;
+}
+
+.my-account-dialog .MuiInputBase-root {
+    color: white;
+}
+
+.my-account-dialog .MuiInputLabel-root {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.my-account-dialog .MuiOutlinedInput-notchedOutline {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+    .my-account-profile-section {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .my-account-info-container {
+        width: 100%;
+    }
+}

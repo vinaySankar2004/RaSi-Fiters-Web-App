@@ -3,7 +3,8 @@ import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem, IconB
 import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import "../styles/NavbarLoggedIn.css"; 
+import "../styles/NavbarLoggedIn.css";
+import { AccountCircle, ArrowDropDown } from "@mui/icons-material";
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
@@ -89,7 +90,16 @@ const NavbarLoggedIn = () => {
                         {user?.member_name || user?.username || 'User'} 
                         {user?.role === 'admin' && <span className="admin-badge"> (Admin)</span>}
                     </Typography>
-                    <Avatar className="navbar-loggedin-avatar" />
+                    {user?.profilePic ? (
+                        <Avatar 
+                            className="navbar-loggedin-avatar" 
+                            src={user.profilePic} 
+                            alt={user?.member_name || user?.username}
+                        />
+                    ) : (
+                        <Avatar className="navbar-loggedin-avatar" />
+                    )}
+                    <ArrowDropDown />
                 </Box>
 
                 <Menu 
@@ -109,6 +119,11 @@ const NavbarLoggedIn = () => {
                         className: "navbar-loggedin-dropdown"
                     }}
                 >
+                    {user?.role === 'member' && (
+                        <MenuItem onClick={() => { handleMenuClose(); navigate("/my-account"); }}>
+                            <AccountCircle sx={{ mr: 1 }} /> My Account
+                        </MenuItem>
+                    )}
                     <MenuItem onClick={handleLogout}>Log Out</MenuItem>
                 </Menu>
             </Toolbar>
@@ -119,6 +134,9 @@ const NavbarLoggedIn = () => {
                 <Button onClick={() => handleNavigation("/workouts")} className="mobile-menu-item">Workouts</Button>
                 <Button onClick={() => handleNavigation("/dashboard")} className="mobile-menu-item">Dashboard</Button>
                 <Button onClick={() => handleNavigation("/analytics")} className="mobile-menu-item">Analytics</Button>
+                {user?.role === 'member' && (
+                    <Button onClick={() => handleNavigation("/my-account")} className="mobile-menu-item">My Account</Button>
+                )}
             </div>
         </AppBar>
     );

@@ -168,7 +168,20 @@ const api = {
     },
 
     getMember: async (id) => {
-        return fetchWithAuth(`${API_URL}/members/${id}`);
+        try {
+            const response = await fetch(`${API_URL}/members/${id}`, {
+                headers: getAuthHeader()
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch member');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching member:', error);
+            throw error;
+        }
     },
 
     addMember: async (memberData) => {
@@ -314,6 +327,23 @@ const api = {
             return await response.json();
         } catch (error) {
             console.error('Error deleting workout:', error);
+            throw error;
+        }
+    },
+
+    getAllWorkoutLogs: async (memberName) => {
+        try {
+            const response = await fetch(`${API_URL}/workout-logs/member/${memberName}`, {
+                headers: getAuthHeader()
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch workout logs');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching workout logs:', error);
             throw error;
         }
     },

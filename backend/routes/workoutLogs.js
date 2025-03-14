@@ -154,4 +154,28 @@ router.delete("/", authenticateToken, async (req, res) => {
     }
 });
 
+// Get all workout logs for a specific member
+router.get("/member/:memberName", authenticateToken, async (req, res) => {
+    try {
+        const { memberName } = req.params;
+        
+        // Check if user has permission to view these logs
+        if (req.user.role !== 'admin' && req.user.member_name !== memberName) {
+            return res.status(403).json({ error: "You can only view your own logs." });
+        }
+        
+        const logs = await WorkoutLog.findAll({
+            where: {
+                member_name: memberName
+            },
+            order: [["date", "DESC"]] // Sort by date in descending order
+        });
+        
+        res.json(logs);
+    } catch (err) {
+        console.error("Error fetching member workout logs:", err);
+        res.status(500).json({ error: "Failed to fetch workout logs." });
+    }
+});
+
 module.exports = router;

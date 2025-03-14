@@ -12,15 +12,17 @@ export const AuthProvider = ({ children }) => {
     const username = localStorage.getItem('username');
     const role = localStorage.getItem('role');
     const member_name = localStorage.getItem('member_name');
-    const userId = localStorage.getItem('userId'); // Make sure userId is being stored
+    const userId = localStorage.getItem('userId');
+    const profilePic = localStorage.getItem('profilePic');
 
     if (token && username) {
       setUser({
         token,
         username,
-        role: role || 'member', // Default to member if role not stored
+        role: role || 'member',
         member_name: member_name || null,
-        userId: userId || null // Include userId in the user object
+        userId: userId || null,
+        profilePic: profilePic || null
       });
     }
     
@@ -32,10 +34,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', userData.token);
     localStorage.setItem('username', userData.username);
     localStorage.setItem('role', userData.role);
-    localStorage.setItem('userId', userData.userId); // Make sure to store userId
+    localStorage.setItem('userId', userData.userId);
     
     if (userData.member_name) {
       localStorage.setItem('member_name', userData.member_name);
+    }
+    
+    if (userData.profilePic) {
+      localStorage.setItem('profilePic', userData.profilePic);
     }
 
     // Update state
@@ -44,10 +50,22 @@ export const AuthProvider = ({ children }) => {
       username: userData.username,
       role: userData.role,
       member_name: userData.member_name || null,
-      userId: userData.userId || null // Include userId in the user object
+      userId: userData.userId || null,
+      profilePic: userData.profilePic || null
     });
+  };
+
+  const updateUser = (updatedUserData) => {
+    // Update localStorage with new data
+    if (updatedUserData.profilePic) {
+      localStorage.setItem('profilePic', updatedUserData.profilePic);
+    }
     
-    console.log("User logged in:", userData); // Add this to debug
+    // Update state
+    setUser(prevUser => ({
+      ...prevUser,
+      ...updatedUserData
+    }));
   };
 
   const logout = () => {
@@ -57,13 +75,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('role');
     localStorage.removeItem('member_name');
     localStorage.removeItem('userId');
+    localStorage.removeItem('profilePic');
     
     // Update state
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
