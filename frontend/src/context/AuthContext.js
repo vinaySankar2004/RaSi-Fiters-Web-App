@@ -12,13 +12,15 @@ export const AuthProvider = ({ children }) => {
     const username = localStorage.getItem('username');
     const role = localStorage.getItem('role');
     const member_name = localStorage.getItem('member_name');
+    const userId = localStorage.getItem('userId'); // Make sure userId is being stored
 
     if (token && username) {
       setUser({
         token,
         username,
         role: role || 'member', // Default to member if role not stored
-        member_name: member_name || null
+        member_name: member_name || null,
+        userId: userId || null // Include userId in the user object
       });
     }
     
@@ -30,6 +32,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', userData.token);
     localStorage.setItem('username', userData.username);
     localStorage.setItem('role', userData.role);
+    localStorage.setItem('userId', userData.userId); // Make sure to store userId
+    
     if (userData.member_name) {
       localStorage.setItem('member_name', userData.member_name);
     }
@@ -39,8 +43,11 @@ export const AuthProvider = ({ children }) => {
       token: userData.token,
       username: userData.username,
       role: userData.role,
-      member_name: userData.member_name || null
+      member_name: userData.member_name || null,
+      userId: userData.userId || null // Include userId in the user object
     });
+    
+    console.log("User logged in:", userData); // Add this to debug
   };
 
   const logout = () => {
@@ -49,6 +56,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('username');
     localStorage.removeItem('role');
     localStorage.removeItem('member_name');
+    localStorage.removeItem('userId');
     
     // Update state
     setUser(null);

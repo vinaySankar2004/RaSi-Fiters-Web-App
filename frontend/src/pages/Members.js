@@ -15,6 +15,7 @@ const Members = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
     const currentUserId = user?.userId;
+    const currentMemberName = user?.member_name;
     const [members, setMembers] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
@@ -166,10 +167,20 @@ const Members = () => {
         });
     };
 
-    // Check if user can edit this member
+    // Update the canEditMember function to check both user ID and member name
     const canEditMember = (member) => {
+        console.log("Checking member:", {
+            memberId: member.user_id,
+            memberName: member.member_name,
+            currentUserId,
+            currentMemberName
+        });
+        
         if (isAdmin) return true;
-        return member.user_id === currentUserId;
+        
+        // Check both user ID and member name
+        return member.user_id === currentUserId || 
+               member.member_name === currentMemberName;
     };
 
     return (
@@ -201,37 +212,48 @@ const Members = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {members.map((member, index) => (
-                                <TableRow 
-                                    key={member.user_id} 
-                                    className={`table-body-row ${member.user_id === currentUserId ? 'own-log-row' : ''}`}
-                                >
-                                    <TableCell>{index + 1}</TableCell>
-                                    <TableCell>{member.member_name}</TableCell>
-                                    <TableCell>{member.gender}</TableCell>
-                                    <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
-                                    <TableCell>
-                                        {canEditMember(member) ? (
-                                            <>
-                                                <IconButton className="edit-button" onClick={() => handleOpen(member)}>
-                                                    <Edit />
-                                                </IconButton>
-                                                {isAdmin && (
-                                                    <IconButton className="delete-button" onClick={() => handleDelete(member.user_id)}>
-                                                        <Delete />
+                            {members.map((member, index) => {
+                                // Add this to debug each row
+                                const canEdit = canEditMember(member);
+                                console.log(`Row ${index + 1}: ${member.member_name}, canEdit: ${canEdit}`);
+                                
+                                return (
+                                    <TableRow 
+                                        key={member.user_id} 
+                                        className={`table-body-row ${
+                                            member.user_id === currentUserId || 
+                                            member.member_name === currentMemberName 
+                                                ? 'own-log-row' 
+                                                : ''
+                                        }`}
+                                    >
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>{member.member_name}</TableCell>
+                                        <TableCell>{member.gender}</TableCell>
+                                        <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
+                                        <TableCell>
+                                            {canEdit ? (
+                                                <>
+                                                    <IconButton className="edit-button" onClick={() => handleOpen(member)}>
+                                                        <Edit />
                                                     </IconButton>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <Tooltip title="View only">
-                                                <IconButton className="view-button">
-                                                    <Visibility />
-                                                </IconButton>
-                                            </Tooltip>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                                    {isAdmin && (
+                                                        <IconButton className="delete-button" onClick={() => handleDelete(member.user_id)}>
+                                                            <Delete />
+                                                        </IconButton>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <Tooltip title="View only">
+                                                    <IconButton className="view-button">
+                                                        <Visibility />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 </TableContainer>
