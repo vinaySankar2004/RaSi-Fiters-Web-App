@@ -183,3 +183,31 @@
     justify-content: center !important;
     font-weight: bold !important;
 }
+
+/* Style specifically for the logout dropdown */
+.navbar-loggedin-user {
+    position: relative;
+    background-color: rgba(50, 50, 50, 0.8);
+    border-radius: 4px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Target only the logout dropdown menu */
+.navbar-loggedin-dropdown .MuiPaper-root {
+    background-color: #333 !important;
+    color: white !important;
+    width: var(--user-box-width) !important;
+    min-width: unset !important;
+    border-radius: 4px !important;
+    margin-top: 4px !important;
+}
+
+/* Style for the logout menu item */
+.navbar-loggedin-dropdown .MuiMenuItem-root {
+    justify-content: center !important;
+    color: white !important;
+    font-weight: bold !important;
+}

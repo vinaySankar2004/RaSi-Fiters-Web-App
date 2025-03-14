@@ -102,6 +102,9 @@ const NavbarLoggedIn = () => {
                         vertical: 'top',
                         horizontal: 'right',
                     }}
+                    PaperProps={{
+                        className: "navbar-loggedin-dropdown"
+                    }}
                 >
                     <MenuItem onClick={handleLogout}>Log Out</MenuItem>
                 </Menu>

@@ -87,3 +87,28 @@
 .table-body-row td {
     text-align: center !important;
 }
+
+/* Style for form dropdowns (like workout selection) */
+.dialog-input .MuiSelect-select {
+    color: white !important;
+}
+
+/* Style for dropdown menu items in forms */
+.MuiMenu-paper:not(.navbar-loggedin-dropdown .MuiMenu-paper) {
+    background-color: #333 !important;
+    color: white !important;
+    min-width: max-content !important; /* Ensures width is at least as wide as the longest item */
+    padding: 0 !important;
+}
+
+/* Style for menu items in form dropdowns */
+.MuiMenu-paper:not(.navbar-loggedin-dropdown .MuiMenu-paper) .MuiMenuItem-root {
+    color: white !important;
+    padding: 8px 16px !important;
+    min-width: 200px !important; /* Minimum width for all dropdown items */
+}
+
+/* Hover effect for menu items */
+.MuiMenu-paper:not(.navbar-loggedin-dropdown .MuiMenu-paper) .MuiMenuItem-root:hover {
+    background-color: rgba(255, 204, 0, 0.2) !important;
+}
