@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const { connectDB } = require("./config/database");
+// Import models to ensure associations are set up
+require("./models/index");
 const authRoutes = require("./routes/auth");
 const memberRoutes = require("./routes/members");
 require("dotenv").config();

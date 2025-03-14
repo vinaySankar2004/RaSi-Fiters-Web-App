@@ -1,7 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { User, Member } = require("../models");
+// Import models from index.js instead of directly
+const { User, Member } = require("../models/index");
 
 const router = express.Router();
 

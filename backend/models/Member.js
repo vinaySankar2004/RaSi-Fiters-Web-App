@@ -7,6 +7,10 @@ const Member = sequelize.define("Member", {
         allowNull: false,
         unique: true,
         primaryKey: true,
+        set(value) {
+            // Automatically trim spaces when setting the value
+            this.setDataValue('member_name', value.trim());
+        }
     },
     gender: {
         type: DataTypes.STRING,

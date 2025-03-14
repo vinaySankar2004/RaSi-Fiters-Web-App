@@ -47,10 +47,16 @@ const Members = () => {
 
     const handleSave = async () => {
         try {
+            // Trim the member name to remove any leading or trailing spaces
+            const trimmedMember = {
+                ...newMember,
+                member_name: newMember.member_name.trim()
+            };
+            
             if (editData) {
-                await api.updateMember(editData.member_name, newMember);
+                await api.updateMember(editData.member_name, trimmedMember);
             } else {
-                await api.addMember(newMember);
+                await api.addMember(trimmedMember);
             }
             fetchMembers();
             handleClose();
@@ -125,7 +131,15 @@ const Members = () => {
                     <Dialog open={open} onClose={handleClose} className="members-dialog">
                         <DialogTitle className="dialog-title">{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
                         <DialogContent className="dialog-content">
-                            <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} className="dialog-input" />
+                            <TextField 
+                                fullWidth 
+                                label="Member Name" 
+                                disabled={!!editData} 
+                                value={newMember.member_name} 
+                                onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })}
+                                onBlur={(e) => setNewMember({ ...newMember, member_name: e.target.value.trim() })}
+                                className="dialog-input" 
+                            />
                             
                             <FormControl fullWidth className="dialog-input">
                                 <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
