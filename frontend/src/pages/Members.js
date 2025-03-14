@@ -96,8 +96,8 @@ const Members = () => {
     const handleSave = async () => {
         try {
             // Validate required fields
-            if (!newMember.member_name || !newMember.gender) {
-                alert("Member name and gender are required");
+            if (!newMember.member_name || (!isAdmin && !editData) || (isAdmin && !newMember.gender)) {
+                alert("Required fields are missing");
                 return;
             }
 
@@ -129,9 +129,9 @@ const Members = () => {
 
                 // If regular member editing own profile
                 if (!isAdmin && editData.user_id === currentUserId) {
+                    // Regular members can ONLY update their password
                     const limitedData = {
-                        password: dataToSend.password,
-                        date_of_birth: dataToSend.date_of_birth
+                        password: dataToSend.password
                     };
                     
                     if (!limitedData.password) {
@@ -144,7 +144,7 @@ const Members = () => {
                     await api.updateMember(editData.user_id, dataToSend);
                 }
             } else {
-                // For new members
+                // For new members (admin only)
                 await api.addMember({
                     member_name: trimmedMember.member_name,
                     gender: trimmedMember.gender,
@@ -225,16 +225,19 @@ const Members = () => {
                             <TableRow className="table-header-row">
                                 <TableCell>#</TableCell>
                                 <TableCell>Member Name</TableCell>
-                                <TableCell>Gender</TableCell>
-                                <TableCell>Age</TableCell>
+                                {/* Only show Gender and Age columns for admin users */}
+                                {isAdmin && (
+                                    <>
+                                        <TableCell>Gender</TableCell>
+                                        <TableCell>Age</TableCell>
+                                    </>
+                                )}
                                 <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {members.map((member, index) => {
-                                // Add this to debug each row
                                 const canEdit = canEditMember(member);
-                                console.log(`Row ${index + 1}: ${member.member_name}, canEdit: ${canEdit}`);
                                 
                                 return (
                                     <TableRow 
@@ -248,8 +251,13 @@ const Members = () => {
                                     >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>{member.member_name}</TableCell>
-                                        <TableCell>{member.gender}</TableCell>
-                                        <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
+                                        {/* Only show Gender and Age columns for admin users */}
+                                        {isAdmin && (
+                                            <>
+                                                <TableCell>{member.gender}</TableCell>
+                                                <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
+                                            </>
+                                        )}
                                         <TableCell>
                                             {canEdit ? (
                                                 <>
@@ -328,44 +336,48 @@ const Members = () => {
                             }}
                         />
                         
-                        <FormControl fullWidth className="dialog-input" margin="normal">
-                            <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
-                            <Select
-                                labelId="gender-label"
-                                value={newMember.gender}
-                                label="Gender"
-                                onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
-                                sx={{ 
-                                    color: 'white',
-                                    '& .MuiSelect-icon': {
-                                        color: 'white'
-                                    }
+                        {/* Only show Gender field for admin users */}
+                        {isAdmin && (
+                            <FormControl fullWidth className="dialog-input" margin="normal">
+                                <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
+                                <Select
+                                    labelId="gender-label"
+                                    value={newMember.gender}
+                                    label="Gender"
+                                    onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
+                                    sx={{ 
+                                        color: 'white',
+                                        '& .MuiSelect-icon': {
+                                            color: 'white'
+                                        }
+                                    }}
+                                    disabled={!isAdmin || (editData && !isAdmin)}
+                                >
+                                    <MenuItem value="Male">Male</MenuItem>
+                                    <MenuItem value="Female">Female</MenuItem>
+                                    <MenuItem value="Other">Other</MenuItem>
+                                </Select>
+                            </FormControl>
+                        )}
+                        
+                        {/* Only show Date of Birth field for admin users */}
+                        {isAdmin && (
+                            <TextField 
+                                fullWidth 
+                                label="Date of Birth"
+                                type="date"
+                                value={newMember.date_of_birth || ''}
+                                onChange={handleDobChange}
+                                className="dialog-input" 
+                                margin="normal"
+                                InputLabelProps={{
+                                    shrink: true,
                                 }}
-                                disabled={!isAdmin || (editData && !isAdmin)}
-                            >
-                                <MenuItem value="Male">Male</MenuItem>
-                                <MenuItem value="Female">Female</MenuItem>
-                                <MenuItem value="Other">Other</MenuItem>
-                            </Select>
-                        </FormControl>
-                        
-                        <TextField 
-                            fullWidth 
-                            label="Date of Birth"
-                            type="date"
-                            value={newMember.date_of_birth || ''}
-                            onChange={handleDobChange}
-                            className="dialog-input" 
-                            margin="normal"
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            inputProps={{
-                                max: new Date().toISOString().split('T')[0] // Prevent future dates
-                            }}
-                        />
-                        
-                        {/* Removed the calculated age field as requested */}
+                                inputProps={{
+                                    max: new Date().toISOString().split('T')[0] // Prevent future dates
+                                }}
+                            />
+                        )}
                     </DialogContent>
                     <DialogActions>
                         <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
