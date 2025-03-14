@@ -8,25 +8,6 @@ const getAuthHeader = () => {
     };
 };
 
-const fetchWithAuth = async (url, options = {}) => {
-    const headers = {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
-        ...options.headers
-    };
-
-    const response = await fetch(url, {
-        ...options,
-        headers
-    });
-
-    if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-    }
-
-    return response.json();
-};
-
 const api = {
     login: async (username, password) => {
         try {
