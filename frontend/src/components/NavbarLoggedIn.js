@@ -79,6 +79,11 @@ const NavbarLoggedIn = () => {
                     className="navbar-loggedin-user" 
                     onClick={handleMenuOpen}
                     ref={userBoxRef}
+                    sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: '12px'
+                    }}
                 >
                     <Typography variant="body1" className="navbar-loggedin-username">
                         {user?.member_name || user?.username || 'User'} 
