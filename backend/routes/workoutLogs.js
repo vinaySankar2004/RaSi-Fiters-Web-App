@@ -14,32 +14,37 @@ router.get("/", authenticateToken, async (req, res) => {
 
         console.log("Fetching logs for date:", date);
         
-        // Build query conditions for the date only
-        const whereCondition = {
-            date: date
-        };
+        try {
+            // Build query conditions for the date only
+            const whereCondition = {
+                date: date
+            };
 
-        // Get all logs for this date
-        const logs = await WorkoutLog.findAll({
-            where: whereCondition,
-        });
-
-        console.log("Found logs:", logs.length);
-
-        // For non-admin users, add a canEdit flag
-        if (req.user.role !== 'admin') {
-            logs.forEach(log => {
-                // Member can only edit their own logs
-                log.dataValues.canEdit = (log.member_name === req.user.member_name);
+            // Get all logs for this date
+            const logs = await WorkoutLog.findAll({
+                where: whereCondition,
             });
-        } else {
-            // Admins can edit all logs
-            logs.forEach(log => {
-                log.dataValues.canEdit = true;
-            });
+
+            console.log("Found logs:", logs.length);
+
+            // For non-admin users, add a canEdit flag
+            if (req.user.role !== 'admin') {
+                logs.forEach(log => {
+                    // Member can only edit their own logs
+                    log.dataValues.canEdit = (log.member_name === req.user.member_name);
+                });
+            } else {
+                // Admins can edit all logs
+                logs.forEach(log => {
+                    log.dataValues.canEdit = true;
+                });
+            }
+
+            res.json(logs);
+        } catch (dbError) {
+            console.error("Database error:", dbError);
+            return res.status(500).json({ error: "Database error", details: dbError.message });
         }
-
-        res.json(logs);
     } catch (err) {
         console.error("Error fetching workout logs:", err);
         res.status(500).json({ error: "Failed to fetch workout logs." });
