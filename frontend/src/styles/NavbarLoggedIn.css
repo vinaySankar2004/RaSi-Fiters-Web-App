@@ -63,6 +63,7 @@
     font-size: 1rem !important;
     color: white !important;
     font-weight: 500 !important;
+    margin-right: 12px;
 }
 
 .navbar-loggedin-avatar {

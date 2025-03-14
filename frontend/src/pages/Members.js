@@ -118,7 +118,11 @@ const Members = () => {
 
             if (editData) {
                 // Only include password if it's not empty
-                const dataToSend = { ...trimmedMember };
+                const dataToSend = { 
+                    ...trimmedMember,
+                    username: generatedUsername // Always include the generated username
+                };
+                
                 if (!dataToSend.password) {
                     delete dataToSend.password;
                 }
@@ -136,21 +140,17 @@ const Members = () => {
                     
                     await api.updateMember(editData.user_id, limitedData);
                 } else if (isAdmin) {
-                    // If admin is changing the name, also update the username
-                    if (dataToSend.member_name !== editData.member_name) {
-                        dataToSend.username = generatedUsername;
-                    }
-                    
+                    // Always send the username when admin is editing
                     await api.updateMember(editData.user_id, dataToSend);
                 }
             } else {
-                // For new members, include the generated username
+                // For new members
                 await api.addMember({
                     member_name: trimmedMember.member_name,
                     gender: trimmedMember.gender,
                     date_of_birth: trimmedMember.date_of_birth,
                     password: trimmedMember.password,
-                    username: generatedUsername // Add the generated username
+                    username: generatedUsername // Include the generated username
                 });
             }
             
