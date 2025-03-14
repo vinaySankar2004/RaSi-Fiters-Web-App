@@ -48,6 +48,7 @@ const MyAccount = () => {
                 // Fetch member details
                 if (user?.userId) {
                     const memberData = await api.getMember(user.userId);
+                    console.log("Member data:", memberData);
                     setMember(memberData);
                     setDateOfBirth(memberData.date_of_birth || "");
                 }
@@ -148,6 +149,7 @@ const MyAccount = () => {
 
     // Format date for display
     const formatDate = (dateString) => {
+        if (!dateString) return "Not provided";
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
     };
@@ -168,7 +170,7 @@ const MyAccount = () => {
             <NavbarLoggedIn />
             <div className="my-account-page">
                 <Container className="my-account-container">
-                    <Typography variant="h3" className="my-account-title">
+                    <Typography variant="h3" className="members-title">
                         My Account
                     </Typography>
                     
@@ -194,16 +196,19 @@ const MyAccount = () => {
                     {tabValue === 0 && (
                         <div className="my-account-details-container">
                             <Typography variant="h4" className="my-account-username">
-                                {member?.member_name?.toUpperCase()}
+                                {member?.member_name?.toUpperCase() || user?.username?.toUpperCase()}
                             </Typography>
                             
                             <Box className="my-account-profile-section">
                                 <Box className="my-account-avatar-container">
-                                    <Avatar 
-                                        src={profilePic || user?.profilePic} 
-                                        alt={member?.member_name}
-                                        className="my-account-avatar"
-                                    />
+                                    <div className="my-account-avatar-wrapper">
+                                        <Avatar 
+                                            src={profilePic || user?.profilePic} 
+                                            alt={member?.member_name || user?.username}
+                                            className="my-account-avatar"
+                                            variant="square"
+                                        />
+                                    </div>
                                     <input
                                         accept="image/*"
                                         className="my-account-file-input"
@@ -228,7 +233,7 @@ const MyAccount = () => {
                                             Name:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.member_name}
+                                            {member?.member_name || user?.member_name || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -237,7 +242,7 @@ const MyAccount = () => {
                                             Username:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {user?.username}
+                                            {user?.username || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -262,7 +267,7 @@ const MyAccount = () => {
                                             Gender:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.gender}
+                                            {member?.gender || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -297,7 +302,7 @@ const MyAccount = () => {
                             <TableContainer>
                                 <Table>
                                     <TableHead>
-                                        <TableRow className="my-account-table-header">
+                                        <TableRow className="table-header-row">
                                             <TableCell>Date</TableCell>
                                             <TableCell>Workout</TableCell>
                                             <TableCell>Duration (mins)</TableCell>
@@ -306,14 +311,14 @@ const MyAccount = () => {
                                     <TableBody>
                                         {workoutLogs.length > 0 ? (
                                             workoutLogs.map((log, index) => (
-                                                <TableRow key={`${log.date}-${log.workout_name}-${index}`}>
+                                                <TableRow key={`${log.date}-${log.workout_name}-${index}`} className="table-body-row">
                                                     <TableCell>{formatDate(log.date)}</TableCell>
                                                     <TableCell>{log.workout_name}</TableCell>
                                                     <TableCell>{log.duration}</TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
-                                            <TableRow>
+                                            <TableRow className="table-body-row">
                                                 <TableCell colSpan={3} align="center">
                                                     No workout logs found
                                                 </TableCell>
@@ -336,6 +341,7 @@ const MyAccount = () => {
                                 fullWidth
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
+                                className="dialog-input"
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -357,6 +363,7 @@ const MyAccount = () => {
                                 fullWidth
                                 value={dateOfBirth}
                                 onChange={(e) => setDateOfBirth(e.target.value)}
+                                className="dialog-input"
                                 InputLabelProps={{
                                     shrink: true,
                                 }}
@@ -366,10 +373,10 @@ const MyAccount = () => {
                             />
                         </DialogContent>
                         <DialogActions>
-                            <Button onClick={handleEditDialogClose} color="primary">
+                            <Button onClick={handleEditDialogClose} className="cancel-button">
                                 Cancel
                             </Button>
-                            <Button onClick={handleSaveChanges} color="primary">
+                            <Button onClick={handleSaveChanges} className="save-button">
                                 Save Changes
                             </Button>
                         </DialogActions>

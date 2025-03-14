@@ -6,17 +6,16 @@
 }
 
 .my-account-container {
-    padding-top: 100px;
-    max-width: 1200px;
+    text-align: center !important;
+    padding-top: 110px !important;
 }
 
-/* Page title */
-.my-account-title {
-    color: #ffcc00;
-    margin-bottom: 30px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 2.5rem;
+/* Use the same title styling as Members page */
+.my-account-container .members-title {
+    font-size: 2rem !important;
+    font-weight: bold !important;
+    color: #ffcc00 !important;
+    margin-bottom: 20px !important;
 }
 
 /* Tabs styling to match Members page */
@@ -70,20 +69,26 @@
     gap: 40px;
 }
 
-/* Avatar styling */
+/* Avatar styling - make it square and larger */
 .my-account-avatar-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 150px;
+    min-width: 180px;
+}
+
+.my-account-avatar-wrapper {
+    width: 180px;
+    height: 180px;
+    margin-bottom: 15px;
 }
 
 .my-account-avatar {
-    width: 150px;
-    height: 150px;
-    margin-bottom: 15px;
+    width: 100% !important;
+    height: 100% !important;
     background-color: #333;
     border: 2px solid rgba(255, 204, 0, 0.5);
+    border-radius: 0 !important; /* Ensure square shape */
 }
 
 .my-account-upload-button {
@@ -121,71 +126,82 @@
     justify-content: space-between;
 }
 
+/* Make password visibility icon white */
 .password-visibility-toggle {
-    color: #ffcc00;
+    color: white !important;
     margin-left: 10px;
+}
+
+.password-visibility-toggle:hover {
+    color: #ffcc00 !important;
 }
 
 /* Edit button styling to match Members page */
 .my-account-edit-button {
-    background-color: #ffcc00 !important;
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     color: black !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
     font-weight: bold !important;
-    border-radius: 30px !important;
-    padding: 8px 20px !important;
     margin-top: 20px !important;
 }
 
 .my-account-edit-button:hover {
-    background-color: #e6b800 !important;
+    background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
 }
 
-/* Workouts table styling */
-.my-account-table-header th {
-    background-color: #ffcc00;
-    color: black;
-    font-weight: bold;
-    padding: 15px;
+/* Workouts table styling - use the same classes as Members */
+.my-account-workouts-container .table-header-row th {
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    font-weight: bold !important;
+    color: black !important;
+    font-size: 1.3rem !important;
+    text-align: center !important;
 }
 
-.my-account-workouts-container .MuiTableCell-root {
-    color: white;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 15px;
+.my-account-workouts-container .table-body-row td {
+    color: white !important;
+    font-size: 1.1rem !important;
+    text-align: center !important;
+}
+
+.my-account-workouts-container .table-body-row:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Dialog styling */
 .my-account-dialog .MuiPaper-root {
-    background-color: #333;
-    color: white;
+    background: rgba(20, 20, 20, 0.95) !important;
+    color: white !important;
+    border-radius: 12px !important;
 }
 
 .my-account-dialog .MuiDialogTitle-root {
-    background-color: #ffcc00;
-    color: black;
-    font-weight: bold;
+    font-size: 1.5rem !important;
+    font-weight: bold !important;
+    color: white !important;
 }
 
-.my-account-dialog .MuiInputBase-root {
-    color: white;
+.my-account-dialog .dialog-input {
+    margin-top: 15px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    color: white !important;
+    margin-bottom: 16px !important;
 }
 
-.my-account-dialog .MuiInputLabel-root {
-    color: rgba(255, 255, 255, 0.7);
+.my-account-dialog .dialog-input label,
+.my-account-dialog .dialog-input input {
+    color: white !important;
 }
 
-.my-account-dialog .MuiOutlinedInput-notchedOutline {
-    border-color: rgba(255, 255, 255, 0.3);
+.my-account-dialog .cancel-button {
+    color: white !important;
 }
 
-.my-account-dialog .MuiButton-root {
-    color: #ffcc00;
-    font-weight: bold;
-}
-
-.my-account-dialog .MuiButton-root:last-child {
-    background-color: #ffcc00;
-    color: black;
+.my-account-dialog .save-button {
+    background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
+    color: black !important;
 }
 
 /* Responsive adjustments */
