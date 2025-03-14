@@ -346,20 +346,7 @@ const Members = () => {
                             }}
                         />
                         
-                        {isAdmin && (
-                            <TextField 
-                                fullWidth 
-                                label="Calculated Age"
-                                value={calculateAge(newMember.date_of_birth)}
-                                className="dialog-input"
-                                margin="normal"
-                                InputProps={{
-                                    readOnly: true,
-                                }}
-                                disabled={true}
-                                helperText="Age is calculated from date of birth"
-                            />
-                        )}
+                        {/* Removed the calculated age field as requested */}
                     </DialogContent>
                     <DialogActions>
                         <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
