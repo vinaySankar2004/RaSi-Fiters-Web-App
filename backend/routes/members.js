@@ -108,7 +108,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
-        const { member_name, gender, date_of_birth, password } = req.body;
+        const { member_name, gender, date_of_birth, password, username } = req.body;
         const member = await Member.findByPk(req.params.id, { transaction });
 
         if (!member) {
@@ -164,11 +164,12 @@ router.put("/:id", authenticateToken, async (req, res) => {
             
             await member.update(updateData, { transaction });
             
-            // Update password if provided
-            if (password) {
+            // Update username and password if provided
+            if (username || password) {
                 const user = await User.findByPk(member.user_id, { transaction });
                 if (user) {
-                    user.password = password;
+                    if (username) user.username = username;
+                    if (password) user.password = password;
                     await user.save({ transaction });
                 }
             }

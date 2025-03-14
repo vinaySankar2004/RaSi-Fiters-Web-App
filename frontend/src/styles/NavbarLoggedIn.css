@@ -209,3 +209,8 @@
     color: white !important;
     font-weight: bold !important;
 }
+
+/* Add this style to create a gap between the username and avatar */
+.navbar-loggedin-username {
+    margin-right: 12px; /* This adds the gap */
+}
