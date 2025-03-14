@@ -10,9 +10,6 @@ import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import "../styles/Members.css";
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const Members = () => {
     const { user } = useAuth();
@@ -162,10 +159,10 @@ const Members = () => {
     };
     
     // Handle date of birth change
-    const handleDobChange = (date) => {
+    const handleDobChange = (e) => {
         setNewMember({ 
             ...newMember, 
-            date_of_birth: date
+            date_of_birth: e.target.value
         });
     };
 
@@ -311,21 +308,21 @@ const Members = () => {
                             </Select>
                         </FormControl>
                         
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <DatePicker
-                                label="Date of Birth"
-                                value={newMember.date_of_birth}
-                                onChange={handleDobChange}
-                                className="dialog-input"
-                                sx={{ 
-                                    width: '100%',
-                                    marginTop: 2,
-                                    '& .MuiInputBase-root': {
-                                        color: 'white'
-                                    }
-                                }}
-                            />
-                        </LocalizationProvider>
+                        <TextField 
+                            fullWidth 
+                            label="Date of Birth"
+                            type="date"
+                            value={newMember.date_of_birth || ''}
+                            onChange={handleDobChange}
+                            className="dialog-input" 
+                            margin="normal"
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            inputProps={{
+                                max: new Date().toISOString().split('T')[0] // Prevent future dates
+                            }}
+                        />
                         
                         {isAdmin && (
                             <TextField 
