@@ -166,203 +166,213 @@ const MyAccount = () => {
     return (
         <>
             <NavbarLoggedIn />
-            <Container className="my-account-container">
-                <Typography variant="h4" className="my-account-title">My Account</Typography>
-                
-                <Paper className="my-account-tabs-container">
-                    <Tabs 
-                        value={tabValue} 
-                        onChange={handleTabChange}
-                        className="my-account-tabs"
-                        variant="fullWidth"
-                    >
-                        <Tab label="My Details" />
-                        <Tab label="My Workouts" />
-                        <Tab label="Reset Password" onClick={handleEditDialogOpen} />
-                    </Tabs>
-                </Paper>
-                
-                {tabValue === 0 && (
-                    <Paper className="my-account-details-container">
-                        <Typography variant="h5" className="my-account-username">
-                            {user?.username?.toUpperCase()}
-                        </Typography>
-                        
-                        <Box className="my-account-profile-section">
-                            <Box className="my-account-avatar-container">
-                                <Avatar 
-                                    src={profilePic || user?.profilePic} 
-                                    alt={member?.member_name}
-                                    className="my-account-avatar"
-                                />
-                                <input
-                                    accept="image/*"
-                                    className="my-account-file-input"
-                                    id="profile-pic-upload"
-                                    type="file"
-                                    onChange={handleProfilePicChange}
-                                    hidden
-                                />
-                                <label htmlFor="profile-pic-upload">
-                                    <IconButton 
-                                        component="span" 
-                                        className="my-account-upload-button"
-                                    >
-                                        <PhotoCamera />
-                                    </IconButton>
-                                </label>
+            <div className="my-account-page-background">
+                <Container className="my-account-container">
+                    <Typography variant="h3" className="my-account-title">
+                        My Account
+                    </Typography>
+                    
+                    <Paper className="my-account-tabs-container">
+                        <Tabs 
+                            value={tabValue} 
+                            onChange={handleTabChange}
+                            className="my-account-tabs"
+                            variant="fullWidth"
+                        >
+                            <Tab label="MY DETAILS" />
+                            <Tab label="MY WORKOUTS" />
+                        </Tabs>
+                    </Paper>
+                    
+                    {tabValue === 0 && (
+                        <Paper className="my-account-details-container">
+                            <Typography variant="h4" className="my-account-username">
+                                {user?.username?.toUpperCase()}
+                            </Typography>
+                            
+                            <Box className="my-account-profile-section">
+                                <Box className="my-account-avatar-container">
+                                    <Avatar 
+                                        src={profilePic || user?.profilePic} 
+                                        alt={member?.member_name}
+                                        className="my-account-avatar"
+                                    />
+                                    <input
+                                        accept="image/*"
+                                        className="my-account-file-input"
+                                        id="profile-pic-upload"
+                                        type="file"
+                                        onChange={handleProfilePicChange}
+                                        hidden
+                                    />
+                                    <label htmlFor="profile-pic-upload">
+                                        <IconButton 
+                                            component="span" 
+                                            className="my-account-upload-button"
+                                        >
+                                            <PhotoCamera />
+                                        </IconButton>
+                                    </label>
+                                </Box>
+                                
+                                <Box className="my-account-info-container">
+                                    <Box className="my-account-info-row">
+                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                            Name:
+                                        </Typography>
+                                        <Typography variant="body1" className="my-account-info-value">
+                                            {member?.member_name}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box className="my-account-info-row">
+                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                            Username:
+                                        </Typography>
+                                        <Typography variant="body1" className="my-account-info-value">
+                                            {user?.username}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box className="my-account-info-row">
+                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                            Password:
+                                        </Typography>
+                                        <Typography variant="body1" className="my-account-info-value password-field">
+                                            ••••••••
+                                            <IconButton 
+                                                size="small" 
+                                                className="password-visibility-toggle"
+                                                onClick={handleTogglePasswordVisibility}
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box className="my-account-info-row">
+                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                            Gender:
+                                        </Typography>
+                                        <Typography variant="body1" className="my-account-info-value">
+                                            {member?.gender}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box className="my-account-info-row">
+                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                            Date of Birth:
+                                        </Typography>
+                                        <Typography variant="body1" className="my-account-info-value">
+                                            {member?.date_of_birth ? (
+                                                `${formatDate(member.date_of_birth)} (Age: ${calculateAge(member.date_of_birth)})`
+                                            ) : (
+                                                "Not provided"
+                                            )}
+                                        </Typography>
+                                    </Box>
+                                </Box>
                             </Box>
                             
-                            <Box className="my-account-info-container">
-                                <Box className="my-account-info-row">
-                                    <Typography variant="subtitle1" className="my-account-info-label">
-                                        Name:
-                                    </Typography>
-                                    <Typography variant="body1" className="my-account-info-value">
-                                        {member?.member_name}
-                                    </Typography>
-                                </Box>
-                                
-                                <Box className="my-account-info-row">
-                                    <Typography variant="subtitle1" className="my-account-info-label">
-                                        Username:
-                                    </Typography>
-                                    <Typography variant="body1" className="my-account-info-value">
-                                        {user?.username}
-                                    </Typography>
-                                </Box>
-                                
-                                <Box className="my-account-info-row">
-                                    <Typography variant="subtitle1" className="my-account-info-label">
-                                        Password:
-                                    </Typography>
-                                    <Typography variant="body1" className="my-account-info-value">
-                                        ••••••••
-                                    </Typography>
-                                </Box>
-                                
-                                <Box className="my-account-info-row">
-                                    <Typography variant="subtitle1" className="my-account-info-label">
-                                        Gender:
-                                    </Typography>
-                                    <Typography variant="body1" className="my-account-info-value">
-                                        {member?.gender}
-                                    </Typography>
-                                </Box>
-                                
-                                <Box className="my-account-info-row">
-                                    <Typography variant="subtitle1" className="my-account-info-label">
-                                        Date of Birth:
-                                    </Typography>
-                                    <Typography variant="body1" className="my-account-info-value">
-                                        {member?.date_of_birth ? (
-                                            `${formatDate(member.date_of_birth)} (Age: ${calculateAge(member.date_of_birth)})`
-                                        ) : (
-                                            "Not provided"
-                                        )}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </Box>
-                        
-                        <Button 
-                            variant="contained" 
-                            startIcon={<Edit />}
-                            className="my-account-edit-button"
-                            onClick={handleEditDialogOpen}
-                        >
-                            Edit Profile
-                        </Button>
-                    </Paper>
-                )}
-                
-                {tabValue === 1 && (
-                    <Paper className="my-account-workouts-container">
-                        <Typography variant="h5" className="my-account-section-title">
-                            My Workout History
-                        </Typography>
-                        
-                        <TableContainer>
-                            <Table>
-                                <TableHead>
-                                    <TableRow className="my-account-table-header">
-                                        <TableCell>Date</TableCell>
-                                        <TableCell>Workout</TableCell>
-                                        <TableCell>Duration (mins)</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {workoutLogs.length > 0 ? (
-                                        workoutLogs.map((log, index) => (
-                                            <TableRow key={`${log.date}-${log.workout_name}-${index}`}>
-                                                <TableCell>{formatDate(log.date)}</TableCell>
-                                                <TableCell>{log.workout_name}</TableCell>
-                                                <TableCell>{log.duration}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={3} align="center">
-                                                No workout logs found
-                                            </TableCell>
+                            <Button 
+                                variant="contained" 
+                                startIcon={<Edit />}
+                                className="my-account-edit-button"
+                                onClick={handleEditDialogOpen}
+                            >
+                                EDIT PROFILE
+                            </Button>
+                        </Paper>
+                    )}
+                    
+                    {tabValue === 1 && (
+                        <Paper className="my-account-workouts-container">
+                            <Typography variant="h5" className="my-account-section-title">
+                                My Workout History
+                            </Typography>
+                            
+                            <TableContainer>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow className="my-account-table-header">
+                                            <TableCell>Date</TableCell>
+                                            <TableCell>Workout</TableCell>
+                                            <TableCell>Duration (mins)</TableCell>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Paper>
-                )}
-                
-                {/* Edit Profile Dialog */}
-                <Dialog open={editDialogOpen} onClose={handleEditDialogClose} className="my-account-dialog">
-                    <DialogTitle>Edit Profile</DialogTitle>
-                    <DialogContent>
-                        <TextField
-                            margin="dense"
-                            label="New Password (leave blank to keep current)"
-                            type={showPassword ? "text" : "password"}
-                            fullWidth
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            InputProps={{
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton
-                                            onClick={handleTogglePasswordVisibility}
-                                            edge="end"
-                                        >
-                                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                                        </IconButton>
-                                    </InputAdornment>
-                                ),
-                            }}
-                        />
-                        
-                        <TextField
-                            margin="dense"
-                            label="Date of Birth"
-                            type="date"
-                            fullWidth
-                            value={dateOfBirth}
-                            onChange={(e) => setDateOfBirth(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            inputProps={{
-                                max: new Date().toISOString().split('T')[0] // Prevent future dates
-                            }}
-                        />
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleEditDialogClose} color="primary">
-                            Cancel
-                        </Button>
-                        <Button onClick={handleSaveChanges} color="primary">
-                            Save Changes
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </Container>
+                                    </TableHead>
+                                    <TableBody>
+                                        {workoutLogs.length > 0 ? (
+                                            workoutLogs.map((log, index) => (
+                                                <TableRow key={`${log.date}-${log.workout_name}-${index}`}>
+                                                    <TableCell>{formatDate(log.date)}</TableCell>
+                                                    <TableCell>{log.workout_name}</TableCell>
+                                                    <TableCell>{log.duration}</TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={3} align="center">
+                                                    No workout logs found
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </Paper>
+                    )}
+                    
+                    {/* Edit Profile Dialog */}
+                    <Dialog open={editDialogOpen} onClose={handleEditDialogClose} className="my-account-dialog">
+                        <DialogTitle>Edit Profile</DialogTitle>
+                        <DialogContent>
+                            <TextField
+                                margin="dense"
+                                label="New Password (leave blank to keep current)"
+                                type={showPassword ? "text" : "password"}
+                                fullWidth
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                onClick={handleTogglePasswordVisibility}
+                                                edge="end"
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
+                            
+                            <TextField
+                                margin="dense"
+                                label="Date of Birth"
+                                type="date"
+                                fullWidth
+                                value={dateOfBirth}
+                                onChange={(e) => setDateOfBirth(e.target.value)}
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                                inputProps={{
+                                    max: new Date().toISOString().split('T')[0] // Prevent future dates
+                                }}
+                            />
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={handleEditDialogClose} color="primary">
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSaveChanges} color="primary">
+                                Save Changes
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                </Container>
+            </div>
         </>
     );
 };

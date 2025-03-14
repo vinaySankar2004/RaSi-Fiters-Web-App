@@ -1,6 +1,14 @@
+/* Background and container styling */
+.my-account-page-background {
+    background-color: #121212;
+    min-height: 100vh;
+    padding-bottom: 50px;
+}
+
 .my-account-container {
-    padding-top: 100px;
+    padding-top: 120px; /* Increased spacing from navbar */
     padding-bottom: 40px;
+    max-width: 1000px;
 }
 
 .my-account-title {
@@ -8,11 +16,14 @@
     margin-bottom: 30px;
     text-align: center;
     font-weight: bold;
+    font-size: 2.5rem;
 }
 
+/* Tabs styling */
 .my-account-tabs-container {
     background-color: #333;
     margin-bottom: 30px;
+    border-radius: 8px;
 }
 
 .my-account-tabs {
@@ -22,97 +33,174 @@
 .my-account-tabs .MuiTab-root {
     color: white;
     font-weight: bold;
+    font-size: 1rem;
+    padding: 15px 0;
 }
 
 .my-account-tabs .Mui-selected {
     color: #ffcc00;
+    background-color: rgba(255, 204, 0, 0.1);
 }
 
+.MuiTabs-indicator {
+    background-color: #ffcc00;
+    height: 3px;
+}
+
+/* Content containers */
 .my-account-details-container,
 .my-account-workouts-container {
     background-color: #333;
     padding: 30px;
     border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .my-account-username {
     color: #ffcc00;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     text-align: center;
+    font-weight: bold;
+    letter-spacing: 1px;
 }
 
+/* Profile section layout */
 .my-account-profile-section {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     margin-bottom: 30px;
-    gap: 30px;
+    gap: 40px;
 }
 
+/* Avatar styling */
 .my-account-avatar-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 200px;
 }
 
 .my-account-avatar {
-    width: 150px;
-    height: 150px;
-    margin-bottom: 10px;
+    width: 200px;
+    height: 200px;
+    margin-bottom: 15px;
     background-color: #ffcc00;
+    border: 3px solid rgba(255, 204, 0, 0.5);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .my-account-upload-button {
     color: #ffcc00 !important;
+    background-color: rgba(255, 204, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
+.my-account-upload-button:hover {
+    background-color: rgba(255, 204, 0, 0.2);
+    transform: scale(1.05);
+}
+
+/* Info container styling */
 .my-account-info-container {
     flex: 1;
 }
 
 .my-account-info-row {
     display: flex;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 10px;
+    padding-bottom: 15px;
 }
 
 .my-account-info-label {
-    width: 120px;
+    width: 150px;
     color: #ffcc00;
     font-weight: bold;
+    font-size: 1.1rem;
 }
 
 .my-account-info-value {
     flex: 1;
     color: white;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
 }
 
+.password-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.password-visibility-toggle {
+    color: rgba(255, 255, 255, 0.7);
+    margin-left: 10px;
+}
+
+/* Edit button styling */
 .my-account-edit-button {
     background: linear-gradient(45deg, #ffcc00, #ff9900) !important;
     color: black !important;
     font-weight: bold !important;
     margin-top: 20px !important;
+    padding: 10px 25px !important;
+    font-size: 1rem !important;
+    border-radius: 30px !important;
+    transition: all 0.3s ease !important;
 }
 
+.my-account-edit-button:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4) !important;
+}
+
+/* Workouts tab styling */
 .my-account-section-title {
     color: #ffcc00;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    font-weight: bold;
+    text-align: center;
 }
 
 .my-account-table-header th {
     background-color: rgba(255, 204, 0, 0.2);
     color: #ffcc00;
     font-weight: bold;
+    font-size: 1.1rem;
+    padding: 15px;
 }
 
+.my-account-workouts-container .MuiTableCell-root {
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px;
+}
+
+/* Dialog styling */
 .my-account-dialog .MuiPaper-root {
     background-color: #333;
     color: white;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.my-account-dialog .MuiDialogTitle-root {
+    background-color: rgba(255, 204, 0, 0.1);
+    color: #ffcc00;
+    font-weight: bold;
+    text-align: center;
+    padding: 15px;
+}
+
+.my-account-dialog .MuiDialogContent-root {
+    padding: 20px;
 }
 
 .my-account-dialog .MuiInputBase-root {
     color: white;
+    margin-bottom: 15px;
 }
 
 .my-account-dialog .MuiInputLabel-root {
@@ -123,13 +211,36 @@
     border-color: rgba(255, 255, 255, 0.3);
 }
 
+.my-account-dialog .MuiButton-root {
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+.my-account-dialog .MuiButton-root:last-child {
+    background-color: rgba(255, 204, 0, 0.1);
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .my-account-profile-section {
         flex-direction: column;
         align-items: center;
     }
     
+    .my-account-avatar-container {
+        margin-bottom: 30px;
+    }
+    
     .my-account-info-container {
         width: 100%;
+    }
+    
+    .my-account-info-row {
+        flex-direction: column;
+    }
+    
+    .my-account-info-label {
+        width: 100%;
+        margin-bottom: 5px;
     }
 }
