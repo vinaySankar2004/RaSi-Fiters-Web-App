@@ -37,21 +37,63 @@ const api = {
     },
 
     getWorkoutLogs: async (date) => {
-        return fetchWithAuth(`${API_URL}/workout-logs?date=${date}`);
+        try {
+            const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
+                headers: getAuthHeader()
+            });
+            return response.json();
+        } catch (error) {
+            console.error("Error fetching workout logs:", error);
+            throw error;
+        }
     },
 
     addWorkoutLog: async (logData) => {
-        return fetchWithAuth(`${API_URL}/workout-logs`, {
-            method: 'POST',
-            body: JSON.stringify(logData)
-        });
+        try {
+            // Ensure duration is a number
+            const data = {
+                ...logData,
+                duration: parseInt(logData.duration, 10)
+            };
+            
+            console.log("Sending log data:", data);
+            
+            const response = await fetch(`${API_URL}/workout-logs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        } catch (error) {
+            console.error("Error adding workout log:", error);
+            throw error;
+        }
     },
 
     updateWorkoutLog: async (logData) => {
-        return fetchWithAuth(`${API_URL}/workout-logs`, {
-            method: 'PUT',
-            body: JSON.stringify(logData)
-        });
+        try {
+            // Ensure duration is a number
+            const data = {
+                ...logData,
+                duration: parseInt(logData.duration, 10)
+            };
+            
+            const response = await fetch(`${API_URL}/workout-logs`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        } catch (error) {
+            console.error("Error updating workout log:", error);
+            throw error;
+        }
     },
 
     deleteWorkoutLog: async (logData) => {

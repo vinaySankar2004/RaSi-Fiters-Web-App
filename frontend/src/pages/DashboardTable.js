@@ -215,6 +215,7 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
     const [member, setMember] = useState("");
     const [workout, setWorkout] = useState("");
     const [duration, setDuration] = useState("");
+    const { user } = useAuth();
 
     useEffect(() => {
         if (editData) {
@@ -231,6 +232,24 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
 
     const handleSubmit = async () => {
         try {
+            // Validate inputs
+            if (!member || !workout || !duration) {
+                alert("All fields are required");
+                return;
+            }
+
+            if (isNaN(duration) || parseInt(duration) <= 0) {
+                alert("Duration must be a positive number");
+                return;
+            }
+
+            console.log("Submitting log:", {
+                member_name: member,
+                workout_name: workout,
+                date: editData ? editData.date : date,
+                duration: parseInt(duration, 10)
+            });
+
             if (editData) {
                 await api.updateWorkoutLog({
                     member_name: member,
