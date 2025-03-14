@@ -43,6 +43,7 @@ const DashboardTable = () => {
     const fetchLogs = useCallback(async () => {
         try {
             const data = await api.getWorkoutLogs(date);
+            console.log("Fetched logs:", data);
             setLogs(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching logs:", error);
@@ -97,7 +98,23 @@ const DashboardTable = () => {
 
     // Check if user can edit this log based on the canEdit flag or role
     const canEditLog = (log) => {
-        return isAdmin || log.canEdit || log.member_name === memberName;
+        // For admin users
+        if (isAdmin) {
+            return true;
+        }
+        
+        // For regular members
+        if (log.member_name === memberName) {
+            return true;
+        }
+        
+        // If the backend provided a canEdit flag, use it
+        if (log.canEdit !== undefined) {
+            return log.canEdit;
+        }
+        
+        // Default fallback
+        return false;
     };
 
     return (

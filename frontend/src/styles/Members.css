@@ -28,11 +28,13 @@
     font-weight: bold !important;
     color: black !important;
     font-size: 1.3rem !important; 
+    text-align: center !important;
 }
 
 .table-body-row td {
     color: white !important;
     font-size: 1.1rem !important; 
+    text-align: center !important;
 }
 
 .table-body-row:hover {
@@ -124,8 +126,7 @@
     }
 }
 
-/* Center align table content */
-.table-header-row th, 
-.table-body-row td {
-    text-align: center !important;
+/* Specifically left-align the member name column (second column) */
+.table-body-row td:nth-child(2) {
+    text-align: left !important;
 }

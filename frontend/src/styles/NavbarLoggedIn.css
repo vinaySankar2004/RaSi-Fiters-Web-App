@@ -50,15 +50,15 @@
 }
 
 .navbar-loggedin-user {
-    display: flex !important;
-    align-items: center !important;
+    position: relative;
+    display: flex;
+    align-items: center;
     gap: 0.8rem !important;
     padding: 8px 14px !important;
     border-radius: 8px !important;
     background: rgba(255, 255, 255, 0.1) !important;
     cursor: pointer !important;
     transition: background 0.3s ease-in-out !important;
-    position: relative;
 }
 
 .navbar-loggedin-user:hover {
@@ -174,4 +174,17 @@
         padding: 0 16px !important;
         justify-content: space-between !important;
     }
+}
+
+/* Target the MUI Menu component properly */
+.MuiMenu-paper {
+    width: auto !important;
+    min-width: 200px !important; /* Match the width of the user profile section */
+    margin-top: 8px !important;
+}
+
+/* Style the menu item */
+.MuiMenuItem-root {
+    justify-content: center !important;
+    font-weight: bold !important;
 }
