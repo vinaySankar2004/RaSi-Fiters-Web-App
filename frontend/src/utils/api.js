@@ -46,8 +46,8 @@ const api = {
 
     getWorkoutLogs: async (date) => {
         try {
-            const response = await axios.get(`${API_URL}/workout-logs?date=${date}`, {
-                headers: getAuthHeaders()
+            const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
+                headers: getAuthHeaders(),
             });
             console.log("API response:", response.data);
             return response.data;
