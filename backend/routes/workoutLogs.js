@@ -48,44 +48,38 @@ router.get("/", authenticateToken, async (req, res) => {
 // Add a new workout log
 router.post("/", authenticateToken, async (req, res) => {
     try {
-        const { member_id, workout_name, date, duration } = req.body;
+        const { member_name, workout_name, date, duration } = req.body;
         
-        if (!member_id || !workout_name || !date || !duration) {
-            return res.status(400).json({ error: "All fields are required." });
+        console.log("Received log data:", { member_name, workout_name, date, duration });
+        
+        if (!member_name || !workout_name || !date || !duration) {
+            console.log("Missing required fields:", { member_name, workout_name, date, duration });
+            return res.status(400).json({ 
+                error: "All fields are required."
+            });
         }
 
-        // Check if user has permission to add this log
-        if (req.user.role !== 'admin') {
-            // Get the member associated with this user
-            const member = await Member.findOne({ where: { user_id: req.user.userId } });
-            if (!member || member.id !== member_id) {
-                return res.status(403).json({ error: "You can only add logs for yourself." });
-            }
+        // Validate duration is a number
+        if (isNaN(duration)) {
+            return res.status(400).json({ error: "Duration must be a number." });
         }
 
-        const existingLog = await WorkoutLog.findOne({
-            where: {
-                member_id,
-                workout_name,
-                date
-            }
-        });
-
-        if (existingLog) {
-            return res.status(400).json({ error: "Workout log already exists for this member, workout, and date." });
-        }
-
+        // Get user_id from the token
+        const user_id = req.user.userId;
+        
+        // Create the workout log
         const newLog = await WorkoutLog.create({
-            member_id,
+            user_id,
+            member_name,
             workout_name,
             date,
-            duration
+            duration: parseInt(duration, 10)
         });
 
         res.status(201).json(newLog);
     } catch (err) {
         console.error("Error adding workout log:", err);
-        res.status(500).json({ error: "Failed to add workout log." });
+        res.status(500).json({ error: "Failed to add workout log.", details: err.message });
     }
 });
 

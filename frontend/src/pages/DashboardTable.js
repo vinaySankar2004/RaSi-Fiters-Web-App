@@ -215,7 +215,6 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
     const [member, setMember] = useState("");
     const [workout, setWorkout] = useState("");
     const [duration, setDuration] = useState("");
-    const { user } = useAuth();
 
     useEffect(() => {
         if (editData) {

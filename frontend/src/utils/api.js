@@ -38,10 +38,10 @@ const api = {
 
     getWorkoutLogs: async (date) => {
         try {
-            const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
+            const response = await axios.get(`${API_URL}/workout-logs?date=${date}`, {
                 headers: getAuthHeader()
             });
-            return response.json();
+            return response.data;
         } catch (error) {
             console.error("Error fetching workout logs:", error);
             throw error;
@@ -58,15 +58,10 @@ const api = {
             
             console.log("Sending log data:", data);
             
-            const response = await fetch(`${API_URL}/workout-logs`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                },
-                body: JSON.stringify(data)
+            const response = await axios.post(`${API_URL}/workout-logs`, data, {
+                headers: getAuthHeader()
             });
-            return response.json();
+            return response.data;
         } catch (error) {
             console.error("Error adding workout log:", error);
             throw error;
@@ -81,15 +76,10 @@ const api = {
                 duration: parseInt(logData.duration, 10)
             };
             
-            const response = await fetch(`${API_URL}/workout-logs`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                },
-                body: JSON.stringify(data)
+            const response = await axios.put(`${API_URL}/workout-logs`, data, {
+                headers: getAuthHeader()
             });
-            return response.json();
+            return response.data;
         } catch (error) {
             console.error("Error updating workout log:", error);
             throw error;
