@@ -50,23 +50,25 @@
 }
 
 .navbar-loggedin-user {
+    position: relative;
+    background-color: rgba(50, 50, 50, 0.8);
+    border-radius: 4px;
+    padding: 8px 16px;
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 8px 16px;
-    border-radius: 24px;
-    transition: background-color 0.3s;
 }
 
 .navbar-loggedin-username {
-    margin-right: 12px;
-    font-weight: 500;
+    font-size: 1rem !important;
+    color: white !important;
+    font-weight: 500 !important;
 }
 
 .navbar-loggedin-avatar {
-    width: 32px;
-    height: 32px;
-    background-color: #ffcc00;
+    background-color: #ffcc00 !important;
+    color: black !important;
+    font-weight: bold !important;
 }
 
 .navbar-loggedin-dropdown {
@@ -208,9 +210,4 @@
     justify-content: center !important;
     color: white !important;
     font-weight: bold !important;
-}
-
-/* Add this style to create a gap between the username and avatar */
-.navbar-loggedin-username {
-    margin-right: 12px; /* This adds the gap */
 }
