@@ -50,25 +50,23 @@
 }
 
 .navbar-loggedin-user {
-    position: relative;
-    background-color: rgba(50, 50, 50, 0.8);
-    border-radius: 4px;
-    padding: 8px 16px;
     display: flex;
     align-items: center;
     cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 24px;
+    transition: background-color 0.3s;
 }
 
 .navbar-loggedin-username {
-    font-size: 1rem !important;
-    color: white !important;
-    font-weight: 500 !important;
+    margin-right: 12px;
+    font-weight: 500;
 }
 
 .navbar-loggedin-avatar {
-    background-color: #ffcc00 !important;
-    color: black !important;
-    font-weight: bold !important;
+    width: 32px;
+    height: 32px;
+    background-color: #ffcc00;
 }
 
 .navbar-loggedin-dropdown {

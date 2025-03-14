@@ -49,6 +49,9 @@ const NavbarLoggedIn = () => {
         setMobileMenuOpen(false); 
     };
 
+    // Display name to show (member_name if available, otherwise username)
+    const displayName = user?.member_name || user?.username || 'User';
+
     return (
         <AppBar position="fixed" className="navbar-loggedin">
             <Toolbar className="navbar-loggedin-toolbar">
@@ -81,7 +84,7 @@ const NavbarLoggedIn = () => {
                     ref={userBoxRef}
                 >
                     <Typography variant="body1" className="navbar-loggedin-username">
-                        {user?.username || 'User'} 
+                        {displayName} 
                         {user?.role === 'admin' && <span className="admin-badge"> (Admin)</span>}
                     </Typography>
                     <Avatar className="navbar-loggedin-avatar" />

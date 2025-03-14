@@ -107,6 +107,9 @@ const Members = () => {
                 member_name: newMember.member_name.trim()
             };
 
+            // Generate username from member name
+            const generatedUsername = trimmedMember.member_name.toLowerCase().replace(/\s+/g, '');
+
             // For new members, ensure password is provided
             if (!editData && !trimmedMember.password) {
                 alert("Password is required for new members");
@@ -133,15 +136,21 @@ const Members = () => {
                     
                     await api.updateMember(editData.user_id, limitedData);
                 } else if (isAdmin) {
+                    // If admin is changing the name, also update the username
+                    if (dataToSend.member_name !== editData.member_name) {
+                        dataToSend.username = generatedUsername;
+                    }
+                    
                     await api.updateMember(editData.user_id, dataToSend);
                 }
             } else {
-                // For new members
+                // For new members, include the generated username
                 await api.addMember({
                     member_name: trimmedMember.member_name,
                     gender: trimmedMember.gender,
                     date_of_birth: trimmedMember.date_of_birth,
-                    password: trimmedMember.password // Required for new members
+                    password: trimmedMember.password,
+                    username: generatedUsername // Add the generated username
                 });
             }
             
@@ -149,7 +158,6 @@ const Members = () => {
             handleClose();
         } catch (error) {
             console.error("Error saving member:", error);
-            // More detailed error message
             alert(`Error: ${error.response?.data?.error || error.message}`);
         }
     };

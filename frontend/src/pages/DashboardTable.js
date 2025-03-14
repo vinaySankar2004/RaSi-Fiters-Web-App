@@ -186,9 +186,7 @@ const DashboardTable = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} style={{textAlign: 'center'}}>
-                                        No logs found for this date. Add a new log to get started.
-                                    </TableCell>
+                                    <TableCell colSpan={5}></TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
