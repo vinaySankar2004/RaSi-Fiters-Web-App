@@ -28,6 +28,11 @@ app.use("/api/members", memberRoutes);
 app.use("/api/workouts", workoutRoutes);
 app.use("/api/workout-logs", workoutLogRoutes);
 
+// for testing purposes
+app.get("/api/test", (req, res) => {
+    res.json({ message: "API is working!" });
+});
+
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
