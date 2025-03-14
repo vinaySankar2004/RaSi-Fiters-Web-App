@@ -71,9 +71,7 @@ const NavbarLoggedIn = () => {
                     <Button onClick={() => navigate("/members")} className="navbar-loggedin-link">Members</Button>
                     <Button onClick={() => navigate("/workouts")} className="navbar-loggedin-link">Workouts</Button>
                     <Button onClick={() => navigate("/dashboard")} className="navbar-loggedin-link">Dashboard</Button>
-                    {user?.role === 'admin' && (
-                        <Button onClick={() => navigate("/analytics")} className="navbar-loggedin-link">Analytics</Button>
-                    )}
+                    <Button onClick={() => navigate("/analytics")} className="navbar-loggedin-link">Analytics</Button>
                 </Box>
 
                 {/* User Profile Section */}
@@ -115,9 +113,7 @@ const NavbarLoggedIn = () => {
                 <Button onClick={() => handleNavigation("/members")} className="mobile-menu-item">Members</Button>
                 <Button onClick={() => handleNavigation("/workouts")} className="mobile-menu-item">Workouts</Button>
                 <Button onClick={() => handleNavigation("/dashboard")} className="mobile-menu-item">Dashboard</Button>
-                {user?.role === 'admin' && (
-                    <Button onClick={() => handleNavigation("/analytics")} className="mobile-menu-item">Analytics</Button>
-                )}
+                <Button onClick={() => handleNavigation("/analytics")} className="mobile-menu-item">Analytics</Button>
             </div>
         </AppBar>
     );
