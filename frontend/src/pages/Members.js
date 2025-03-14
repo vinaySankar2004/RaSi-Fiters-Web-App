@@ -95,20 +95,32 @@ const Members = () => {
 
     const handleSave = async () => {
         try {
-            // Trim the member name to remove any leading or trailing spaces
+            // Validate required fields
+            if (!newMember.member_name || !newMember.gender) {
+                alert("Member name and gender are required");
+                return;
+            }
+
+            // Trim the member name
             const trimmedMember = {
                 ...newMember,
                 member_name: newMember.member_name.trim()
             };
-            
+
+            // For new members, ensure password is provided
+            if (!editData && !trimmedMember.password) {
+                alert("Password is required for new members");
+                return;
+            }
+
             if (editData) {
                 // Only include password if it's not empty
                 const dataToSend = { ...trimmedMember };
                 if (!dataToSend.password) {
                     delete dataToSend.password;
                 }
-                
-                // If regular member is editing their own profile, only send password and date_of_birth
+
+                // If regular member editing own profile
                 if (!isAdmin && editData.user_id === currentUserId) {
                     const limitedData = {
                         password: dataToSend.password,
@@ -121,24 +133,23 @@ const Members = () => {
                     
                     await api.updateMember(editData.user_id, limitedData);
                 } else if (isAdmin) {
-                    // Admin can update all fields
                     await api.updateMember(editData.user_id, dataToSend);
                 }
             } else {
-                // Only admin can add new members
-                if (isAdmin) {
-                    // For new members, password is required
-                    if (!trimmedMember.password) {
-                        alert("Password is required for new members");
-                        return;
-                    }
-                    await api.addMember(trimmedMember);
-                }
+                // For new members
+                await api.addMember({
+                    member_name: trimmedMember.member_name,
+                    gender: trimmedMember.gender,
+                    date_of_birth: trimmedMember.date_of_birth,
+                    password: trimmedMember.password // Required for new members
+                });
             }
+            
             fetchMembers();
             handleClose();
         } catch (error) {
             console.error("Error saving member:", error);
+            // More detailed error message
             alert(`Error: ${error.response?.data?.error || error.message}`);
         }
     };

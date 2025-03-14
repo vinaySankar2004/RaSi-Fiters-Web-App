@@ -233,24 +233,24 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
         try {
             if (editData) {
                 await api.updateWorkoutLog({
-                    member_name: editData.member_name,
-                    workout_name: editData.workout_name,
+                    member_name: member,
+                    workout_name: workout,
                     date: editData.date,
-                    duration,
+                    duration: parseInt(duration, 10)
                 });
             } else {
                 await api.addWorkoutLog({
                     member_name: member,
                     workout_name: workout,
                     date,
-                    duration,
+                    duration: parseInt(duration, 10)
                 });
             }
             fetchLogs();
             handleClose();
         } catch (error) {
             console.error("Error saving log:", error);
-            alert(`Error saving log: ${error.message}`);
+            alert(`Error saving log: ${error.response?.data?.error || error.message}`);
         }
     };
 
