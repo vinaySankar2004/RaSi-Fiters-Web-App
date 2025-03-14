@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem, IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,21 @@ const NavbarLoggedIn = () => {
     const [anchorEl, setAnchorEl] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const open = Boolean(anchorEl);
+    const userBoxRef = useRef(null);
+
+    // Set the width variable when the component mounts and when the window resizes
+    useEffect(() => {
+        const updateWidth = () => {
+            if (userBoxRef.current) {
+                const width = userBoxRef.current.offsetWidth;
+                document.documentElement.style.setProperty('--user-box-width', `${width}px`);
+            }
+        };
+
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, []);
 
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
@@ -62,7 +77,11 @@ const NavbarLoggedIn = () => {
                 </Box>
 
                 {/* User Profile Section */}
-                <Box className="navbar-loggedin-user" onClick={handleMenuOpen}>
+                <Box 
+                    className="navbar-loggedin-user" 
+                    onClick={handleMenuOpen}
+                    ref={userBoxRef}
+                >
                     <Typography variant="body1" className="navbar-loggedin-username">
                         {user?.username || 'User'} 
                         {user?.role === 'admin' && <span className="admin-badge"> (Admin)</span>}
@@ -82,12 +101,6 @@ const NavbarLoggedIn = () => {
                     transformOrigin={{
                         vertical: 'top',
                         horizontal: 'right',
-                    }}
-                    PaperProps={{
-                        style: {
-                            width: anchorEl ? anchorEl.offsetWidth : undefined,
-                            minWidth: '200px'
-                        }
                     }}
                 >
                     <MenuItem onClick={handleLogout}>Log Out</MenuItem>

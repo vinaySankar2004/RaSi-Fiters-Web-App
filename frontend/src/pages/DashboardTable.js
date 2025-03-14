@@ -137,11 +137,6 @@ const DashboardTable = () => {
             <Container className="dashboard-container">
                 <Typography variant="h4" className="dashboard-title">Workout Log for {date}</Typography>
 
-                {/* Add this to show the number of logs */}
-                <Typography variant="subtitle1" style={{marginBottom: '10px'}}>
-                    {logs.length > 0 ? `Showing ${logs.length} logs` : 'No logs found for this date'}
-                </Typography>
-
                 <Box className="dashboard-actions">
                     <Box className="dashboard-add">
                         <Button className="dashboard-add-button" onClick={() => handleOpen()}>

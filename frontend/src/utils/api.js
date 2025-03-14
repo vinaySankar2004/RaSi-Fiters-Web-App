@@ -38,43 +38,8 @@ const api = {
 
     getWorkoutLogs: async (date) => {
         try {
-            console.log("Fetching logs for date:", date);
-            console.log("Full URL:", `${API_URL}/workout-logs?date=${date}`);
-            console.log("Auth headers:", getAuthHeader());
-            
-            const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader()
-                }
-            });
-            
-            console.log("Response status:", response.status);
-            console.log("Response ok:", response.ok);
-            
-            if (!response.ok) {
-                console.error("Response not OK:", response.statusText);
-                return [];
-            }
-            
-            const text = await response.text();
-            console.log("Raw response text:", text);
-            
-            // If the response is empty, return an empty array
-            if (!text) {
-                console.log("Empty response text, returning empty array");
-                return [];
-            }
-            
-            try {
-                const data = JSON.parse(text);
-                console.log("Parsed data:", data);
-                return data;
-            } catch (parseError) {
-                console.error("Error parsing JSON:", parseError);
-                return [];
-            }
+            const data = await fetchWithAuth(`${API_URL}/workout-logs?date=${date}`);
+            return data;
         } catch (error) {
             console.error("Error fetching workout logs:", error);
             return [];

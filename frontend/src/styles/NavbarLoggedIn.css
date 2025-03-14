@@ -50,12 +50,13 @@
 }
 
 .navbar-loggedin-user {
-    cursor: pointer;
+    position: relative;
+    background-color: rgba(50, 50, 50, 0.8);
+    border-radius: 4px;
+    padding: 8px 16px;
     display: flex;
     align-items: center;
-    padding: 8px 16px;
-    border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
 }
 
 .navbar-loggedin-username {
@@ -165,9 +166,12 @@
 
 /* Target the MUI Menu component properly */
 .MuiMenu-paper {
-    width: auto !important;
-    min-width: 200px !important; /* Match the width of the user profile section */
-    margin-top: 8px !important;
+    background-color: #333 !important;
+    color: white !important;
+    width: var(--user-box-width) !important;
+    min-width: unset !important;
+    border-radius: 4px !important;
+    margin-top: 4px !important;
 }
 
 /* Style the menu item */
