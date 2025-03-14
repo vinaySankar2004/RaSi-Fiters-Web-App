@@ -26,35 +26,28 @@ const Member = sequelize.define("Member", {
     },
     date_of_birth: {
         type: DataTypes.DATEONLY,
-        allowNull: true, // Allow null for existing records
-    },
-    age: {
-        type: DataTypes.INTEGER,
-        allowNull: true, // Make age optional since we'll calculate it
-        get() {
-            // If date_of_birth is set, calculate age dynamically
-            const dob = this.getDataValue('date_of_birth');
-            if (dob) {
-                const today = new Date();
-                const birthDate = new Date(dob);
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const monthDiff = today.getMonth() - birthDate.getMonth();
-                
-                // Adjust age if birthday hasn't occurred yet this year
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                    age--;
-                }
-                
-                return age;
-            }
-            
-            // Fall back to stored age if date_of_birth not available
-            return this.getDataValue('age');
-        }
+        allowNull: true,
     }
 }, {
     tableName: "members",
     timestamps: false
 });
+
+// Add virtual field for age
+Member.prototype.getAge = function() {
+    if (!this.date_of_birth) return null;
+    
+    const today = new Date();
+    const birthDate = new Date(this.date_of_birth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    // Adjust age if birthday hasn't occurred yet this year
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
+};
 
 module.exports = Member;

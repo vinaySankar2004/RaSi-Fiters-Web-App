@@ -8,31 +8,54 @@ const router = express.Router();
 
 router.post("/login", async (req, res) => {
     const { username, password } = req.body;
+    console.log(`Login attempt for username: ${username}`);
 
     try {
-        // Find user with associated member
+        // Find user first without including Member
         const user = await User.findOne({ 
-            where: { username },
-            include: [Member]
+            where: { username }
         });
 
-        if (!user) return res.status(401).json({ error: "Invalid credentials" });
+        if (!user) {
+            console.log(`User not found: ${username}`);
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+        
+        console.log(`User found: ${user.username}, role: ${user.role}`);
 
+        // Check password
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
+        if (!isMatch) {
+            console.log(`Password mismatch for user: ${username}`);
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
 
-        // Create token payload with role and member info if available
+        // Create token payload
         const payload = { 
             userId: user.id, 
             username: user.username,
             role: user.role
         };
 
-        // Add member_name to payload if user is a member with associated member record
-        if (user.role === 'member' && user.Member) {
-            payload.member_name = user.Member.member_name;
+        // If user is a member, try to find associated member info
+        if (user.role === 'member') {
+            try {
+                const member = await Member.findOne({ 
+                    where: { user_id: user.id },
+                    attributes: ['member_name', 'gender', 'date_of_birth'] // Explicitly list columns
+                });
+                
+                if (member) {
+                    payload.member_name = member.member_name;
+                    console.log(`Member name added to payload: ${payload.member_name}`);
+                }
+            } catch (memberError) {
+                console.error("Error fetching member info:", memberError);
+                // Continue without member info
+            }
         }
 
+        // Generate token
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         // Return token and user info
@@ -40,7 +63,7 @@ router.post("/login", async (req, res) => {
             token, 
             username: user.username, 
             role: user.role,
-            member_name: user.Member?.member_name || null,
+            member_name: payload.member_name || null,
             message: "Login successful!" 
         });
     } catch (error) {
