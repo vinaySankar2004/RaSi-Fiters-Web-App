@@ -43,7 +43,13 @@ const DashboardTable = () => {
     const fetchLogs = useCallback(async () => {
         try {
             const data = await api.getWorkoutLogs(date);
-            setLogs(Array.isArray(data) ? data : []);
+            
+            // Sort logs alphabetically by member_name
+            const sortedLogs = Array.isArray(data) 
+                ? [...data].sort((a, b) => a.member_name.localeCompare(b.member_name))
+                : [];
+            
+            setLogs(sortedLogs);
         } catch (error) {
             console.error("Error fetching logs:", error);
             setLogs([]);
