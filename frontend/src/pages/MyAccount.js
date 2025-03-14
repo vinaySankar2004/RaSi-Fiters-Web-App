@@ -46,16 +46,19 @@ const MyAccount = () => {
                 setLoading(true);
                 
                 // Fetch member details
-                if (user?.userId) {
-                    const memberData = await api.getMember(user.userId);
+                // Make sure we're using the actual ID from localStorage
+                const userId = localStorage.getItem('userId');
+                if (userId) {
+                    const memberData = await api.getMember(userId);
                     console.log("Member data:", memberData);
                     setMember(memberData);
                     setDateOfBirth(memberData?.date_of_birth || "");
                 }
                 
                 // Fetch all workout logs for this member
-                if (user?.member_name) {
-                    const logs = await api.getAllWorkoutLogs(user.member_name);
+                const memberName = localStorage.getItem('member_name');
+                if (memberName) {
+                    const logs = await api.getAllWorkoutLogs(memberName);
                     const sortedLogs = logs.sort((a, b) => new Date(b.date) - new Date(a.date));
                     setWorkoutLogs(sortedLogs);
                 }
@@ -68,7 +71,7 @@ const MyAccount = () => {
         };
         
         fetchData();
-    }, [user]);
+    }, []);
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
@@ -91,7 +94,10 @@ const MyAccount = () => {
 
     const handleSaveChanges = async () => {
         try {
-            if (!user?.userId) {
+            // Get userId directly from localStorage
+            const userId = localStorage.getItem('userId');
+            
+            if (!userId) {
                 throw new Error("User ID not found");
             }
 
@@ -106,10 +112,10 @@ const MyAccount = () => {
             }
             
             if (Object.keys(dataToUpdate).length > 0) {
-                await api.updateMember(user.userId, dataToUpdate);
+                await api.updateMember(userId, dataToUpdate);
                 
                 // Refresh member data
-                const updatedMember = await api.getMember(user.userId);
+                const updatedMember = await api.getMember(userId);
                 setMember(updatedMember);
                 
                 // Close dialog and show success message

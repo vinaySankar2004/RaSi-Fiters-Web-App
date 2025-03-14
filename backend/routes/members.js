@@ -31,13 +31,21 @@ router.get("/:id", authenticateToken, async (req, res) => {
         const member = await Member.findByPk(req.params.id, {
             include: [{
                 model: User,
-                attributes: ['username'] // Only include username, not password
+                attributes: ['username'] // Include username, not password
             }]
         });
         if (!member) {
             return res.status(404).json({ error: "Member not found." });
         }
-        res.json(member);
+        
+        // Make sure gender and date_of_birth are included in the response
+        const memberWithData = {
+            ...member.toJSON(),
+            gender: member.gender,
+            date_of_birth: member.date_of_birth
+        };
+        
+        res.json(memberWithData);
     } catch (err) {
         console.error("Error fetching member:", err);
         res.status(500).json({ error: "Failed to fetch member." });
