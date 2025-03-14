@@ -37,13 +37,7 @@ const api = {
     },
 
     getWorkoutLogs: async (date) => {
-        try {
-            const data = await fetchWithAuth(`${API_URL}/workout-logs?date=${date}`);
-            return data;
-        } catch (error) {
-            console.error("Error fetching workout logs:", error);
-            return [];
-        }
+        return fetchWithAuth(`${API_URL}/workout-logs?date=${date}`);
     },
 
     addWorkoutLog: async (logData) => {

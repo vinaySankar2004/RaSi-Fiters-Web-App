@@ -6,7 +6,7 @@ const Member = require("../models/Member");
 const User = require("../models/User");
 const router = express.Router();
 
-// Get workout logs - filter by date and user role
+// Get workout logs
 router.get("/", authenticateToken, async (req, res) => {
     try {
         let { date } = req.query;
@@ -14,6 +14,8 @@ router.get("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Date is required." });
         }
 
+        console.log("Fetching logs for date:", date);
+        
         // Build query conditions
         const whereCondition = {
             date: date
@@ -23,16 +25,14 @@ router.get("/", authenticateToken, async (req, res) => {
         const logs = await WorkoutLog.findAll({
             where: whereCondition,
             include: [{
-                model: User,
-                attributes: ['id', 'username', 'role'],
-                where: { role: 'member' } // Only include logs from member users
-            }, {
                 model: Member,
                 attributes: ['member_name']
             }]
         });
 
-        // Format the response
+        console.log("Found logs:", logs.length);
+
+        // Format the response for the frontend
         const formattedLogs = logs.map(log => ({
             user_id: log.user_id,
             member_name: log.member_name,

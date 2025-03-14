@@ -43,6 +43,7 @@ const DashboardTable = () => {
     const fetchLogs = useCallback(async () => {
         try {
             const data = await api.getWorkoutLogs(date);
+            console.log("Logs data received:", data);
             
             // Sort logs alphabetically by member_name
             const sortedLogs = Array.isArray(data) 
