@@ -55,18 +55,12 @@ const MyAccount = () => {
                     // Extract data from the response
                     if (memberData) {
                         setDateOfBirth(memberData.date_of_birth || "");
-                        
-                        // If we have User data in the response, get the actual password
-                        if (memberData.User && memberData.User.password) {
-                            setActualPassword(memberData.User.password);
-                        }
                     }
                 }
                 
                 // Fetch all workout logs for this member
                 if (user?.member_name) {
                     const logs = await api.getAllWorkoutLogs(user.member_name);
-                    // Sort logs by date in descending order (newest first)
                     const sortedLogs = logs.sort((a, b) => new Date(b.date) - new Date(a.date));
                     setWorkoutLogs(sortedLogs);
                 }
@@ -102,8 +96,13 @@ const MyAccount = () => {
 
     const handleSaveChanges = async () => {
         try {
+            if (!user?.userId) {
+                throw new Error("User ID not found");
+            }
+
             const dataToUpdate = {};
             
+            // Only include fields that have changed
             if (dateOfBirth) {
                 dataToUpdate.date_of_birth = dateOfBirth;
             }
@@ -113,18 +112,12 @@ const MyAccount = () => {
             }
             
             if (Object.keys(dataToUpdate).length > 0) {
+                // Use the user ID from the auth context
                 await api.updateMember(user.userId, dataToUpdate);
                 
-                // Update local member state
-                setMember(prev => ({
-                    ...prev,
-                    date_of_birth: dateOfBirth || prev.date_of_birth
-                }));
-                
-                // If password was updated, update the display
-                if (newPassword) {
-                    setActualPassword(newPassword);
-                }
+                // Refresh member data
+                const updatedMember = await api.getMember(user.userId);
+                setMember(updatedMember);
                 
                 // Close dialog and show success message
                 handleEditDialogClose();
