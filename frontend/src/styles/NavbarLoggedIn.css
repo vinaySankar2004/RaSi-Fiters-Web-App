@@ -88,14 +88,18 @@
 }
 
 .navbar-loggedin-dropdown .MuiPaper-root {
-    background-color: #121212;
-    color: white;
+    background-color: #333 !important;
+    color: white !important;
+    width: var(--user-box-width) !important;
+    min-width: unset !important;
+    border-radius: 4px !important;
+    margin-top: 4px !important;
 }
 
 .navbar-loggedin-dropdown .MuiMenuItem-root {
-    justify-content: center;
-    color: white;
-    font-weight: bold;
+    justify-content: center !important;
+    color: white !important;
+    font-weight: bold !important;
 }
 
 .navbar-loggedin-dropdown .MuiMenuItem-root:hover {

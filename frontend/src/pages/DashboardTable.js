@@ -43,16 +43,6 @@ const DashboardTable = () => {
     const fetchLogs = useCallback(async () => {
         try {
             const data = await api.getWorkoutLogs(date);
-            console.log("Fetched logs:", data);
-            console.log("Logs type:", typeof data);
-            console.log("Is array:", Array.isArray(data));
-            console.log("Length:", data ? data.length : 'N/A');
-            
-            // If data is not an array or is empty, log a message
-            if (!Array.isArray(data) || data.length === 0) {
-                console.log("No logs found or data is not in expected format");
-            }
-            
             setLogs(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching logs:", error);
@@ -125,11 +115,6 @@ const DashboardTable = () => {
         // Default fallback
         return false;
     };
-
-    // Add this right before the return statement to debug the table rendering
-    console.log("Rendering table with logs:", logs);
-    console.log("Current user is admin:", isAdmin);
-    console.log("Current user member name:", memberName);
 
     return (
         <>
