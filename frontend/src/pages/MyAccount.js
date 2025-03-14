@@ -21,7 +21,7 @@ const MyAccount = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [profilePic, setProfilePic] = useState(null);
-    const [actualPassword, setActualPassword] = useState("••••••••");
+    const [actualPassword, setActualPassword] = useState("");
 
     // Calculate age from date of birth
     const calculateAge = (dob) => {
@@ -56,11 +56,9 @@ const MyAccount = () => {
                     if (memberData) {
                         setDateOfBirth(memberData.date_of_birth || "");
                         
-                        // If we have User data in the response, get the username
-                        if (memberData.User && memberData.User.username) {
-                            // We don't have access to the actual password from the server for security reasons
-                            // This is just for demonstration purposes
-                            setActualPassword("••••••••");
+                        // If we have User data in the response, get the actual password
+                        if (memberData.User && memberData.User.password) {
+                            setActualPassword(memberData.User.password);
                         }
                     }
                 }
@@ -125,13 +123,12 @@ const MyAccount = () => {
                 
                 // If password was updated, update the display
                 if (newPassword) {
-                    // In a real app, we wouldn't store or display the actual password
-                    // This is just for demonstration
                     setActualPassword(newPassword);
                 }
                 
-                // Close dialog
+                // Close dialog and show success message
                 handleEditDialogClose();
+                alert("Profile updated successfully!");
             }
         } catch (error) {
             console.error("Error updating member:", error);
@@ -263,22 +260,6 @@ const MyAccount = () => {
                                     
                                     <Box className="my-account-info-row">
                                         <Typography variant="subtitle1" className="my-account-info-label">
-                                            Password:
-                                        </Typography>
-                                        <Typography variant="body1" className="my-account-info-value password-field">
-                                            {showPassword ? actualPassword : "••••••••"}
-                                            <IconButton 
-                                                size="small" 
-                                                className="password-visibility-toggle"
-                                                onClick={handleTogglePasswordVisibility}
-                                            >
-                                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                                            </IconButton>
-                                        </Typography>
-                                    </Box>
-                                    
-                                    <Box className="my-account-info-row">
-                                        <Typography variant="subtitle1" className="my-account-info-label">
                                             Gender:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
@@ -296,6 +277,22 @@ const MyAccount = () => {
                                             ) : (
                                                 "Not provided"
                                             )}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box className="my-account-info-row">
+                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                            Password:
+                                        </Typography>
+                                        <Typography variant="body1" className="my-account-info-value password-field">
+                                            {showPassword ? actualPassword : "••••••••"}
+                                            <IconButton 
+                                                size="small" 
+                                                className="password-visibility-toggle"
+                                                onClick={handleTogglePasswordVisibility}
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
                                         </Typography>
                                     </Box>
                                 </Box>
