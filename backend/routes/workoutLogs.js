@@ -21,13 +21,9 @@ router.get("/", authenticateToken, async (req, res) => {
             date: date
         };
 
-        // Get logs with user and member information
+        // Get logs directly without trying to include Member model
         const logs = await WorkoutLog.findAll({
-            where: whereCondition,
-            include: [{
-                model: Member,
-                attributes: ['member_name']
-            }]
+            where: whereCondition
         });
 
         console.log("Found logs:", logs.length);
@@ -35,7 +31,7 @@ router.get("/", authenticateToken, async (req, res) => {
         // Format the response for the frontend
         const formattedLogs = logs.map(log => ({
             user_id: log.user_id,
-            member_name: log.member_name,
+            member_name: log.member_name, // Use the member_name directly from the log
             workout_name: log.workout_name,
             date: log.date,
             duration: log.duration,
