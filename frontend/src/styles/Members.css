@@ -123,3 +123,9 @@
         max-width: 100%;
     }
 }
+
+/* Center align table content */
+.table-header-row th, 
+.table-body-row td {
+    text-align: center !important;
+}

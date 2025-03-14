@@ -63,6 +63,14 @@
     background: linear-gradient(45deg, #ff9900, #ffcc00) !important;
 }
 
+.view-button {
+    color: white !important;
+}
+
+.view-button:hover {
+    color: #ffcc00 !important;
+}
+
 @media (max-width: 768px) {
     .dashboard-table-container {
         overflow-x: auto;
@@ -72,4 +80,10 @@
     .dashboard-actions {
         flex-wrap: wrap;
     }
+}
+
+/* Center align table content */
+.table-header-row th, 
+.table-body-row td {
+    text-align: center !important;
 }
