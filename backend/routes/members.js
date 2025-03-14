@@ -31,7 +31,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
         const member = await Member.findByPk(req.params.id, {
             include: [{
                 model: User,
-                attributes: ['username'] // Include username but not password
+                attributes: ['username'] // Only include username, not password
             }]
         });
         if (!member) {
@@ -108,7 +108,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
-        const { member_name, gender, date_of_birth, password, username } = req.body;
+        const { date_of_birth, password } = req.body;
         const member = await Member.findByPk(req.params.id, { transaction });
 
         if (!member) {
@@ -118,65 +118,28 @@ router.put("/:id", authenticateToken, async (req, res) => {
 
         // Check if user has permission to update this member
         const isOwnProfile = req.user.userId === member.user_id;
-        const isAdmin = req.user.role === 'admin';
         
-        if (!isAdmin && !isOwnProfile) {
+        if (!isOwnProfile) {
             await transaction.rollback();
             return res.status(403).json({ error: "You can only update your own profile." });
         }
 
-        // For regular members updating their own profile, only allow password and date_of_birth updates
-        if (!isAdmin && isOwnProfile) {
-            // Only update date_of_birth if provided
-            if (date_of_birth !== undefined) {
-                await member.update({ date_of_birth }, { transaction });
-            }
-            
-            // Update password if provided
-            if (password) {
-                const user = await User.findByPk(member.user_id, { transaction });
-                if (user) {
-                    user.password = password; // Will be hashed by the User model's beforeUpdate hook
-                    await user.save({ transaction });
-                }
-            }
-        } else if (isAdmin) {
-            // Admin can update all fields
-            
-            // Check if the new name already exists (but not for this member)
-            if (member_name && member_name !== member.member_name) {
-                const existingMember = await Member.findOne({ 
-                    where: { member_name },
-                    transaction
-                });
-                
-                if (existingMember && existingMember.user_id !== member.user_id) {
-                    await transaction.rollback();
-                    return res.status(400).json({ error: "A member with this name already exists." });
-                }
-            }
-
-            // Update member fields
-            const updateData = {};
-            if (member_name) updateData.member_name = member_name;
-            if (gender) updateData.gender = gender;
-            if (date_of_birth !== undefined) updateData.date_of_birth = date_of_birth;
-            
-            await member.update(updateData, { transaction });
-            
-            // Update username and password if provided
-            if (username || password) {
-                const user = await User.findByPk(member.user_id, { transaction });
-                if (user) {
-                    if (username) user.username = username;
-                    if (password) user.password = password;
-                    await user.save({ transaction });
-                }
+        // Update member fields
+        if (date_of_birth !== undefined) {
+            await member.update({ date_of_birth }, { transaction });
+        }
+        
+        // Update password if provided
+        if (password) {
+            const user = await User.findByPk(member.user_id, { transaction });
+            if (user) {
+                user.password = password;
+                await user.save({ transaction });
             }
         }
 
         await transaction.commit();
-        res.json({ message: "Member updated successfully." });
+        res.json({ message: "Profile updated successfully." });
     } catch (err) {
         await transaction.rollback();
         console.error("Error updating member:", err);

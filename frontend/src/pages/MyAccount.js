@@ -50,11 +50,7 @@ const MyAccount = () => {
                     const memberData = await api.getMember(user.userId);
                     console.log("Member data:", memberData);
                     setMember(memberData);
-                    
-                    // Extract data from the response
-                    if (memberData) {
-                        setDateOfBirth(memberData.date_of_birth || "");
-                    }
+                    setDateOfBirth(memberData?.date_of_birth || "");
                 }
                 
                 // Fetch all workout logs for this member
@@ -101,7 +97,6 @@ const MyAccount = () => {
 
             const dataToUpdate = {};
             
-            // Only include fields that have changed
             if (dateOfBirth) {
                 dataToUpdate.date_of_birth = dateOfBirth;
             }
@@ -111,7 +106,6 @@ const MyAccount = () => {
             }
             
             if (Object.keys(dataToUpdate).length > 0) {
-                // Use the user ID from the auth context
                 await api.updateMember(user.userId, dataToUpdate);
                 
                 // Refresh member data
@@ -246,7 +240,7 @@ const MyAccount = () => {
                                             Username:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {user?.username || "Not available"}
+                                            {member?.User?.username || user?.username || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -269,22 +263,6 @@ const MyAccount = () => {
                                             ) : (
                                                 "Not provided"
                                             )}
-                                        </Typography>
-                                    </Box>
-                                    
-                                    <Box className="my-account-info-row">
-                                        <Typography variant="subtitle1" className="my-account-info-label">
-                                            Password:
-                                        </Typography>
-                                        <Typography variant="body1" className="my-account-info-value password-field">
-                                            ••••••••
-                                            <IconButton 
-                                                size="small" 
-                                                className="password-visibility-toggle"
-                                                onClick={handleTogglePasswordVisibility}
-                                            >
-                                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                                            </IconButton>
                                         </Typography>
                                     </Box>
                                 </Box>
