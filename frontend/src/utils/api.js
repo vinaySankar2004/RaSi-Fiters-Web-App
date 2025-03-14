@@ -46,13 +46,19 @@ const api = {
 
     getWorkoutLogs: async (date) => {
         try {
+            console.log("API: Fetching logs for date:", date);
             const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
                 headers: getAuthHeaders(),
             });
-            console.log("API response:", response.data);
+            console.log("API: Raw response:", response);
+            console.log("API: Response data:", response.data);
             return response.data;
         } catch (error) {
-            console.error("Error fetching workout logs:", error);
+            console.error("API: Error fetching workout logs:", error);
+            if (error.response) {
+                console.error("API: Error response:", error.response.data);
+                console.error("API: Error status:", error.response.status);
+            }
             throw error;
         }
     },

@@ -44,6 +44,15 @@ const DashboardTable = () => {
         try {
             const data = await api.getWorkoutLogs(date);
             console.log("Fetched logs:", data);
+            console.log("Logs type:", typeof data);
+            console.log("Is array:", Array.isArray(data));
+            console.log("Length:", data ? data.length : 'N/A');
+            
+            // If data is not an array or is empty, log a message
+            if (!Array.isArray(data) || data.length === 0) {
+                console.log("No logs found or data is not in expected format");
+            }
+            
             setLogs(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error fetching logs:", error);
@@ -52,6 +61,10 @@ const DashboardTable = () => {
     }, [date]);
 
     useEffect(() => {
+        console.log("Current date param:", date);
+        // Validate date format
+        const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(date);
+        console.log("Is valid date format:", isValidDate);
         fetchLogs();
     }, [fetchLogs]);
 
@@ -117,11 +130,21 @@ const DashboardTable = () => {
         return false;
     };
 
+    // Add this right before the return statement to debug the table rendering
+    console.log("Rendering table with logs:", logs);
+    console.log("Current user is admin:", isAdmin);
+    console.log("Current user member name:", memberName);
+
     return (
         <>
             <NavbarLoggedIn />
             <Container className="dashboard-container">
                 <Typography variant="h4" className="dashboard-title">Workout Log for {date}</Typography>
+
+                {/* Add this to show the number of logs */}
+                <Typography variant="subtitle1" style={{marginBottom: '10px'}}>
+                    {logs.length > 0 ? `Showing ${logs.length} logs` : 'No logs found for this date'}
+                </Typography>
 
                 <Box className="dashboard-actions">
                     <Box className="dashboard-add">
@@ -148,35 +171,43 @@ const DashboardTable = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {logs.map((log, index) => (
-                                <TableRow 
-                                    key={`${log.member_name}-${log.workout_name}-${log.date}`} 
-                                    className={`table-body-row ${log.member_name === memberName ? 'own-log-row' : ''}`}
-                                >
-                                    <TableCell>{index + 1}</TableCell>
-                                    <TableCell>{log.member_name}</TableCell>
-                                    <TableCell>{log.workout_name}</TableCell>
-                                    <TableCell>{log.duration}</TableCell>
-                                    <TableCell>
-                                        {canEditLog(log) ? (
-                                            <>
-                                                <IconButton className="edit-button" onClick={() => handleOpen(log)}>
-                                                    <Edit />
-                                                </IconButton>
-                                                <IconButton className="delete-button" onClick={() => handleDelete(log)}>
-                                                    <Delete />
-                                                </IconButton>
-                                            </>
-                                        ) : (
-                                            <Tooltip title="View only">
-                                                <IconButton className="view-button">
-                                                    <Visibility />
-                                                </IconButton>
-                                            </Tooltip>
-                                        )}
+                            {logs.length > 0 ? (
+                                logs.map((log, index) => (
+                                    <TableRow 
+                                        key={`${log.member_name}-${log.workout_name}-${log.date}`} 
+                                        className={`table-body-row ${log.member_name === memberName ? 'own-log-row' : ''}`}
+                                    >
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>{log.member_name}</TableCell>
+                                        <TableCell>{log.workout_name}</TableCell>
+                                        <TableCell>{log.duration}</TableCell>
+                                        <TableCell>
+                                            {canEditLog(log) ? (
+                                                <>
+                                                    <IconButton className="edit-button" onClick={() => handleOpen(log)}>
+                                                        <Edit />
+                                                    </IconButton>
+                                                    <IconButton className="delete-button" onClick={() => handleDelete(log)}>
+                                                        <Delete />
+                                                    </IconButton>
+                                                </>
+                                            ) : (
+                                                <Tooltip title="View only">
+                                                    <IconButton className="view-button">
+                                                        <Visibility />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} style={{textAlign: 'center'}}>
+                                        No logs found for this date. Add a new log to get started.
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
