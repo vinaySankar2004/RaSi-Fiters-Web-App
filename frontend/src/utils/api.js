@@ -1,9 +1,11 @@
-const API_URL = process.env.REACT_APP_API_URL || 'https://rasi-fiters-api.onrender.com/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 console.log("API URL:", process.env.REACT_APP_API_URL);
 
 const getAuthHeader = () => {
     const token = localStorage.getItem('token');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    return {
+        Authorization: token ? `Bearer ${token}` : ''
+    };
 };
 
 const fetchWithAuth = async (url, options = {}) => {
@@ -27,23 +29,40 @@ const fetchWithAuth = async (url, options = {}) => {
 
 const api = {
     login: async (username, password) => {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-        });
-
-        return response.json();
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Login failed');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
+        }
     },
 
     getWorkoutLogs: async (date) => {
         try {
-            const response = await axios.get(`${API_URL}/workout-logs?date=${date}`, {
+            const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
                 headers: getAuthHeader()
             });
-            return response.data;
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch workout logs');
+            }
+            
+            return await response.json();
         } catch (error) {
-            console.error("Error fetching workout logs:", error);
+            console.error('Error fetching workout logs:', error);
             throw error;
         }
     },
@@ -58,12 +77,23 @@ const api = {
             
             console.log("Sending log data:", data);
             
-            const response = await axios.post(`${API_URL}/workout-logs`, data, {
-                headers: getAuthHeader()
+            const response = await fetch(`${API_URL}/workout-logs`, {
+                method: 'POST',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
             });
-            return response.data;
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to add workout log');
+            }
+            
+            return await response.json();
         } catch (error) {
-            console.error("Error adding workout log:", error);
+            console.error('Error adding workout log:', error);
             throw error;
         }
     },
@@ -76,25 +106,65 @@ const api = {
                 duration: parseInt(logData.duration, 10)
             };
             
-            const response = await axios.put(`${API_URL}/workout-logs`, data, {
-                headers: getAuthHeader()
+            const response = await fetch(`${API_URL}/workout-logs`, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
             });
-            return response.data;
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update workout log');
+            }
+            
+            return await response.json();
         } catch (error) {
-            console.error("Error updating workout log:", error);
+            console.error('Error updating workout log:', error);
             throw error;
         }
     },
 
     deleteWorkoutLog: async (logData) => {
-        return fetchWithAuth(`${API_URL}/workout-logs`, {
-            method: 'DELETE',
-            body: JSON.stringify(logData)
-        });
+        try {
+            const response = await fetch(`${API_URL}/workout-logs`, {
+                method: 'DELETE',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(logData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete workout log');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting workout log:', error);
+            throw error;
+        }
     },
 
     getMembers: async () => {
-        return fetchWithAuth(`${API_URL}/members`);
+        try {
+            const response = await fetch(`${API_URL}/members`, {
+                headers: getAuthHeader()
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch members');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching members:', error);
+            throw error;
+        }
     },
 
     getMember: async (id) => {
@@ -102,47 +172,150 @@ const api = {
     },
 
     addMember: async (memberData) => {
-        return fetchWithAuth(`${API_URL}/members`, {
-            method: 'POST',
-            body: JSON.stringify(memberData)
-        });
+        try {
+            const response = await fetch(`${API_URL}/members`, {
+                method: 'POST',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(memberData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to add member');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding member:', error);
+            throw error;
+        }
     },
 
     updateMember: async (id, memberData) => {
-        return fetchWithAuth(`${API_URL}/members/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(memberData)
-        });
+        try {
+            const response = await fetch(`${API_URL}/members/${id}`, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(memberData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update member');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating member:', error);
+            throw error;
+        }
     },
 
     deleteMember: async (id) => {
-        return fetchWithAuth(`${API_URL}/members/${id}`, {
-            method: 'DELETE'
-        });
+        try {
+            const response = await fetch(`${API_URL}/members/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeader()
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete member');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting member:', error);
+            throw error;
+        }
     },
 
     getWorkouts: async () => {
-        return fetchWithAuth(`${API_URL}/workouts`);
+        try {
+            const response = await fetch(`${API_URL}/workouts`, {
+                headers: getAuthHeader()
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch workouts');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching workouts:', error);
+            throw error;
+        }
     },
 
     addWorkout: async (workoutData) => {
-        return fetchWithAuth(`${API_URL}/workouts`, {
-            method: 'POST',
-            body: JSON.stringify(workoutData)
-        });
+        try {
+            const response = await fetch(`${API_URL}/workouts`, {
+                method: 'POST',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(workoutData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to add workout');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding workout:', error);
+            throw error;
+        }
     },
 
-    updateWorkout: async (workoutName, workoutData) => {
-        return fetchWithAuth(`${API_URL}/workouts/${workoutName}`, {
-            method: 'PUT',
-            body: JSON.stringify(workoutData)
-        });
+    updateWorkout: async (name, workoutData) => {
+        try {
+            const response = await fetch(`${API_URL}/workouts/${name}`, {
+                method: 'PUT',
+                headers: {
+                    ...getAuthHeader(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(workoutData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update workout');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating workout:', error);
+            throw error;
+        }
     },
 
-    deleteWorkout: async (workoutName) => {
-        return fetchWithAuth(`${API_URL}/workouts/${workoutName}`, {
-            method: 'DELETE'
-        });
+    deleteWorkout: async (name) => {
+        try {
+            const response = await fetch(`${API_URL}/workouts/${name}`, {
+                method: 'DELETE',
+                headers: getAuthHeader()
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete workout');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting workout:', error);
+            throw error;
+        }
     },
 };
 
