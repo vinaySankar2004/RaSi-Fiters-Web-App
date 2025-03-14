@@ -70,7 +70,26 @@ const NavbarLoggedIn = () => {
                     <Avatar className="navbar-loggedin-avatar" />
                 </Box>
 
-                <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose} className="navbar-loggedin-dropdown">
+                <Menu 
+                    anchorEl={anchorEl} 
+                    open={open} 
+                    onClose={handleMenuClose} 
+                    className="navbar-loggedin-dropdown"
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                    }}
+                    transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                    }}
+                    PaperProps={{
+                        style: {
+                            width: anchorEl ? anchorEl.offsetWidth : undefined,
+                            minWidth: '200px'
+                        }
+                    }}
+                >
                     <MenuItem onClick={handleLogout}>Log Out</MenuItem>
                 </Menu>
             </Toolbar>

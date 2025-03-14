@@ -129,4 +129,15 @@
 /* Specifically left-align the member name column (second column) */
 .table-body-row td:nth-child(2) {
     text-align: left !important;
+    padding-left: 24px !important;
+}
+
+/* Center align table headers */
+.table-header-row th {
+    text-align: center !important;
+}
+
+/* Center align most table cells */
+.table-body-row td {
+    text-align: center !important;
 }

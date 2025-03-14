@@ -12,22 +12,25 @@ router.get("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Date is required." });
         }
 
-        // Build query conditions for the date
+        console.log("Fetching logs for date:", date);
+        
+        // Build query conditions for the date only
         const whereCondition = {
-            date: {
-                [Op.eq]: date,
-            }
+            date: date
         };
 
-        console.log("Fetching logs for date:", date);
+        // Get all logs for this date
         const logs = await WorkoutLog.findAll({
             where: whereCondition,
         });
 
-        // For non-admin users, add a flag to indicate which logs they can edit
+        console.log("Found logs:", logs.length);
+
+        // For non-admin users, add a canEdit flag
         if (req.user.role !== 'admin') {
             logs.forEach(log => {
-                log.dataValues.canEdit = log.member_name === req.user.member_name;
+                // Member can only edit their own logs
+                log.dataValues.canEdit = (log.member_name === req.user.member_name);
             });
         } else {
             // Admins can edit all logs
