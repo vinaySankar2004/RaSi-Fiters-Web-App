@@ -2,9 +2,11 @@ const express = require("express");
 const WorkoutLog = require("../models/WorkoutLog");
 const { Op } = require("sequelize");
 const { authenticateToken, isAdmin, canModifyLog } = require("../middleware/auth");
+const Member = require("../models/Member");
+const User = require("../models/User");
 const router = express.Router();
 
-// Get workout logs - return all logs but indicate which ones the user can modify
+// Get workout logs - filter by date and user role
 router.get("/", authenticateToken, async (req, res) => {
     try {
         let { date } = req.query;
@@ -12,62 +14,62 @@ router.get("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Date is required." });
         }
 
-        console.log("Fetching logs for date:", date);
-        
-        try {
-            // Build query conditions for the date only
-            const whereCondition = {
-                date: date
-            };
+        // Build query conditions
+        const whereCondition = {
+            date: date
+        };
 
-            // Get all logs for this date
-            const logs = await WorkoutLog.findAll({
-                where: whereCondition,
-            });
+        // Get logs with user and member information
+        const logs = await WorkoutLog.findAll({
+            where: whereCondition,
+            include: [{
+                model: User,
+                attributes: ['id', 'username', 'role'],
+                where: { role: 'member' } // Only include logs from member users
+            }, {
+                model: Member,
+                attributes: ['member_name']
+            }]
+        });
 
-            console.log("Found logs:", logs.length);
+        // Format the response
+        const formattedLogs = logs.map(log => ({
+            user_id: log.user_id,
+            member_name: log.member_name,
+            workout_name: log.workout_name,
+            date: log.date,
+            duration: log.duration,
+            canEdit: req.user.role === 'admin' || log.user_id === req.user.userId
+        }));
 
-            // For non-admin users, add a canEdit flag
-            if (req.user.role !== 'admin') {
-                logs.forEach(log => {
-                    // Member can only edit their own logs
-                    log.dataValues.canEdit = (log.member_name === req.user.member_name);
-                });
-            } else {
-                // Admins can edit all logs
-                logs.forEach(log => {
-                    log.dataValues.canEdit = true;
-                });
-            }
-
-            res.json(logs);
-        } catch (dbError) {
-            console.error("Database error:", dbError);
-            return res.status(500).json({ error: "Database error", details: dbError.message });
-        }
+        res.json(formattedLogs);
     } catch (err) {
         console.error("Error fetching workout logs:", err);
         res.status(500).json({ error: "Failed to fetch workout logs." });
     }
 });
 
-// Add a new workout log - check if user can modify this log
+// Add a new workout log
 router.post("/", authenticateToken, async (req, res) => {
     try {
-        const { member_name, workout_name, date, duration } = req.body;
+        const { member_id, workout_name, date, duration } = req.body;
         
-        if (!member_name || !workout_name || !date || !duration) {
+        if (!member_id || !workout_name || !date || !duration) {
             return res.status(400).json({ error: "All fields are required." });
         }
 
         // Check if user has permission to add this log
-        if (req.user.role !== 'admin' && req.user.member_name !== member_name) {
-            return res.status(403).json({ error: "You can only add logs for yourself." });
+        if (req.user.role !== 'admin') {
+            // Get the member associated with this user
+            const member = await Member.findOne({ where: { user_id: req.user.userId } });
+            if (!member || member.id !== member_id) {
+                return res.status(403).json({ error: "You can only add logs for yourself." });
+            }
         }
 
         const existingLog = await WorkoutLog.findOne({
             where: {
-                member_name,
+                member_id,
                 workout_name,
                 date
             }
@@ -78,7 +80,7 @@ router.post("/", authenticateToken, async (req, res) => {
         }
 
         const newLog = await WorkoutLog.create({
-            member_name,
+            member_id,
             workout_name,
             date,
             duration

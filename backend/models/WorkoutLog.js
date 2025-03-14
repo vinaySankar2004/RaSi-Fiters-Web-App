@@ -2,13 +2,13 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
 const WorkoutLog = sequelize.define("WorkoutLog", {
-    member_name: {
-        type: DataTypes.STRING,
+    user_id: {
+        type: DataTypes.UUID,
         allowNull: false,
         primaryKey: true,
         references: {
-            model: "members",
-            key: "member_name",
+            model: "users",
+            key: "id",
         },
     },
     workout_name: {
@@ -29,6 +29,10 @@ const WorkoutLog = sequelize.define("WorkoutLog", {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    member_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    }
 }, {
     tableName: "workout_logs",
     timestamps: false

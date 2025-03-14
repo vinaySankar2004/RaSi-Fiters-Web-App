@@ -71,6 +71,10 @@ const api = {
         return fetchWithAuth(`${API_URL}/members`);
     },
 
+    getMember: async (id) => {
+        return fetchWithAuth(`${API_URL}/members/${id}`);
+    },
+
     addMember: async (memberData) => {
         return fetchWithAuth(`${API_URL}/members`, {
             method: 'POST',
@@ -78,15 +82,15 @@ const api = {
         });
     },
 
-    updateMember: async (memberName, memberData) => {
-        return fetchWithAuth(`${API_URL}/members/${memberName}`, {
+    updateMember: async (id, memberData) => {
+        return fetchWithAuth(`${API_URL}/members/${id}`, {
             method: 'PUT',
             body: JSON.stringify(memberData)
         });
     },
 
-    deleteMember: async (memberName) => {
-        return fetchWithAuth(`${API_URL}/members/${memberName}`, {
+    deleteMember: async (id) => {
+        return fetchWithAuth(`${API_URL}/members/${id}`, {
             method: 'DELETE'
         });
     },

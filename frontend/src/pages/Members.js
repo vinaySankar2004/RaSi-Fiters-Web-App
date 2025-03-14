@@ -3,9 +3,9 @@ import {
     Container, Typography, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, IconButton, Button, Dialog,
     DialogActions, DialogContent, DialogTitle, TextField, Box,
-    Select, MenuItem, FormControl, InputLabel
+    Select, MenuItem, FormControl, InputLabel, InputAdornment
 } from "@mui/material";
-import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
+import { Refresh, Add, Edit, Delete, Visibility, VisibilityOff } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
@@ -17,7 +17,14 @@ const Members = () => {
     const [members, setMembers] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
-    const [newMember, setNewMember] = useState({ member_name: "", gender: "", age: "" });
+    const [newMember, setNewMember] = useState({ 
+        member_name: "", 
+        gender: "", 
+        age: "",
+        password: ""
+    });
+    const [showPassword, setShowPassword] = useState(false);
+    const [generatedUsername, setGeneratedUsername] = useState("");
 
     const fetchMembers = async () => {
         try {
@@ -33,16 +40,38 @@ const Members = () => {
         fetchMembers();
     }, []);
 
+    // Generate username when member name changes
+    useEffect(() => {
+        if (newMember.member_name) {
+            const username = newMember.member_name.toLowerCase().replace(/\s+/g, '');
+            setGeneratedUsername(username);
+        } else {
+            setGeneratedUsername("");
+        }
+    }, [newMember.member_name]);
+
     const handleOpen = (member = null) => {
         setEditData(member);
-        setNewMember(member ? { ...member } : { member_name: "", gender: "", age: "" });
+        if (member) {
+            setNewMember({ 
+                ...member, 
+                password: "" // Clear password field for editing
+            });
+            // Generate username from member name
+            const username = member.member_name.toLowerCase().replace(/\s+/g, '');
+            setGeneratedUsername(username);
+        } else {
+            setNewMember({ member_name: "", gender: "", age: "", password: "" });
+            setGeneratedUsername("");
+        }
         setOpen(true);
     };
 
     const handleClose = () => {
         setOpen(false);
         setEditData(null);
-        setNewMember({ member_name: "", gender: "", age: "" });
+        setNewMember({ member_name: "", gender: "", age: "", password: "" });
+        setShowPassword(false);
     };
 
     const handleSave = async () => {
@@ -54,8 +83,18 @@ const Members = () => {
             };
             
             if (editData) {
-                await api.updateMember(editData.member_name, trimmedMember);
+                // Only include password if it's not empty
+                const dataToSend = { ...trimmedMember };
+                if (!dataToSend.password) {
+                    delete dataToSend.password;
+                }
+                await api.updateMember(editData.user_id, dataToSend);
             } else {
+                // For new members, password is required
+                if (!trimmedMember.password) {
+                    alert("Password is required for new members");
+                    return;
+                }
                 await api.addMember(trimmedMember);
             }
             fetchMembers();
@@ -66,15 +105,20 @@ const Members = () => {
         }
     };
 
-    const handleDelete = async (member_name) => {
-        if (window.confirm("Are you sure you want to delete this member?")) {
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this member? This will also delete their user account.")) {
             try {
-                await api.deleteMember(member_name);
+                await api.deleteMember(id);
                 fetchMembers();
             } catch (error) {
                 console.error("Error deleting member:", error);
+                alert(`Error: ${error.response?.data?.error || error.message}`);
             }
         }
+    };
+
+    const handleTogglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
     };
 
     return (
@@ -107,7 +151,7 @@ const Members = () => {
                         </TableHead>
                         <TableBody>
                             {members.map((member, index) => (
-                                <TableRow key={member.member_name} className="table-body-row">
+                                <TableRow key={member.user_id} className="table-body-row">
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{member.member_name}</TableCell>
                                     <TableCell>{member.gender}</TableCell>
@@ -117,7 +161,7 @@ const Members = () => {
                                             <IconButton className="edit-button" onClick={() => handleOpen(member)}>
                                                 <Edit />
                                             </IconButton>
-                                            <IconButton className="delete-button" onClick={() => handleDelete(member.member_name)}>
+                                            <IconButton className="delete-button" onClick={() => handleDelete(member.user_id)}>
                                                 <Delete />
                                             </IconButton>
                                         </TableCell>
@@ -130,7 +174,9 @@ const Members = () => {
 
                 {isAdmin && (
                     <Dialog open={open} onClose={handleClose} className="members-dialog">
-                        <DialogTitle className="dialog-title">{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
+                        <DialogTitle className="dialog-title">
+                            {editData ? "Edit Member" : "Add New Member"}
+                        </DialogTitle>
                         <DialogContent className="dialog-content">
                             <TextField 
                                 fullWidth 
@@ -139,9 +185,44 @@ const Members = () => {
                                 onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })}
                                 onBlur={(e) => setNewMember({ ...newMember, member_name: e.target.value.trim() })}
                                 className="dialog-input" 
+                                margin="normal"
                             />
                             
-                            <FormControl fullWidth className="dialog-input">
+                            <TextField 
+                                fullWidth 
+                                label="Username (auto-generated)" 
+                                value={generatedUsername}
+                                className="dialog-input" 
+                                margin="normal"
+                                InputProps={{
+                                    readOnly: true,
+                                }}
+                                helperText="Username is automatically generated from the member name"
+                            />
+                            
+                            <TextField 
+                                fullWidth 
+                                label={editData ? "New Password (leave blank to keep current)" : "Password"} 
+                                type={showPassword ? "text" : "password"}
+                                value={newMember.password} 
+                                onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
+                                className="dialog-input" 
+                                margin="normal"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                onClick={handleTogglePasswordVisibility}
+                                                edge="end"
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
+                            
+                            <FormControl fullWidth className="dialog-input" margin="normal">
                                 <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
                                 <Select
                                     labelId="gender-label"
@@ -173,12 +254,15 @@ const Members = () => {
                                     }
                                 }} 
                                 inputProps={{ min: 0 }}
-                                className="dialog-input" 
+                                className="dialog-input"
+                                margin="normal"
                             />
                         </DialogContent>
                         <DialogActions>
                             <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
-                            <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
+                            <Button className="save-button" onClick={handleSave}>
+                                {editData ? "Save Changes" : "Add"}
+                            </Button>
                         </DialogActions>
                     </Dialog>
                 )}
