@@ -45,11 +45,15 @@ const api = {
     },
 
     getWorkoutLogs: async (date) => {
-        const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
-            headers: getAuthHeaders(),
-        });
-
-        return handleApiResponse(response);
+        try {
+            const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
+                headers: getAuthHeaders(),
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching workout logs:", error);
+            throw error;
+        }
     },
 
     addWorkoutLog: async (log) => {

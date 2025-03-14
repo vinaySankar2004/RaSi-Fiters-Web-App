@@ -95,9 +95,9 @@ const DashboardTable = () => {
         setEditData(null);
     };
 
-    // Check if user can edit this log
+    // Check if user can edit this log based on the canEdit flag or role
     const canEditLog = (log) => {
-        return isAdmin || log.member_name === memberName;
+        return isAdmin || log.canEdit || log.member_name === memberName;
     };
 
     return (

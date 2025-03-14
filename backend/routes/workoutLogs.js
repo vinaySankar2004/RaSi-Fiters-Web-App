@@ -4,7 +4,7 @@ const { Op } = require("sequelize");
 const { authenticateToken, isAdmin, canModifyLog } = require("../middleware/auth");
 const router = express.Router();
 
-// Get workout logs - filtered by member_name for non-admin users
+// Get workout logs - return all logs but indicate which ones the user can modify
 router.get("/", authenticateToken, async (req, res) => {
     try {
         let { date } = req.query;
@@ -12,22 +12,29 @@ router.get("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Date is required." });
         }
 
-        // Build query conditions
+        // Build query conditions for the date
         const whereCondition = {
             date: {
                 [Op.eq]: date,
             }
         };
 
-        // If user is not admin, filter logs by their member_name
-        if (req.user.role !== 'admin' && req.user.member_name) {
-            whereCondition.member_name = req.user.member_name;
-        }
-
         console.log("Fetching logs for date:", date);
         const logs = await WorkoutLog.findAll({
             where: whereCondition,
         });
+
+        // For non-admin users, add a flag to indicate which logs they can edit
+        if (req.user.role !== 'admin') {
+            logs.forEach(log => {
+                log.dataValues.canEdit = log.member_name === req.user.member_name;
+            });
+        } else {
+            // Admins can edit all logs
+            logs.forEach(log => {
+                log.dataValues.canEdit = true;
+            });
+        }
 
         res.json(logs);
     } catch (err) {
