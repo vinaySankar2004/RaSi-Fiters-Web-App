@@ -166,28 +166,35 @@ const MyAccount = () => {
     return (
         <>
             <NavbarLoggedIn />
-            <div className="my-account-page-background">
+            <div className="my-account-page">
                 <Container className="my-account-container">
                     <Typography variant="h3" className="my-account-title">
                         My Account
                     </Typography>
                     
-                    <Paper className="my-account-tabs-container">
+                    <div className="my-account-tabs-container">
                         <Tabs 
                             value={tabValue} 
                             onChange={handleTabChange}
                             className="my-account-tabs"
                             variant="fullWidth"
+                            TabIndicatorProps={{ style: { display: 'none' } }}
                         >
-                            <Tab label="MY DETAILS" />
-                            <Tab label="MY WORKOUTS" />
+                            <Tab 
+                                label="MY DETAILS" 
+                                className={tabValue === 0 ? "tab-active" : ""}
+                            />
+                            <Tab 
+                                label="MY WORKOUTS" 
+                                className={tabValue === 1 ? "tab-active" : ""}
+                            />
                         </Tabs>
-                    </Paper>
+                    </div>
                     
                     {tabValue === 0 && (
-                        <Paper className="my-account-details-container">
+                        <div className="my-account-details-container">
                             <Typography variant="h4" className="my-account-username">
-                                {user?.username?.toUpperCase()}
+                                {member?.member_name?.toUpperCase()}
                             </Typography>
                             
                             <Box className="my-account-profile-section">
@@ -282,15 +289,11 @@ const MyAccount = () => {
                             >
                                 EDIT PROFILE
                             </Button>
-                        </Paper>
+                        </div>
                     )}
                     
                     {tabValue === 1 && (
-                        <Paper className="my-account-workouts-container">
-                            <Typography variant="h5" className="my-account-section-title">
-                                My Workout History
-                            </Typography>
-                            
+                        <div className="my-account-workouts-container">
                             <TableContainer>
                                 <Table>
                                     <TableHead>
@@ -319,7 +322,7 @@ const MyAccount = () => {
                                     </TableBody>
                                 </Table>
                             </TableContainer>
-                        </Paper>
+                        </div>
                     )}
                     
                     {/* Edit Profile Dialog */}
