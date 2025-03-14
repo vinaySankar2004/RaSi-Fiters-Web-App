@@ -206,7 +206,9 @@ const Members = () => {
         <>
             <NavbarLoggedIn />
             <Container className="members-container">
-                <Typography variant="h4" className="members-title">Members List</Typography>
+                <Typography variant="h3" className="members-title">
+                    Members List
+                </Typography>
 
                 <Box className="members-actions">
                     {isAdmin && (
@@ -232,55 +234,41 @@ const Members = () => {
                                         <TableCell>Age</TableCell>
                                     </>
                                 )}
-                                <TableCell>Actions</TableCell>
+                                {/* Only show Actions column for admin users */}
+                                {isAdmin && <TableCell>Actions</TableCell>}
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {members.map((member, index) => {
-                                const canEdit = canEditMember(member);
-                                
-                                return (
-                                    <TableRow 
-                                        key={member.user_id} 
-                                        className={`table-body-row ${
-                                            member.user_id === currentUserId || 
-                                            member.member_name === currentMemberName 
-                                                ? 'own-log-row' 
-                                                : ''
-                                        }`}
-                                    >
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell>{member.member_name}</TableCell>
-                                        {/* Only show Gender and Age columns for admin users */}
-                                        {isAdmin && (
-                                            <>
-                                                <TableCell>{member.gender}</TableCell>
-                                                <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
-                                            </>
-                                        )}
+                            {members.map((member, index) => (
+                                <TableRow key={member.user_id} className="table-body-row">
+                                    <TableCell>{index + 1}</TableCell>
+                                    <TableCell>{member.member_name}</TableCell>
+                                    {/* Only show Gender and Age columns for admin users */}
+                                    {isAdmin && (
+                                        <>
+                                            <TableCell>{member.gender}</TableCell>
+                                            <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
+                                        </>
+                                    )}
+                                    {/* Only show Actions column for admin users */}
+                                    {isAdmin && (
                                         <TableCell>
-                                            {canEdit ? (
-                                                <>
-                                                    <IconButton className="edit-button" onClick={() => handleOpen(member)}>
-                                                        <Edit />
-                                                    </IconButton>
-                                                    {isAdmin && (
-                                                        <IconButton className="delete-button" onClick={() => handleDelete(member.user_id)}>
-                                                            <Delete />
-                                                        </IconButton>
-                                                    )}
-                                                </>
+                                            {canEditMember(member) ? (
+                                                <IconButton className="edit-button" onClick={() => handleOpen(member)}>
+                                                    <Edit />
+                                                </IconButton>
                                             ) : (
-                                                <Tooltip title="View only">
-                                                    <IconButton className="view-button">
-                                                        <Visibility />
-                                                    </IconButton>
-                                                </Tooltip>
+                                                <IconButton className="view-button">
+                                                    <Visibility />
+                                                </IconButton>
                                             )}
+                                            <IconButton className="delete-button" onClick={() => handleDelete(member.user_id)}>
+                                                <Delete />
+                                            </IconButton>
                                         </TableCell>
-                                    </TableRow>
-                                );
-                            })}
+                                    )}
+                                </TableRow>
+                            ))}
                         </TableBody>
                     </Table>
                 </TableContainer>

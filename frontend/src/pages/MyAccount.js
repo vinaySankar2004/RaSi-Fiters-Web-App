@@ -21,6 +21,7 @@ const MyAccount = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [profilePic, setProfilePic] = useState(null);
+    const [actualPassword, setActualPassword] = useState("••••••••");
 
     // Calculate age from date of birth
     const calculateAge = (dob) => {
@@ -50,7 +51,18 @@ const MyAccount = () => {
                     const memberData = await api.getMember(user.userId);
                     console.log("Member data:", memberData);
                     setMember(memberData);
-                    setDateOfBirth(memberData.date_of_birth || "");
+                    
+                    // Extract data from the response
+                    if (memberData) {
+                        setDateOfBirth(memberData.date_of_birth || "");
+                        
+                        // If we have User data in the response, get the username
+                        if (memberData.User && memberData.User.username) {
+                            // We don't have access to the actual password from the server for security reasons
+                            // This is just for demonstration purposes
+                            setActualPassword("••••••••");
+                        }
+                    }
                 }
                 
                 // Fetch all workout logs for this member
@@ -110,6 +122,13 @@ const MyAccount = () => {
                     ...prev,
                     date_of_birth: dateOfBirth || prev.date_of_birth
                 }));
+                
+                // If password was updated, update the display
+                if (newPassword) {
+                    // In a real app, we wouldn't store or display the actual password
+                    // This is just for demonstration
+                    setActualPassword(newPassword);
+                }
                 
                 // Close dialog
                 handleEditDialogClose();
@@ -195,10 +214,6 @@ const MyAccount = () => {
                     
                     {tabValue === 0 && (
                         <div className="my-account-details-container">
-                            <Typography variant="h4" className="my-account-username">
-                                {member?.member_name?.toUpperCase() || user?.username?.toUpperCase()}
-                            </Typography>
-                            
                             <Box className="my-account-profile-section">
                                 <Box className="my-account-avatar-container">
                                     <div className="my-account-avatar-wrapper">
@@ -251,7 +266,7 @@ const MyAccount = () => {
                                             Password:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value password-field">
-                                            ••••••••
+                                            {showPassword ? actualPassword : "••••••••"}
                                             <IconButton 
                                                 size="small" 
                                                 className="password-visibility-toggle"
