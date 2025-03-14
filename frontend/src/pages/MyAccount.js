@@ -21,7 +21,6 @@ const MyAccount = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [profilePic, setProfilePic] = useState(null);
-    const [actualPassword, setActualPassword] = useState("");
 
     // Calculate age from date of birth
     const calculateAge = (dob) => {
@@ -278,7 +277,7 @@ const MyAccount = () => {
                                             Password:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value password-field">
-                                            {showPassword ? actualPassword : "••••••••"}
+                                            ••••••••
                                             <IconButton 
                                                 size="small" 
                                                 className="password-visibility-toggle"
