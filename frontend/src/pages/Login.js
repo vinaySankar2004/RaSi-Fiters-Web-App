@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 import "../styles/Login.css";
 
 const Login = () => {
@@ -23,6 +24,7 @@ const Login = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleLogin = async () => {
         setError(null);
@@ -40,8 +42,12 @@ const Login = () => {
             if (response.ok) {
                 console.log("Login Response:", data); 
 
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("username", username);
+                login({
+                    token: data.token,
+                    username: data.username,
+                    role: data.role,
+                    member_name: data.member_name
+                });
                 
                 setTimeout(() => {
                     // Redirect user after login

@@ -1,9 +1,10 @@
 const express = require("express");
 const Workout = require("../models/Workout");
+const { authenticateToken, isAdmin } = require("../middleware/auth");
 const router = express.Router();
 
-// GET all workouts
-router.get("/", async (req, res) => {
+// GET all workouts - accessible to all authenticated users
+router.get("/", authenticateToken, async (req, res) => {
     try {
         const workouts = await Workout.findAll({
             order: [["workout_name", "ASC"]], // Sort by workout_name (A-Z)
@@ -15,8 +16,8 @@ router.get("/", async (req, res) => {
     }
 });
 
-// POST new workout
-router.post("/", async (req, res) => {
+// POST new workout - admin only
+router.post("/", authenticateToken, isAdmin, async (req, res) => {
     try {
         const { workout_name } = req.body;
         if (!workout_name) {
@@ -31,8 +32,8 @@ router.post("/", async (req, res) => {
     }
 });
 
-// UPDATE existing workout
-router.put("/:workout_name", async (req, res) => {
+// UPDATE existing workout - admin only
+router.put("/:workout_name", authenticateToken, isAdmin, async (req, res) => {
     try {
         const { workout_name } = req.body;
         const workout = await Workout.findOne({ where: { workout_name: req.params.workout_name } });
@@ -49,8 +50,8 @@ router.put("/:workout_name", async (req, res) => {
     }
 });
 
-// DELETE workout
-router.delete("/:workout_name", async (req, res) => {
+// DELETE workout - admin only
+router.delete("/:workout_name", authenticateToken, isAdmin, async (req, res) => {
     try {
         const workout = await Workout.findOne({ where: { workout_name: req.params.workout_name } });
 

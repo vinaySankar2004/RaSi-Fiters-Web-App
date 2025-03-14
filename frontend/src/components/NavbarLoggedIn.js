@@ -1,22 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Avatar, Box, Menu, MenuItem, IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "../styles/NavbarLoggedIn.css"; 
 
 const NavbarLoggedIn = () => {
     const navigate = useNavigate();
-    const [username, setUsername] = useState("User");
+    const { user, logout } = useAuth();
     const [anchorEl, setAnchorEl] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const open = Boolean(anchorEl);
-
-    useEffect(() => {
-        const storedUsername = localStorage.getItem("username");
-        if (storedUsername) {
-            setUsername(storedUsername);
-        }
-    }, []);
 
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
@@ -31,8 +25,7 @@ const NavbarLoggedIn = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username"); 
+        logout();
         navigate("/");
     };
 
@@ -63,12 +56,17 @@ const NavbarLoggedIn = () => {
                     <Button onClick={() => navigate("/members")} className="navbar-loggedin-link">Members</Button>
                     <Button onClick={() => navigate("/workouts")} className="navbar-loggedin-link">Workouts</Button>
                     <Button onClick={() => navigate("/dashboard")} className="navbar-loggedin-link">Dashboard</Button>
-                    <Button onClick={() => navigate("/analytics")} className="navbar-loggedin-link">Analytics</Button>
+                    {user?.role === 'admin' && (
+                        <Button onClick={() => navigate("/analytics")} className="navbar-loggedin-link">Analytics</Button>
+                    )}
                 </Box>
 
                 {/* User Profile Section */}
                 <Box className="navbar-loggedin-user" onClick={handleMenuOpen}>
-                    <Typography variant="body1" className="navbar-loggedin-username">{username}</Typography>
+                    <Typography variant="body1" className="navbar-loggedin-username">
+                        {user?.username || 'User'} 
+                        {user?.role === 'admin' && <span className="admin-badge"> (Admin)</span>}
+                    </Typography>
                     <Avatar className="navbar-loggedin-avatar" />
                 </Box>
 
@@ -82,7 +80,9 @@ const NavbarLoggedIn = () => {
                 <Button onClick={() => handleNavigation("/members")} className="mobile-menu-item">Members</Button>
                 <Button onClick={() => handleNavigation("/workouts")} className="mobile-menu-item">Workouts</Button>
                 <Button onClick={() => handleNavigation("/dashboard")} className="mobile-menu-item">Dashboard</Button>
-                <Button onClick={() => handleNavigation("/analytics")} className="mobile-menu-item">Analytics</Button>
+                {user?.role === 'admin' && (
+                    <Button onClick={() => handleNavigation("/analytics")} className="mobile-menu-item">Analytics</Button>
+                )}
             </div>
         </AppBar>
     );

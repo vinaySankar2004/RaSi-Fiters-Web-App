@@ -1,10 +1,10 @@
 const express = require("express");
 const Member = require("../models/Member");
-const authenticateToken = require("./auth");
+const { authenticateToken, isAdmin } = require("../middleware/auth");
 const router = express.Router();
 
-// GET all members
-router.get("/", async (req, res) => {
+// GET all members - accessible to all authenticated users
+router.get("/", authenticateToken, async (req, res) => {
     try {
         console.log("Fetching all members...");
         const members = await Member.findAll({
@@ -18,8 +18,8 @@ router.get("/", async (req, res) => {
     }
 });
 
-// POST new member
-router.post("/", async (req, res) => {
+// POST new member - admin only
+router.post("/", authenticateToken, isAdmin, async (req, res) => {
     try {
         const { member_name, gender, age } = req.body;
         if (!member_name || !gender || !age) {
@@ -34,8 +34,8 @@ router.post("/", async (req, res) => {
     }
 });
 
-// UPDATE existing member
-router.put("/:member_name", async (req, res) => {
+// UPDATE existing member - admin only
+router.put("/:member_name", authenticateToken, isAdmin, async (req, res) => {
     try {
         const { gender, age } = req.body;
         const member = await Member.findOne({ where: { member_name: req.params.member_name } });
@@ -52,8 +52,8 @@ router.put("/:member_name", async (req, res) => {
     }
 });
 
-// DELETE member
-router.delete("/:member_name", async (req, res) => {
+// DELETE member - admin only
+router.delete("/:member_name", authenticateToken, isAdmin, async (req, res) => {
     try {
         const member = await Member.findOne({ where: { member_name: req.params.member_name } });
 

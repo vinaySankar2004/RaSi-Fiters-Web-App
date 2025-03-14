@@ -20,10 +20,13 @@ import {
 } from "@mui/material";
 import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import "../styles/Workouts.css"; 
 
 const Workouts = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [workouts, setWorkouts] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
@@ -87,9 +90,11 @@ const Workouts = () => {
                 <Typography variant="h4" className="workouts-title">Workouts List</Typography>
 
                 <Box className="workouts-actions">
-                    <Button className="workouts-add-button" onClick={() => handleOpen()}>
-                        <Add /> Add Workout
-                    </Button>
+                    {isAdmin && (
+                        <Button className="workouts-add-button" onClick={() => handleOpen()}>
+                            <Add /> Add Workout
+                        </Button>
+                    )}
                     <IconButton className="workouts-refresh-button" onClick={fetchWorkouts}>
                         <Refresh />
                     </IconButton>
@@ -101,7 +106,7 @@ const Workouts = () => {
                             <TableRow className="table-header-row">
                                 <TableCell>#</TableCell>
                                 <TableCell>Workout Name</TableCell>
-                                <TableCell>Actions</TableCell>
+                                {isAdmin && <TableCell>Actions</TableCell>}
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -109,30 +114,34 @@ const Workouts = () => {
                                 <TableRow key={workout.workout_name} className="table-body-row">
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{workout.workout_name}</TableCell>
-                                    <TableCell>
-                                        <IconButton className="edit-button" onClick={() => handleOpen(workout)}>
-                                            <Edit />
-                                        </IconButton>
-                                        <IconButton className="delete-button" onClick={() => handleDelete(workout.workout_name)}>
-                                            <Delete />
-                                        </IconButton>
-                                    </TableCell>
+                                    {isAdmin && (
+                                        <TableCell>
+                                            <IconButton className="edit-button" onClick={() => handleOpen(workout)}>
+                                                <Edit />
+                                            </IconButton>
+                                            <IconButton className="delete-button" onClick={() => handleDelete(workout.workout_name)}>
+                                                <Delete />
+                                            </IconButton>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
 
-                <Dialog open={open} onClose={handleClose} className="workouts-dialog">
-                    <DialogTitle className="dialog-title">{editData ? "Edit Workout" : "Add New Workout"}</DialogTitle>
-                    <DialogContent className="dialog-content">
-                        <TextField fullWidth label="Workout Name" disabled={!!editData} value={newWorkout.workout_name} onChange={(e) => setNewWorkout({ ...newWorkout, workout_name: e.target.value })} className="dialog-input" />
-                    </DialogContent>
-                    <DialogActions>
-                        <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
-                        <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
-                    </DialogActions>
-                </Dialog>
+                {isAdmin && (
+                    <Dialog open={open} onClose={handleClose} className="workouts-dialog">
+                        <DialogTitle className="dialog-title">{editData ? "Edit Workout" : "Add New Workout"}</DialogTitle>
+                        <DialogContent className="dialog-content">
+                            <TextField fullWidth label="Workout Name" disabled={!!editData} value={newWorkout.workout_name} onChange={(e) => setNewWorkout({ ...newWorkout, workout_name: e.target.value })} className="dialog-input" />
+                        </DialogContent>
+                        <DialogActions>
+                            <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
+                            <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
+                        </DialogActions>
+                    </Dialog>
+                )}
             </Container>
         </>
     );

@@ -7,10 +7,13 @@ import {
 } from "@mui/material";
 import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import "../styles/Members.css";
 
 const Members = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [members, setMembers] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
@@ -74,9 +77,11 @@ const Members = () => {
                 <Typography variant="h4" className="members-title">Members List</Typography>
 
                 <Box className="members-actions">
-                    <Button className="members-add-button" onClick={() => handleOpen()}>
-                        <Add /> Add Member
-                    </Button>
+                    {isAdmin && (
+                        <Button className="members-add-button" onClick={() => handleOpen()}>
+                            <Add /> Add Member
+                        </Button>
+                    )}
                     <IconButton className="members-refresh-button" onClick={fetchMembers}>
                         <Refresh />
                     </IconButton>
@@ -90,7 +95,7 @@ const Members = () => {
                                 <TableCell>Member Name</TableCell>
                                 <TableCell>Gender</TableCell>
                                 <TableCell>Age</TableCell>
-                                <TableCell>Actions</TableCell>
+                                {isAdmin && <TableCell>Actions</TableCell>}
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -100,65 +105,69 @@ const Members = () => {
                                     <TableCell>{member.member_name}</TableCell>
                                     <TableCell>{member.gender}</TableCell>
                                     <TableCell>{member.age}</TableCell>
-                                    <TableCell>
-                                        <IconButton className="edit-button" onClick={() => handleOpen(member)}>
-                                            <Edit />
-                                        </IconButton>
-                                        <IconButton className="delete-button" onClick={() => handleDelete(member.member_name)}>
-                                            <Delete />
-                                        </IconButton>
-                                    </TableCell>
+                                    {isAdmin && (
+                                        <TableCell>
+                                            <IconButton className="edit-button" onClick={() => handleOpen(member)}>
+                                                <Edit />
+                                            </IconButton>
+                                            <IconButton className="delete-button" onClick={() => handleDelete(member.member_name)}>
+                                                <Delete />
+                                            </IconButton>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
 
-                <Dialog open={open} onClose={handleClose} className="members-dialog">
-                    <DialogTitle className="dialog-title">{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
-                    <DialogContent className="dialog-content">
-                        <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} className="dialog-input" />
-                        
-                        <FormControl fullWidth className="dialog-input">
-                            <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
-                            <Select
-                                labelId="gender-label"
-                                value={newMember.gender}
-                                label="Gender"
-                                onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
-                                sx={{ 
-                                    color: 'white',
-                                    '& .MuiSelect-icon': {
-                                        color: 'white'
+                {isAdmin && (
+                    <Dialog open={open} onClose={handleClose} className="members-dialog">
+                        <DialogTitle className="dialog-title">{editData ? "Edit Member" : "Add New Member"}</DialogTitle>
+                        <DialogContent className="dialog-content">
+                            <TextField fullWidth label="Member Name" disabled={!!editData} value={newMember.member_name} onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })} className="dialog-input" />
+                            
+                            <FormControl fullWidth className="dialog-input">
+                                <InputLabel id="gender-label" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Gender</InputLabel>
+                                <Select
+                                    labelId="gender-label"
+                                    value={newMember.gender}
+                                    label="Gender"
+                                    onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
+                                    sx={{ 
+                                        color: 'white',
+                                        '& .MuiSelect-icon': {
+                                            color: 'white'
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value="Male">Male</MenuItem>
+                                    <MenuItem value="Female">Female</MenuItem>
+                                    <MenuItem value="Other">Other</MenuItem>
+                                </Select>
+                            </FormControl>
+                            
+                            <TextField 
+                                fullWidth 
+                                label="Age" 
+                                type="number" 
+                                value={newMember.age} 
+                                onChange={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    if (value >= 0 || e.target.value === '') {
+                                        setNewMember({ ...newMember, age: e.target.value });
                                     }
-                                }}
-                            >
-                                <MenuItem value="Male">Male</MenuItem>
-                                <MenuItem value="Female">Female</MenuItem>
-                                <MenuItem value="Other">Other</MenuItem>
-                            </Select>
-                        </FormControl>
-                        
-                        <TextField 
-                            fullWidth 
-                            label="Age" 
-                            type="number" 
-                            value={newMember.age} 
-                            onChange={(e) => {
-                                const value = parseInt(e.target.value);
-                                if (value >= 0 || e.target.value === '') {
-                                    setNewMember({ ...newMember, age: e.target.value });
-                                }
-                            }} 
-                            inputProps={{ min: 0 }}
-                            className="dialog-input" 
-                        />
-                    </DialogContent>
-                    <DialogActions>
-                        <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
-                        <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
-                    </DialogActions>
-                </Dialog>
+                                }} 
+                                inputProps={{ min: 0 }}
+                                className="dialog-input" 
+                            />
+                        </DialogContent>
+                        <DialogActions>
+                            <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
+                            <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
+                        </DialogActions>
+                    </Dialog>
+                )}
             </Container>
         </>
     );

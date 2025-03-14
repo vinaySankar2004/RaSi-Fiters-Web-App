@@ -1,22 +1,32 @@
 const express = require("express");
 const WorkoutLog = require("../models/WorkoutLog");
 const { Op } = require("sequelize");
+const { authenticateToken, isAdmin, canModifyLog } = require("../middleware/auth");
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+// Get workout logs - filtered by member_name for non-admin users
+router.get("/", authenticateToken, async (req, res) => {
     try {
         let { date } = req.query;
         if (!date) {
             return res.status(400).json({ error: "Date is required." });
         }
 
+        // Build query conditions
+        const whereCondition = {
+            date: {
+                [Op.eq]: date,
+            }
+        };
+
+        // If user is not admin, filter logs by their member_name
+        if (req.user.role !== 'admin' && req.user.member_name) {
+            whereCondition.member_name = req.user.member_name;
+        }
+
         console.log("Fetching logs for date:", date);
         const logs = await WorkoutLog.findAll({
-            where: {
-                date: {
-                    [Op.eq]: date,  // Ensure strict match on YYYY-MM-DD
-                },
-            },
+            where: whereCondition,
         });
 
         res.json(logs);
@@ -26,13 +36,18 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Add a new workout log
-router.post("/", async (req, res) => {
+// Add a new workout log - check if user can modify this log
+router.post("/", authenticateToken, async (req, res) => {
     try {
         const { member_name, workout_name, date, duration } = req.body;
         
         if (!member_name || !workout_name || !date || !duration) {
             return res.status(400).json({ error: "All fields are required." });
+        }
+
+        // Check if user has permission to add this log
+        if (req.user.role !== 'admin' && req.user.member_name !== member_name) {
+            return res.status(403).json({ error: "You can only add logs for yourself." });
         }
 
         const existingLog = await WorkoutLog.findOne({
@@ -61,13 +76,18 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Update a workout log
-router.put("/", async (req, res) => {
+// Update a workout log - check if user can modify this log
+router.put("/", authenticateToken, async (req, res) => {
     try {
         const { member_name, workout_name, date, duration } = req.body;
         
         if (!member_name || !workout_name || !date || !duration) {
             return res.status(400).json({ error: "All fields are required." });
+        }
+
+        // Check if user has permission to update this log
+        if (req.user.role !== 'admin' && req.user.member_name !== member_name) {
+            return res.status(403).json({ error: "You can only update your own logs." });
         }
         
         const log = await WorkoutLog.findOne({
@@ -92,13 +112,18 @@ router.put("/", async (req, res) => {
     }
 });
 
-// Delete a workout log
-router.delete("/", async (req, res) => {
+// Delete a workout log - check if user can modify this log
+router.delete("/", authenticateToken, async (req, res) => {
     try {
         const { member_name, workout_name, date } = req.body;
         
         if (!member_name || !workout_name || !date) {
             return res.status(400).json({ error: "Member name, workout name, and date are required." });
+        }
+
+        // Check if user has permission to delete this log
+        if (req.user.role !== 'admin' && req.user.member_name !== member_name) {
+            return res.status(403).json({ error: "You can only delete your own logs." });
         }
         
         const log = await WorkoutLog.findOne({

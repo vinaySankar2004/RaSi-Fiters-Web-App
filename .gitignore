@@ -134,7 +134,7 @@ dist
 
 # Ignore backend dependencies
 /backend/node_modules
-/backend/setupAdmin.js
+/backend/scripts
 .idea
 .DS_Store
 .vscode/

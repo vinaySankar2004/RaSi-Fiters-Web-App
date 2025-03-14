@@ -19,15 +19,21 @@ import {
     TextField,
     Select,
     MenuItem,
-    Box
+    Box,
+    Tooltip
 } from "@mui/material";
-import { Delete, Edit, Add, Refresh } from "@mui/icons-material";
+import { Delete, Edit, Add, Refresh, Visibility } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
+import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import "../styles/DashboardTable.css"; 
 
 const DashboardTable = () => {
     const { date } = useParams();
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
+    const memberName = user?.member_name;
+    
     const [logs, setLogs] = useState([]);
     const [members, setMembers] = useState([]);
     const [workouts, setWorkouts] = useState([]);
@@ -89,6 +95,11 @@ const DashboardTable = () => {
         setEditData(null);
     };
 
+    // Check if user can edit this log
+    const canEditLog = (log) => {
+        return isAdmin || log.member_name === memberName;
+    };
+
     return (
         <>
             <NavbarLoggedIn />
@@ -121,18 +132,31 @@ const DashboardTable = () => {
                         </TableHead>
                         <TableBody>
                             {logs.map((log, index) => (
-                                <TableRow key={`${log.member_name}-${log.workout_name}-${log.date}`} className="table-body-row">
+                                <TableRow 
+                                    key={`${log.member_name}-${log.workout_name}-${log.date}`} 
+                                    className={`table-body-row ${log.member_name === memberName ? 'own-log-row' : ''}`}
+                                >
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{log.member_name}</TableCell>
                                     <TableCell>{log.workout_name}</TableCell>
                                     <TableCell>{log.duration}</TableCell>
                                     <TableCell>
-                                        <IconButton className="edit-button" onClick={() => handleOpen(log)}>
-                                            <Edit />
-                                        </IconButton>
-                                        <IconButton className="delete-button" onClick={() => handleDelete(log)}>
-                                            <Delete />
-                                        </IconButton>
+                                        {canEditLog(log) ? (
+                                            <>
+                                                <IconButton className="edit-button" onClick={() => handleOpen(log)}>
+                                                    <Edit />
+                                                </IconButton>
+                                                <IconButton className="delete-button" onClick={() => handleDelete(log)}>
+                                                    <Delete />
+                                                </IconButton>
+                                            </>
+                                        ) : (
+                                            <Tooltip title="View only">
+                                                <IconButton className="view-button">
+                                                    <Visibility />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -140,13 +164,23 @@ const DashboardTable = () => {
                     </Table>
                 </TableContainer>
 
-                <LogFormModal open={open} handleClose={handleClose} editData={editData} date={date} fetchLogs={fetchLogs} members={members} workouts={workouts} />
+                <LogFormModal 
+                    open={open} 
+                    handleClose={handleClose} 
+                    editData={editData} 
+                    date={date} 
+                    fetchLogs={fetchLogs} 
+                    members={members} 
+                    workouts={workouts}
+                    isAdmin={isAdmin}
+                    memberName={memberName}
+                />
             </Container>
         </>
     );
 };
 
-const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, workouts }) => {
+const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, workouts, isAdmin, memberName }) => {
     const [member, setMember] = useState("");
     const [workout, setWorkout] = useState("");
     const [duration, setDuration] = useState("");
@@ -157,11 +191,12 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
             setWorkout(editData.workout_name);
             setDuration(editData.duration);
         } else {
-            setMember("");
+            // If not admin, pre-select the member's name and disable the field
+            setMember(isAdmin ? "" : memberName);
             setWorkout("");
             setDuration("");
         }
-    }, [editData, open]);
+    }, [editData, open, isAdmin, memberName]);
 
     const handleSubmit = async () => {
         try {
@@ -192,17 +227,38 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
         <Dialog open={open} onClose={handleClose} className="dashboard-dialog">
             <DialogTitle className="dialog-title">{editData ? "Edit Log" : "Add Log"}</DialogTitle>
             <DialogContent className="dialog-content">
-                <Select fullWidth value={member} onChange={(e) => setMember(e.target.value)} className="dialog-input">
+                <Select 
+                    fullWidth 
+                    value={member} 
+                    onChange={(e) => setMember(e.target.value)} 
+                    className="dialog-input"
+                    disabled={!isAdmin || !!editData}
+                >
                     {members.map((m) => (
                         <MenuItem key={m.member_name} value={m.member_name}>{m.member_name}</MenuItem>
                     ))}
                 </Select>
-                <Select fullWidth value={workout} onChange={(e) => setWorkout(e.target.value)} className="dialog-input" sx={{ mt: 2 }}>
+                <Select 
+                    fullWidth 
+                    value={workout} 
+                    onChange={(e) => setWorkout(e.target.value)} 
+                    className="dialog-input" 
+                    sx={{ mt: 2 }}
+                    disabled={!!editData}
+                >
                     {workouts.map((w) => (
                         <MenuItem key={w.workout_name} value={w.workout_name}>{w.workout_name}</MenuItem>
                     ))}
                 </Select>
-                <TextField fullWidth label="Duration (mins)" type="number" value={duration} onChange={(e) => setDuration(e.target.value)} className="dialog-input" sx={{ mt: 2 }} />
+                <TextField 
+                    fullWidth 
+                    label="Duration (mins)" 
+                    type="number" 
+                    value={duration} 
+                    onChange={(e) => setDuration(e.target.value)} 
+                    className="dialog-input" 
+                    sx={{ mt: 2 }} 
+                />
             </DialogContent>
             <DialogActions>
                 <Button className="cancel-button" onClick={handleClose}>Cancel</Button>

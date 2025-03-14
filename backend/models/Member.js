@@ -16,6 +16,14 @@ const Member = sequelize.define("Member", {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    user_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: "users",
+            key: "id"
+        }
+    }
 }, {
     tableName: "members",
     timestamps: false
