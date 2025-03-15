@@ -145,14 +145,6 @@ const MyAccount = () => {
                 dataToUpdate.password = newPassword;
             }
             
-            console.log("ATTEMPTING UPDATE WITH:", {
-                memberId: localStorage.getItem('userId'),
-                directMemberId: member?.user_id,
-                memberName: localStorage.getItem('member_name'),
-                tokenExists: !!localStorage.getItem('token'),
-                updateData: dataToUpdate
-            });
-            
             if (Object.keys(dataToUpdate).length > 0) {
                 await api.updateMember(userId, dataToUpdate);
                 
