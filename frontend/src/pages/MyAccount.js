@@ -45,22 +45,41 @@ const MyAccount = () => {
             try {
                 setLoading(true);
                 
-                // Fetch member details
-                // Make sure we're using the actual ID from localStorage
+                // Get user ID and member name from localStorage directly
                 const userId = localStorage.getItem('userId');
+                const memberName = localStorage.getItem('member_name');
+                
+                console.log("User ID:", userId);
+                console.log("Member name:", memberName);
+                
                 if (userId) {
-                    const memberData = await api.getMember(userId);
-                    console.log("Member data:", memberData);
-                    setMember(memberData);
-                    setDateOfBirth(memberData?.date_of_birth || "");
+                    // Fetch member data directly using the API
+                    try {
+                        const memberData = await api.getMember(userId);
+                        console.log("Member data:", memberData);
+                        setMember(memberData);
+                        setDateOfBirth(memberData?.date_of_birth || "");
+                    } catch (memberError) {
+                        console.error("Error fetching member:", memberError);
+                    }
                 }
                 
-                // Fetch all workout logs for this member
-                const memberName = localStorage.getItem('member_name');
                 if (memberName) {
-                    const logs = await api.getAllWorkoutLogs(memberName);
-                    const sortedLogs = logs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    setWorkoutLogs(sortedLogs);
+                    // Fetch all workout logs for this member
+                    try {
+                        const logs = await api.getAllWorkoutLogs(memberName);
+                        console.log("Workout logs:", logs);
+                        
+                        // Sort logs by date in descending order (newest first)
+                        const sortedLogs = Array.isArray(logs) 
+                            ? logs.sort((a, b) => new Date(b.date) - new Date(a.date)) 
+                            : [];
+                        
+                        setWorkoutLogs(sortedLogs);
+                    } catch (logsError) {
+                        console.error("Error fetching workout logs:", logsError);
+                        setWorkoutLogs([]);
+                    }
                 }
                 
                 setLoading(false);
@@ -114,7 +133,7 @@ const MyAccount = () => {
             if (Object.keys(dataToUpdate).length > 0) {
                 await api.updateMember(userId, dataToUpdate);
                 
-                // Refresh member data
+                // Refresh member data after update
                 const updatedMember = await api.getMember(userId);
                 setMember(updatedMember);
                 
@@ -124,7 +143,7 @@ const MyAccount = () => {
             }
         } catch (error) {
             console.error("Error updating member:", error);
-            alert(`Error: ${error.response?.data?.error || error.message}`);
+            alert(`Error: ${error.message}`);
         }
     };
 
@@ -237,7 +256,7 @@ const MyAccount = () => {
                                             Name:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.member_name || user?.member_name || "Not available"}
+                                            {member?.member_name || localStorage.getItem('member_name') || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -246,7 +265,7 @@ const MyAccount = () => {
                                             Username:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.User?.username || user?.username || "Not available"}
+                                            {member?.User?.username || localStorage.getItem('username') || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -297,7 +316,7 @@ const MyAccount = () => {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {workoutLogs.length > 0 ? (
+                                        {workoutLogs && workoutLogs.length > 0 ? (
                                             workoutLogs.map((log, index) => (
                                                 <TableRow key={`${log.date}-${log.workout_name}-${index}`} className="table-body-row">
                                                     <TableCell>{formatDate(log.date)}</TableCell>
