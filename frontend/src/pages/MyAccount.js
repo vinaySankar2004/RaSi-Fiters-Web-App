@@ -4,7 +4,7 @@ import {
     Avatar, IconButton, Dialog, DialogActions, DialogContent, DialogTitle,
     InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from "@mui/material";
-import { Edit, Visibility, VisibilityOff, PhotoCamera } from "@mui/icons-material";
+import { Edit, Visibility, VisibilityOff, PhotoCamera, Refresh } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
@@ -195,6 +195,60 @@ const MyAccount = () => {
         return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
+    const handleRefresh = async () => {
+        setLoading(true);
+        try {
+            // Reuse the same data fetching logic from useEffect
+            const token = localStorage.getItem('token');
+            const memberName = localStorage.getItem('member_name');
+            
+            try {
+                // Get all members
+                const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (membersResponse.ok) {
+                    const allMembers = await membersResponse.json();
+                    
+                    // Find this member by member_name
+                    const currentMember = allMembers.find(m => 
+                        m.member_name === memberName
+                    );
+                    
+                    if (currentMember) {
+                        // We found the member!
+                        setMember(currentMember);
+                        setMemberGender(currentMember.gender || "");
+                        setMemberDob(currentMember.date_of_birth || "");
+                        setDateOfBirth(currentMember.date_of_birth || "");
+                    }
+                }
+            } catch (memberError) {
+                console.error("Error finding member:", memberError);
+            }
+            
+            // Fetch workout logs
+            if (memberName) {
+                try {
+                    const logs = await api.getAllWorkoutLogs(memberName);
+                    const sortedLogs = Array.isArray(logs) 
+                        ? logs.sort((a, b) => new Date(b.date) - new Date(a.date)) 
+                        : [];
+                    setWorkoutLogs(sortedLogs);
+                } catch (logsError) {
+                    setWorkoutLogs([]);
+                }
+            }
+        } catch (error) {
+            console.error("Error refreshing data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <>
@@ -236,6 +290,17 @@ const MyAccount = () => {
                     
                     {tabValue === 0 && (
                         <div className="my-account-details-container">
+                            <Box display="flex" justifyContent="flex-end" mb={2}>
+                                <IconButton 
+                                    onClick={handleRefresh}
+                                    className="refresh-button"
+                                    title="Refresh Data"
+                                    sx={{ color: "#FFD700" }}
+                                >
+                                    <Refresh />
+                                </IconButton>
+                            </Box>
+                            
                             <Box className="my-account-profile-section">
                                 <Box className="my-account-avatar-container">
                                     <div className="my-account-avatar-wrapper">
@@ -320,6 +385,17 @@ const MyAccount = () => {
                     
                     {tabValue === 1 && (
                         <div className="my-account-workouts-container">
+                            <Box display="flex" justifyContent="flex-end" mb={2}>
+                                <IconButton 
+                                    onClick={handleRefresh}
+                                    className="refresh-button"
+                                    title="Refresh Data"
+                                    sx={{ color: "#FFD700" }}
+                                >
+                                    <Refresh />
+                                </IconButton>
+                            </Box>
+                            
                             <TableContainer>
                                 <Table>
                                     <TableHead>
