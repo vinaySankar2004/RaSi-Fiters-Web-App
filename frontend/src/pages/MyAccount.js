@@ -21,6 +21,8 @@ const MyAccount = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [profilePic, setProfilePic] = useState(null);
+    const [memberGender, setMemberGender] = useState("");
+    const [memberDob, setMemberDob] = useState("");
 
     // Calculate age from date of birth
     const calculateAge = (dob) => {
@@ -49,42 +51,42 @@ const MyAccount = () => {
                 const userId = localStorage.getItem('userId');
                 const memberName = localStorage.getItem('member_name');
                 
-                console.log("User ID:", userId);
-                console.log("Member name:", memberName);
-                
                 if (userId) {
-                    // Fetch member data directly using the API
-                    try {
-                        const memberData = await api.getMember(userId);
-                        console.log("Member data:", memberData);
+                    // Fetch member data directly using fetch instead of the API helper
+                    // This gives us more control over how we process the data
+                    const token = localStorage.getItem('token');
+                    const response = await fetch(`${process.env.REACT_APP_API_URL}/members/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const memberData = await response.json();
                         setMember(memberData);
-                        setDateOfBirth(memberData?.date_of_birth || "");
-                    } catch (memberError) {
-                        console.error("Error fetching member:", memberError);
+                        
+                        // Store gender and date of birth in separate state variables
+                        // This ensures they're accessible even if nested differently
+                        setMemberGender(memberData.gender || "");
+                        setMemberDob(memberData.date_of_birth || "");
+                        setDateOfBirth(memberData.date_of_birth || "");
                     }
                 }
                 
                 if (memberName) {
-                    // Fetch all workout logs for this member
                     try {
                         const logs = await api.getAllWorkoutLogs(memberName);
-                        console.log("Workout logs:", logs);
-                        
-                        // Sort logs by date in descending order (newest first)
                         const sortedLogs = Array.isArray(logs) 
                             ? logs.sort((a, b) => new Date(b.date) - new Date(a.date)) 
                             : [];
-                        
                         setWorkoutLogs(sortedLogs);
                     } catch (logsError) {
-                        console.error("Error fetching workout logs:", logsError);
                         setWorkoutLogs([]);
                     }
                 }
                 
                 setLoading(false);
             } catch (error) {
-                console.error("Error fetching data:", error);
                 setLoading(false);
             }
         };
@@ -104,7 +106,7 @@ const MyAccount = () => {
         setEditDialogOpen(false);
         setNewPassword("");
         setShowPassword(false);
-        setDateOfBirth(member?.date_of_birth || "");
+        setDateOfBirth(memberDob || "");
     };
 
     const handleTogglePasswordVisibility = () => {
@@ -113,7 +115,6 @@ const MyAccount = () => {
 
     const handleSaveChanges = async () => {
         try {
-            // Get userId directly from localStorage
             const userId = localStorage.getItem('userId');
             
             if (!userId) {
@@ -133,16 +134,25 @@ const MyAccount = () => {
             if (Object.keys(dataToUpdate).length > 0) {
                 await api.updateMember(userId, dataToUpdate);
                 
-                // Refresh member data after update
-                const updatedMember = await api.getMember(userId);
-                setMember(updatedMember);
+                // Refetch member data after update
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/members/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 
-                // Close dialog and show success message
+                if (response.ok) {
+                    const updatedMember = await response.json();
+                    setMember(updatedMember);
+                    setMemberGender(updatedMember.gender || "");
+                    setMemberDob(updatedMember.date_of_birth || "");
+                }
+                
                 handleEditDialogClose();
                 alert("Profile updated successfully!");
             }
         } catch (error) {
-            console.error("Error updating member:", error);
             alert(`Error: ${error.message}`);
         }
     };
@@ -152,24 +162,14 @@ const MyAccount = () => {
         if (!file) return;
         
         try {
-            // In a real app, you would upload the file to a server
-            // For this demo, we'll use a FileReader to convert it to a data URL
             const reader = new FileReader();
             reader.onloadend = async () => {
                 const base64Image = reader.result;
-                
-                // Update profile pic in user context
                 updateUser({ ...user, profilePic: base64Image });
-                
-                // Update profile pic in local state
                 setProfilePic(base64Image);
-                
-                // In a real app, you would save this to the server
-                // await api.updateProfilePic(user.userId, base64Image);
             };
             reader.readAsDataURL(file);
         } catch (error) {
-            console.error("Error updating profile picture:", error);
             alert("Failed to update profile picture");
         }
     };
@@ -274,7 +274,7 @@ const MyAccount = () => {
                                             Gender:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.gender || "Not available"}
+                                            {memberGender || "Not available"}
                                         </Typography>
                                     </Box>
                                     
@@ -283,8 +283,8 @@ const MyAccount = () => {
                                             Date of Birth:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.date_of_birth ? (
-                                                `${formatDate(member.date_of_birth)} (Age: ${calculateAge(member.date_of_birth)})`
+                                            {memberDob ? (
+                                                `${formatDate(memberDob)} (Age: ${calculateAge(memberDob)})`
                                             ) : (
                                                 "Not provided"
                                             )}
