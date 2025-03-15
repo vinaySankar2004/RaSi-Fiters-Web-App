@@ -265,9 +265,19 @@ const MyAccount = () => {
             <NavbarLoggedIn />
             <div className="my-account-page">
                 <Container className="my-account-container">
-                    <Typography variant="h3" className="members-title">
-                        My Account
-                    </Typography>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Typography variant="h3" className="members-title">
+                            My Account
+                        </Typography>
+                        <IconButton 
+                            onClick={handleRefresh}
+                            className="refresh-button"
+                            title="Refresh Data"
+                            sx={{ color: "#FFD700" }}
+                        >
+                            <Refresh />
+                        </IconButton>
+                    </Box>
                     
                     <div className="my-account-tabs-container">
                         <Tabs 
@@ -361,7 +371,7 @@ const MyAccount = () => {
                                 </Box>
                             </Box>
                             
-                            <Box display="flex" justifyContent="flex-end" mb={2}>
+                            <Box display="flex" justifyContent="center" mb={2}>
                                 <Button 
                                     variant="contained" 
                                     startIcon={<Edit />}
@@ -370,31 +380,12 @@ const MyAccount = () => {
                                 >
                                     EDIT PROFILE
                                 </Button>
-                                <IconButton 
-                                    onClick={handleRefresh}
-                                    className="refresh-button"
-                                    title="Refresh Data"
-                                    sx={{ color: "#FFD700", marginLeft: 2 }}
-                                >
-                                    <Refresh />
-                                </IconButton>
                             </Box>
                         </div>
                     )}
                     
                     {tabValue === 1 && (
                         <div className="my-account-workouts-container">
-                            <Box display="flex" justifyContent="flex-end" mb={2}>
-                                <IconButton 
-                                    onClick={handleRefresh}
-                                    className="refresh-button"
-                                    title="Refresh Data"
-                                    sx={{ color: "#FFD700" }}
-                                >
-                                    <Refresh />
-                                </IconButton>
-                            </Box>
-                            
                             <TableContainer>
                                 <Table>
                                     <TableHead>
