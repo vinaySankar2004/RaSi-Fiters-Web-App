@@ -266,7 +266,7 @@ const MyAccount = () => {
             <div className="my-account-page">
                 <Container className="my-account-container">
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                        <Typography variant="h3" className="members-title">
+                        <Typography variant="h3" className="members-title" style={{ flex: 1, textAlign: 'center' }}>
                             My Account
                         </Typography>
                         <IconButton 
