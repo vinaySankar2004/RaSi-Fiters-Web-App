@@ -290,17 +290,6 @@ const MyAccount = () => {
                     
                     {tabValue === 0 && (
                         <div className="my-account-details-container">
-                            <Box display="flex" justifyContent="flex-end" mb={2}>
-                                <IconButton 
-                                    onClick={handleRefresh}
-                                    className="refresh-button"
-                                    title="Refresh Data"
-                                    sx={{ color: "#FFD700" }}
-                                >
-                                    <Refresh />
-                                </IconButton>
-                            </Box>
-                            
                             <Box className="my-account-profile-section">
                                 <Box className="my-account-avatar-container">
                                     <div className="my-account-avatar-wrapper">
@@ -372,14 +361,24 @@ const MyAccount = () => {
                                 </Box>
                             </Box>
                             
-                            <Button 
-                                variant="contained" 
-                                startIcon={<Edit />}
-                                className="my-account-edit-button"
-                                onClick={handleEditDialogOpen}
-                            >
-                                EDIT PROFILE
-                            </Button>
+                            <Box display="flex" justifyContent="flex-end" mb={2}>
+                                <Button 
+                                    variant="contained" 
+                                    startIcon={<Edit />}
+                                    className="my-account-edit-button"
+                                    onClick={handleEditDialogOpen}
+                                >
+                                    EDIT PROFILE
+                                </Button>
+                                <IconButton 
+                                    onClick={handleRefresh}
+                                    className="refresh-button"
+                                    title="Refresh Data"
+                                    sx={{ color: "#FFD700", marginLeft: 2 }}
+                                >
+                                    <Refresh />
+                                </IconButton>
+                            </Box>
                         </div>
                     )}
                     
