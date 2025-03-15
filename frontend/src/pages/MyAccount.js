@@ -47,32 +47,46 @@ const MyAccount = () => {
             try {
                 setLoading(true);
                 
-                // Get user ID and member name from localStorage directly
-                const userId = localStorage.getItem('userId');
+                // Use the token to get the current user's info first
+                const token = localStorage.getItem('token');
                 const memberName = localStorage.getItem('member_name');
                 
-                if (userId) {
-                    // Fetch member data directly using fetch instead of the API helper
-                    // This gives us more control over how we process the data
-                    const token = localStorage.getItem('token');
-                    const response = await fetch(`${process.env.REACT_APP_API_URL}/members/${userId}`, {
+                // First, let's find the current user's ID since it's not properly stored
+                try {
+                    // Get all members
+                    const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
                     });
                     
-                    if (response.ok) {
-                        const memberData = await response.json();
-                        setMember(memberData);
+                    if (membersResponse.ok) {
+                        const allMembers = await membersResponse.json();
                         
-                        // Store gender and date of birth in separate state variables
-                        // This ensures they're accessible even if nested differently
-                        setMemberGender(memberData.gender || "");
-                        setMemberDob(memberData.date_of_birth || "");
-                        setDateOfBirth(memberData.date_of_birth || "");
+                        // Find this member by member_name
+                        const currentMember = allMembers.find(m => 
+                            m.member_name === memberName
+                        );
+                        
+                        if (currentMember) {
+                            // We found the member!
+                            console.log("Found member:", currentMember);
+                            
+                            // Set the member data
+                            setMember(currentMember);
+                            setMemberGender(currentMember.gender || "");
+                            setMemberDob(currentMember.date_of_birth || "");
+                            setDateOfBirth(currentMember.date_of_birth || "");
+                            
+                            // Store the actual userId for future use
+                            localStorage.setItem('userId', currentMember.user_id);
+                        }
                     }
+                } catch (memberError) {
+                    console.error("Error finding member:", memberError);
                 }
                 
+                // Fetch workout logs
                 if (memberName) {
                     try {
                         const logs = await api.getAllWorkoutLogs(memberName);
