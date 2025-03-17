@@ -18,12 +18,12 @@ const api = {
                 },
                 body: JSON.stringify({ username, password })
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Login failed');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Login error:', error);
@@ -36,11 +36,11 @@ const api = {
             const response = await fetch(`${API_URL}/workout-logs?date=${date}`, {
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch workout logs');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error fetching workout logs:', error);
@@ -55,9 +55,22 @@ const api = {
                 ...logData,
                 duration: parseInt(logData.duration, 10)
             };
-            
+
+            // If we have member_name but not member_id, try to look up the member_id
+            if (data.member_name && !data.member_id) {
+                try {
+                    const members = await api.getMembers();
+                    const member = members.find(m => m.member_name === data.member_name);
+                    if (member) {
+                        data.member_id = member.id;
+                    }
+                } catch (e) {
+                    console.error("Error finding member_id:", e);
+                }
+            }
+
             console.log("Sending log data:", data);
-            
+
             const response = await fetch(`${API_URL}/workout-logs`, {
                 method: 'POST',
                 headers: {
@@ -66,12 +79,12 @@ const api = {
                 },
                 body: JSON.stringify(data)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to add workout log');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error adding workout log:', error);
@@ -86,7 +99,20 @@ const api = {
                 ...logData,
                 duration: parseInt(logData.duration, 10)
             };
-            
+
+            // If we have member_name but not member_id, try to look up the member_id
+            if (data.member_name && !data.member_id) {
+                try {
+                    const members = await api.getMembers();
+                    const member = members.find(m => m.member_name === data.member_name);
+                    if (member) {
+                        data.member_id = member.id;
+                    }
+                } catch (e) {
+                    console.error("Error finding member_id:", e);
+                }
+            }
+
             const response = await fetch(`${API_URL}/workout-logs`, {
                 method: 'PUT',
                 headers: {
@@ -95,12 +121,12 @@ const api = {
                 },
                 body: JSON.stringify(data)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update workout log');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error updating workout log:', error);
@@ -110,6 +136,19 @@ const api = {
 
     deleteWorkoutLog: async (logData) => {
         try {
+            // If we have member_name but not member_id, try to look up the member_id
+            if (logData.member_name && !logData.member_id) {
+                try {
+                    const members = await api.getMembers();
+                    const member = members.find(m => m.member_name === logData.member_name);
+                    if (member) {
+                        logData.member_id = member.id;
+                    }
+                } catch (e) {
+                    console.error("Error finding member_id:", e);
+                }
+            }
+
             const response = await fetch(`${API_URL}/workout-logs`, {
                 method: 'DELETE',
                 headers: {
@@ -118,12 +157,12 @@ const api = {
                 },
                 body: JSON.stringify(logData)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to delete workout log');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error deleting workout log:', error);
@@ -136,11 +175,11 @@ const api = {
             const response = await fetch(`${API_URL}/members`, {
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch members');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error fetching members:', error);
@@ -153,11 +192,11 @@ const api = {
             const response = await fetch(`${API_URL}/members/${id}`, {
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch member');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error fetching member:', error);
@@ -175,12 +214,12 @@ const api = {
                 },
                 body: JSON.stringify(memberData)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to add member');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error adding member:', error);
@@ -198,12 +237,12 @@ const api = {
                 },
                 body: JSON.stringify(memberData)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update member');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error updating member:', error);
@@ -217,12 +256,12 @@ const api = {
                 method: 'DELETE',
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to delete member');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error deleting member:', error);
@@ -235,11 +274,11 @@ const api = {
             const response = await fetch(`${API_URL}/workouts`, {
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch workouts');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error fetching workouts:', error);
@@ -257,12 +296,12 @@ const api = {
                 },
                 body: JSON.stringify(workoutData)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to add workout');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error adding workout:', error);
@@ -280,12 +319,12 @@ const api = {
                 },
                 body: JSON.stringify(workoutData)
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update workout');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error updating workout:', error);
@@ -299,12 +338,12 @@ const api = {
                 method: 'DELETE',
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to delete workout');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error deleting workout:', error);
@@ -317,11 +356,11 @@ const api = {
             const response = await fetch(`${API_URL}/workout-logs/member/${memberName}`, {
                 headers: getAuthHeader()
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch workout logs');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error fetching workout logs:', error);

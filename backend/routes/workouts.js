@@ -1,5 +1,5 @@
 const express = require("express");
-const Workout = require("../models/Workout");
+const { Workout } = require("../models/index");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const router = express.Router();
 

@@ -22,10 +22,11 @@ export const AuthProvider = ({ children }) => {
         role: role || 'member',
         member_name: member_name || null,
         userId: userId || null,
+        id: userId || null, // Add id for consistent access
         profilePic: profilePic || null
       });
     }
-    
+
     setLoading(false);
   }, []);
 
@@ -34,12 +35,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', userData.token);
     localStorage.setItem('username', userData.username);
     localStorage.setItem('role', userData.role);
-    localStorage.setItem('userId', userData.userId);
-    
+
+    // Support both id and userId for backward compatibility
+    const userId = userData.id || userData.userId;
+    localStorage.setItem('userId', userId);
+
     if (userData.member_name) {
       localStorage.setItem('member_name', userData.member_name);
     }
-    
+
     if (userData.profilePic) {
       localStorage.setItem('profilePic', userData.profilePic);
     }
@@ -50,7 +54,8 @@ export const AuthProvider = ({ children }) => {
       username: userData.username,
       role: userData.role,
       member_name: userData.member_name || null,
-      userId: userData.userId || null,
+      userId: userId,
+      id: userId,
       profilePic: userData.profilePic || null
     });
   };
@@ -60,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     if (updatedUserData.profilePic) {
       localStorage.setItem('profilePic', updatedUserData.profilePic);
     }
-    
+
     // Update state
     setUser(prevUser => ({
       ...prevUser,
@@ -76,15 +81,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('member_name');
     localStorage.removeItem('userId');
     localStorage.removeItem('profilePic');
-    
+
     // Update state
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+        {children}
+      </AuthContext.Provider>
   );
 };
 

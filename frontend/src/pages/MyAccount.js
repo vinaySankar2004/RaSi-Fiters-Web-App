@@ -27,17 +27,17 @@ const MyAccount = () => {
     // Calculate age from date of birth
     const calculateAge = (dob) => {
         if (!dob) return "";
-        
+
         const today = new Date();
         const birthDate = new Date(dob);
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-        
+
         // Adjust age if birthday hasn't occurred yet this year
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
-        
+
         return age;
     };
 
@@ -46,11 +46,11 @@ const MyAccount = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                
+
                 // Use the token to get the current user's info first
                 const token = localStorage.getItem('token');
                 const memberName = localStorage.getItem('member_name');
-                
+
                 // First, let's find the current user's ID since it's not properly stored
                 try {
                     // Get all members
@@ -59,52 +59,52 @@ const MyAccount = () => {
                             'Authorization': `Bearer ${token}`
                         }
                     });
-                    
+
                     if (membersResponse.ok) {
                         const allMembers = await membersResponse.json();
-                        
+
                         // Find this member by member_name
-                        const currentMember = allMembers.find(m => 
+                        const currentMember = allMembers.find(m =>
                             m.member_name === memberName
                         );
-                        
+
                         if (currentMember) {
                             // We found the member!
                             console.log("Found member:", currentMember);
-                            
+
                             // Set the member data
                             setMember(currentMember);
                             setMemberGender(currentMember.gender || "");
                             setMemberDob(currentMember.date_of_birth || "");
                             setDateOfBirth(currentMember.date_of_birth || "");
-                            
-                            // Store the actual userId for future use
-                            localStorage.setItem('userId', currentMember.user_id);
+
+                            // Store the actual userId for future use - using id instead of user_id
+                            localStorage.setItem('userId', currentMember.id);
                         }
                     }
                 } catch (memberError) {
                     console.error("Error finding member:", memberError);
                 }
-                
+
                 // Fetch workout logs
                 if (memberName) {
                     try {
                         const logs = await api.getAllWorkoutLogs(memberName);
-                        const sortedLogs = Array.isArray(logs) 
-                            ? logs.sort((a, b) => new Date(b.date) - new Date(a.date)) 
+                        const sortedLogs = Array.isArray(logs)
+                            ? logs.sort((a, b) => new Date(b.date) - new Date(a.date))
                             : [];
                         setWorkoutLogs(sortedLogs);
                     } catch (logsError) {
                         setWorkoutLogs([]);
                     }
                 }
-                
+
                 setLoading(false);
             } catch (error) {
                 setLoading(false);
             }
         };
-        
+
         fetchData();
     }, []);
 
@@ -130,24 +130,24 @@ const MyAccount = () => {
     const handleSaveChanges = async () => {
         try {
             const userId = localStorage.getItem('userId');
-            
+
             if (!userId) {
                 throw new Error("User ID not found");
             }
 
             const dataToUpdate = {};
-            
+
             if (dateOfBirth) {
                 dataToUpdate.date_of_birth = dateOfBirth;
             }
-            
+
             if (newPassword) {
                 dataToUpdate.password = newPassword;
             }
-            
+
             if (Object.keys(dataToUpdate).length > 0) {
                 await api.updateMember(userId, dataToUpdate);
-                
+
                 // Refetch member data after update
                 const token = localStorage.getItem('token');
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/members/${userId}`, {
@@ -155,14 +155,14 @@ const MyAccount = () => {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
+
                 if (response.ok) {
                     const updatedMember = await response.json();
                     setMember(updatedMember);
                     setMemberGender(updatedMember.gender || "");
                     setMemberDob(updatedMember.date_of_birth || "");
                 }
-                
+
                 handleEditDialogClose();
                 alert("Profile updated successfully!");
             }
@@ -174,7 +174,7 @@ const MyAccount = () => {
     const handleProfilePicChange = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-        
+
         try {
             const reader = new FileReader();
             reader.onloadend = async () => {
@@ -201,7 +201,7 @@ const MyAccount = () => {
             // Reuse the same data fetching logic from useEffect
             const token = localStorage.getItem('token');
             const memberName = localStorage.getItem('member_name');
-            
+
             try {
                 // Get all members
                 const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
@@ -209,15 +209,15 @@ const MyAccount = () => {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
+
                 if (membersResponse.ok) {
                     const allMembers = await membersResponse.json();
-                    
+
                     // Find this member by member_name
-                    const currentMember = allMembers.find(m => 
+                    const currentMember = allMembers.find(m =>
                         m.member_name === memberName
                     );
-                    
+
                     if (currentMember) {
                         // We found the member!
                         setMember(currentMember);
@@ -229,13 +229,13 @@ const MyAccount = () => {
             } catch (memberError) {
                 console.error("Error finding member:", memberError);
             }
-            
+
             // Fetch workout logs
             if (memberName) {
                 try {
                     const logs = await api.getAllWorkoutLogs(memberName);
-                    const sortedLogs = Array.isArray(logs) 
-                        ? logs.sort((a, b) => new Date(b.date) - new Date(a.date)) 
+                    const sortedLogs = Array.isArray(logs)
+                        ? logs.sort((a, b) => new Date(b.date) - new Date(a.date))
                         : [];
                     setWorkoutLogs(sortedLogs);
                 } catch (logsError) {
@@ -269,7 +269,7 @@ const MyAccount = () => {
                         <Typography variant="h3" className="members-title" style={{ flex: 1, textAlign: 'center' }}>
                             My Account
                         </Typography>
-                        <IconButton 
+                        <IconButton
                             onClick={handleRefresh}
                             className="refresh-button"
                             title="Refresh Data"
@@ -278,33 +278,33 @@ const MyAccount = () => {
                             <Refresh />
                         </IconButton>
                     </Box>
-                    
+
                     <div className="my-account-tabs-container">
-                        <Tabs 
-                            value={tabValue} 
+                        <Tabs
+                            value={tabValue}
                             onChange={handleTabChange}
                             className="my-account-tabs"
                             variant="fullWidth"
                             TabIndicatorProps={{ style: { display: 'none' } }}
                         >
-                            <Tab 
-                                label="MY DETAILS" 
+                            <Tab
+                                label="MY DETAILS"
                                 className={tabValue === 0 ? "tab-active" : ""}
                             />
-                            <Tab 
-                                label="MY WORKOUTS" 
+                            <Tab
+                                label="MY WORKOUTS"
                                 className={tabValue === 1 ? "tab-active" : ""}
                             />
                         </Tabs>
                     </div>
-                    
+
                     {tabValue === 0 && (
                         <div className="my-account-details-container">
                             <Box className="my-account-profile-section">
                                 <Box className="my-account-avatar-container">
                                     <div className="my-account-avatar-wrapper">
-                                        <Avatar 
-                                            src={profilePic || user?.profilePic} 
+                                        <Avatar
+                                            src={profilePic || user?.profilePic}
                                             alt={member?.member_name || user?.username}
                                             className="my-account-avatar"
                                             variant="square"
@@ -319,15 +319,15 @@ const MyAccount = () => {
                                         hidden
                                     />
                                     <label htmlFor="profile-pic-upload">
-                                        <IconButton 
-                                            component="span" 
+                                        <IconButton
+                                            component="span"
                                             className="my-account-upload-button"
                                         >
                                             <PhotoCamera />
                                         </IconButton>
                                     </label>
                                 </Box>
-                                
+
                                 <Box className="my-account-info-container">
                                     <Box className="my-account-info-row">
                                         <Typography variant="subtitle1" className="my-account-info-label">
@@ -337,16 +337,16 @@ const MyAccount = () => {
                                             {member?.member_name || localStorage.getItem('member_name') || "Not available"}
                                         </Typography>
                                     </Box>
-                                    
+
                                     <Box className="my-account-info-row">
                                         <Typography variant="subtitle1" className="my-account-info-label">
                                             Username:
                                         </Typography>
                                         <Typography variant="body1" className="my-account-info-value">
-                                            {member?.User?.username || localStorage.getItem('username') || "Not available"}
+                                            {member?.username || localStorage.getItem('username') || "Not available"}
                                         </Typography>
                                     </Box>
-                                    
+
                                     <Box className="my-account-info-row">
                                         <Typography variant="subtitle1" className="my-account-info-label">
                                             Gender:
@@ -355,7 +355,7 @@ const MyAccount = () => {
                                             {memberGender || "Not available"}
                                         </Typography>
                                     </Box>
-                                    
+
                                     <Box className="my-account-info-row">
                                         <Typography variant="subtitle1" className="my-account-info-label">
                                             Date of Birth:
@@ -370,10 +370,10 @@ const MyAccount = () => {
                                     </Box>
                                 </Box>
                             </Box>
-                            
+
                             <Box display="flex" justifyContent="center" mb={2}>
-                                <Button 
-                                    variant="contained" 
+                                <Button
+                                    variant="contained"
                                     startIcon={<Edit />}
                                     className="my-account-edit-button"
                                     onClick={handleEditDialogOpen}
@@ -383,7 +383,7 @@ const MyAccount = () => {
                             </Box>
                         </div>
                     )}
-                    
+
                     {tabValue === 1 && (
                         <div className="my-account-workouts-container">
                             <TableContainer>
@@ -416,7 +416,7 @@ const MyAccount = () => {
                             </TableContainer>
                         </div>
                     )}
-                    
+
                     {/* Edit Profile Dialog */}
                     <Dialog open={editDialogOpen} onClose={handleEditDialogClose} className="my-account-dialog">
                         <DialogTitle>Edit Profile</DialogTitle>
@@ -442,7 +442,7 @@ const MyAccount = () => {
                                     ),
                                 }}
                             />
-                            
+
                             <TextField
                                 margin="dense"
                                 label="Date of Birth"

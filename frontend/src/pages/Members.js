@@ -14,14 +14,14 @@ import "../styles/Members.css";
 const Members = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
-    const currentUserId = user?.userId;
+    const currentUserId = user?.userId || user?.id;
     const currentMemberName = user?.member_name;
     const [members, setMembers] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
-    const [newMember, setNewMember] = useState({ 
-        member_name: "", 
-        gender: "", 
+    const [newMember, setNewMember] = useState({
+        member_name: "",
+        gender: "",
         date_of_birth: null,
         password: ""
     });
@@ -31,17 +31,17 @@ const Members = () => {
     // Calculate age from date of birth
     const calculateAge = (dob) => {
         if (!dob) return "";
-        
+
         const today = new Date();
         const birthDate = new Date(dob);
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-        
+
         // Adjust age if birthday hasn't occurred yet this year
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
-        
+
         return age;
     };
 
@@ -72,8 +72,8 @@ const Members = () => {
     const handleOpen = (member = null) => {
         setEditData(member);
         if (member) {
-            setNewMember({ 
-                ...member, 
+            setNewMember({
+                ...member,
                 password: "" // Clear password field for editing
             });
             // Generate username from member name
@@ -118,30 +118,30 @@ const Members = () => {
 
             if (editData) {
                 // Only include password if it's not empty
-                const dataToSend = { 
+                const dataToSend = {
                     ...trimmedMember,
                     username: generatedUsername // Always include the generated username
                 };
-                
+
                 if (!dataToSend.password) {
                     delete dataToSend.password;
                 }
 
                 // If regular member editing own profile
-                if (!isAdmin && editData.user_id === currentUserId) {
+                if (!isAdmin && editData.id === currentUserId) {
                     // Regular members can ONLY update their password
                     const limitedData = {
                         password: dataToSend.password
                     };
-                    
+
                     if (!limitedData.password) {
                         delete limitedData.password;
                     }
-                    
-                    await api.updateMember(editData.user_id, limitedData);
+
+                    await api.updateMember(editData.id, limitedData);
                 } else if (isAdmin) {
                     // Always send the username when admin is editing
-                    await api.updateMember(editData.user_id, dataToSend);
+                    await api.updateMember(editData.id, dataToSend);
                 }
             } else {
                 // For new members (admin only)
@@ -153,7 +153,7 @@ const Members = () => {
                     username: generatedUsername // Include the generated username
                 });
             }
-            
+
             fetchMembers();
             handleClose();
         } catch (error) {
@@ -177,11 +177,11 @@ const Members = () => {
     const handleTogglePasswordVisibility = () => {
         setShowPassword(!showPassword);
     };
-    
+
     // Handle date of birth change
     const handleDobChange = (e) => {
-        setNewMember({ 
-            ...newMember, 
+        setNewMember({
+            ...newMember,
             date_of_birth: e.target.value
         });
     };
@@ -189,17 +189,17 @@ const Members = () => {
     // Update the canEditMember function to check both user ID and member name
     const canEditMember = (member) => {
         console.log("Checking member:", {
-            memberId: member.user_id,
+            memberId: member.id,
             memberName: member.member_name,
             currentUserId,
             currentMemberName
         });
-        
+
         if (isAdmin) return true;
-        
+
         // Check both user ID and member name
-        return member.user_id === currentUserId || 
-               member.member_name === currentMemberName;
+        return member.id === currentUserId ||
+            member.member_name === currentMemberName;
     };
 
     return (
@@ -240,7 +240,7 @@ const Members = () => {
                         </TableHead>
                         <TableBody>
                             {members.map((member, index) => (
-                                <TableRow key={member.user_id} className="table-body-row">
+                                <TableRow key={member.id} className="table-body-row">
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{member.member_name}</TableCell>
                                     {/* Only show Gender and Age columns for admin users */}
@@ -262,7 +262,7 @@ const Members = () => {
                                                     <Visibility />
                                                 </IconButton>
                                             )}
-                                            <IconButton className="delete-button" onClick={() => handleDelete(member.user_id)}>
+                                            <IconButton className="delete-button" onClick={() => handleDelete(member.id)}>
                                                 <Delete />
                                             </IconButton>
                                         </TableCell>
@@ -278,22 +278,22 @@ const Members = () => {
                         {editData ? "Edit Member" : "Add New Member"}
                     </DialogTitle>
                     <DialogContent className="dialog-content">
-                        <TextField 
-                            fullWidth 
-                            label="Member Name" 
-                            value={newMember.member_name} 
+                        <TextField
+                            fullWidth
+                            label="Member Name"
+                            value={newMember.member_name}
                             onChange={(e) => setNewMember({ ...newMember, member_name: e.target.value })}
                             onBlur={(e) => setNewMember({ ...newMember, member_name: e.target.value.trim() })}
-                            className="dialog-input" 
+                            className="dialog-input"
                             margin="normal"
                             disabled={!isAdmin || (editData && !isAdmin)}
                         />
-                        
-                        <TextField 
-                            fullWidth 
-                            label="Username (auto-generated)" 
+
+                        <TextField
+                            fullWidth
+                            label="Username (auto-generated)"
                             value={generatedUsername}
-                            className="dialog-input" 
+                            className="dialog-input"
                             margin="normal"
                             InputProps={{
                                 readOnly: true,
@@ -301,14 +301,14 @@ const Members = () => {
                             helperText="Username is automatically generated from the member name"
                             disabled={true}
                         />
-                        
-                        <TextField 
-                            fullWidth 
-                            label={editData ? "New Password (leave blank to keep current)" : "Password"} 
+
+                        <TextField
+                            fullWidth
+                            label={editData ? "New Password (leave blank to keep current)" : "Password"}
                             type={showPassword ? "text" : "password"}
-                            value={newMember.password} 
+                            value={newMember.password}
                             onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
-                            className="dialog-input" 
+                            className="dialog-input"
                             margin="normal"
                             InputProps={{
                                 endAdornment: (
@@ -323,7 +323,7 @@ const Members = () => {
                                 ),
                             }}
                         />
-                        
+
                         {/* Only show Gender field for admin users */}
                         {isAdmin && (
                             <FormControl fullWidth className="dialog-input" margin="normal">
@@ -333,7 +333,7 @@ const Members = () => {
                                     value={newMember.gender}
                                     label="Gender"
                                     onChange={(e) => setNewMember({ ...newMember, gender: e.target.value })}
-                                    sx={{ 
+                                    sx={{
                                         color: 'white',
                                         '& .MuiSelect-icon': {
                                             color: 'white'
@@ -347,16 +347,16 @@ const Members = () => {
                                 </Select>
                             </FormControl>
                         )}
-                        
+
                         {/* Only show Date of Birth field for admin users */}
                         {isAdmin && (
-                            <TextField 
-                                fullWidth 
+                            <TextField
+                                fullWidth
                                 label="Date of Birth"
                                 type="date"
                                 value={newMember.date_of_birth || ''}
                                 onChange={handleDobChange}
-                                className="dialog-input" 
+                                className="dialog-input"
                                 margin="normal"
                                 InputLabelProps={{
                                     shrink: true,

@@ -2,12 +2,12 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
 const WorkoutLog = sequelize.define("WorkoutLog", {
-    user_id: {
+    member_id: {
         type: DataTypes.UUID,
         allowNull: false,
         primaryKey: true,
         references: {
-            model: "users",
+            model: "members",
             key: "id",
         },
     },
@@ -28,14 +28,11 @@ const WorkoutLog = sequelize.define("WorkoutLog", {
     duration: {
         type: DataTypes.INTEGER,
         allowNull: false,
-    },
-    member_name: {
-        type: DataTypes.STRING,
-        allowNull: false,
     }
 }, {
     tableName: "workout_logs",
-    timestamps: false
+    timestamps: false,
+    underscored: true
 });
 
 module.exports = WorkoutLog;

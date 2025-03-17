@@ -1,13 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const { connectDB } = require("./config/database");
-// Import models to ensure associations are set up
 require("./models/index");
 const authRoutes = require("./routes/auth");
 const memberRoutes = require("./routes/members");
-require("dotenv").config();
 const workoutRoutes = require("./routes/workouts");
 const workoutLogRoutes = require("./routes/workoutLogs");
+require("dotenv").config();
 
 const app = express();
 
@@ -30,14 +29,25 @@ app.use("/api/workout-logs", workoutLogRoutes);
 
 // for testing purposes
 app.get("/api/test", (req, res) => {
-    res.json({ message: "API is working!" });
+    res.json({
+        message: "API is working!",
+        version: "2.0.0", // Updated version to reflect the database restructuring
+        dbSchema: "Consolidated"
+    });
 });
 
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
-    await connectDB();
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    try {
+        await connectDB();
+        console.log("Database connected successfully");
+
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
+    }
 };
 
 startServer();

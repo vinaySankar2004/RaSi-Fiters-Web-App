@@ -1,16 +1,16 @@
-const User = require('./User');
 const Member = require('./Member');
 const Workout = require('./Workout');
 const WorkoutLog = require('./WorkoutLog');
 
-// User-Member association (one-to-one)
-User.hasOne(Member, { foreignKey: 'user_id' });
-Member.belongsTo(User, { foreignKey: 'user_id' });
+// Member-WorkoutLog association
+Member.hasMany(WorkoutLog, { foreignKey: 'member_id' });
+WorkoutLog.belongsTo(Member, { foreignKey: 'member_id' });
 
-// No need for WorkoutLog-Member association since we're using member_name directly
+// Workout-WorkoutLog association
+Workout.hasMany(WorkoutLog, { foreignKey: 'workout_name' });
+WorkoutLog.belongsTo(Workout, { foreignKey: 'workout_name' });
 
 module.exports = {
-    User,
     Member,
     Workout,
     WorkoutLog

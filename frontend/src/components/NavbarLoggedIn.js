@@ -47,7 +47,7 @@ const NavbarLoggedIn = () => {
 
     const handleNavigation = (path) => {
         navigate(path);
-        setMobileMenuOpen(false); 
+        setMobileMenuOpen(false);
     };
 
     return (
@@ -59,8 +59,8 @@ const NavbarLoggedIn = () => {
                 </Typography>
 
                 {/* Mobile Menu Button */}
-                <IconButton 
-                    className="mobile-menu-button" 
+                <IconButton
+                    className="mobile-menu-button"
                     onClick={toggleMobileMenu}
                     edge="start"
                 >
@@ -76,24 +76,24 @@ const NavbarLoggedIn = () => {
                 </Box>
 
                 {/* User Profile Section */}
-                <Box 
-                    className="navbar-loggedin-user" 
+                <Box
+                    className="navbar-loggedin-user"
                     onClick={handleMenuOpen}
                     ref={userBoxRef}
-                    sx={{ 
-                        display: 'flex', 
+                    sx={{
+                        display: 'flex',
                         alignItems: 'center',
                         gap: '12px'
                     }}
                 >
                     <Typography variant="body1" className="navbar-loggedin-username">
-                        {user?.member_name || user?.username || 'User'} 
+                        {user?.member_name || user?.username || 'User'}
                         {user?.role === 'admin' && <span className="admin-badge"> (Admin)</span>}
                     </Typography>
                     {user?.profilePic ? (
-                        <Avatar 
-                            className="navbar-loggedin-avatar" 
-                            src={user.profilePic} 
+                        <Avatar
+                            className="navbar-loggedin-avatar"
+                            src={user.profilePic}
                             alt={user?.member_name || user?.username}
                         />
                     ) : (
@@ -102,10 +102,10 @@ const NavbarLoggedIn = () => {
                     <ArrowDropDown />
                 </Box>
 
-                <Menu 
-                    anchorEl={anchorEl} 
-                    open={open} 
-                    onClose={handleMenuClose} 
+                <Menu
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleMenuClose}
                     className="navbar-loggedin-dropdown"
                     anchorOrigin={{
                         vertical: 'bottom',

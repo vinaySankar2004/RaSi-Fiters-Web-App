@@ -26,14 +26,15 @@ import { Delete, Edit, Add, Refresh, Visibility } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
-import "../styles/DashboardTable.css"; 
+import "../styles/DashboardTable.css";
 
 const DashboardTable = () => {
     const { date } = useParams();
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
     const memberName = user?.member_name;
-    
+    const userId = user?.userId || user?.id;
+
     const [logs, setLogs] = useState([]);
     const [members, setMembers] = useState([]);
     const [workouts, setWorkouts] = useState([]);
@@ -44,12 +45,12 @@ const DashboardTable = () => {
         try {
             const data = await api.getWorkoutLogs(date);
             console.log("Logs data received:", data);
-            
+
             // Sort logs alphabetically by member_name
-            const sortedLogs = Array.isArray(data) 
+            const sortedLogs = Array.isArray(data)
                 ? [...data].sort((a, b) => a.member_name.localeCompare(b.member_name))
                 : [];
-            
+
             setLogs(sortedLogs);
         } catch (error) {
             console.error("Error fetching logs:", error);
@@ -80,11 +81,19 @@ const DashboardTable = () => {
     const handleDelete = async (log) => {
         if (window.confirm("Are you sure you want to delete this log?")) {
             try {
-                await api.deleteWorkoutLog({
-                    member_name: log.member_name,
+                const deleteData = {
                     workout_name: log.workout_name,
-                    date: log.date,
-                });
+                    date: log.date
+                };
+
+                // Use member_id if available, otherwise use member_name
+                if (log.member_id) {
+                    deleteData.member_id = log.member_id;
+                } else if (log.member_name) {
+                    deleteData.member_name = log.member_name;
+                }
+
+                await api.deleteWorkoutLog(deleteData);
                 fetchLogs();
             } catch (error) {
                 console.error("Error deleting log:", error);
@@ -108,17 +117,21 @@ const DashboardTable = () => {
         if (isAdmin) {
             return true;
         }
-        
-        // For regular members
+
+        // For regular members - check both member_name and member_id
         if (log.member_name === memberName) {
             return true;
         }
-        
+
+        if (log.member_id && log.member_id === userId) {
+            return true;
+        }
+
         // If the backend provided a canEdit flag, use it
         if (log.canEdit !== undefined) {
             return log.canEdit;
         }
-        
+
         // Default fallback
         return false;
     };
@@ -156,8 +169,8 @@ const DashboardTable = () => {
                         <TableBody>
                             {logs.length > 0 ? (
                                 logs.map((log, index) => (
-                                    <TableRow 
-                                        key={`${log.member_name}-${log.workout_name}-${log.date}`} 
+                                    <TableRow
+                                        key={`${log.member_name}-${log.workout_name}-${log.date}`}
                                         className={`table-body-row ${log.member_name === memberName ? 'own-log-row' : ''}`}
                                     >
                                         <TableCell>{index + 1}</TableCell>
@@ -193,13 +206,13 @@ const DashboardTable = () => {
                     </Table>
                 </TableContainer>
 
-                <LogFormModal 
-                    open={open} 
-                    handleClose={handleClose} 
-                    editData={editData} 
-                    date={date} 
-                    fetchLogs={fetchLogs} 
-                    members={members} 
+                <LogFormModal
+                    open={open}
+                    handleClose={handleClose}
+                    editData={editData}
+                    date={date}
+                    fetchLogs={fetchLogs}
+                    members={members}
                     workouts={workouts}
                     isAdmin={isAdmin}
                     memberName={memberName}
@@ -240,27 +253,37 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
                 return;
             }
 
+            // Try to get member_id from members list
+            let member_id = null;
+            const memberObj = members.find(m => m.member_name === member);
+            if (memberObj) {
+                member_id = memberObj.id;
+            }
+
             console.log("Submitting log:", {
                 member_name: member,
+                member_id,
                 workout_name: workout,
                 date: editData ? editData.date : date,
                 duration: parseInt(duration, 10)
             });
 
+            const logData = {
+                member_name: member,
+                workout_name: workout,
+                date: editData ? editData.date : date,
+                duration: parseInt(duration, 10)
+            };
+
+            // Include member_id if available
+            if (member_id) {
+                logData.member_id = member_id;
+            }
+
             if (editData) {
-                await api.updateWorkoutLog({
-                    member_name: member,
-                    workout_name: workout,
-                    date: editData.date,
-                    duration: parseInt(duration, 10)
-                });
+                await api.updateWorkoutLog(logData);
             } else {
-                await api.addWorkoutLog({
-                    member_name: member,
-                    workout_name: workout,
-                    date,
-                    duration: parseInt(duration, 10)
-                });
+                await api.addWorkoutLog(logData);
             }
             fetchLogs();
             handleClose();
@@ -274,10 +297,10 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
         <Dialog open={open} onClose={handleClose} className="dashboard-dialog">
             <DialogTitle className="dialog-title">{editData ? "Edit Log" : "Add Log"}</DialogTitle>
             <DialogContent className="dialog-content">
-                <Select 
-                    fullWidth 
-                    value={member} 
-                    onChange={(e) => setMember(e.target.value)} 
+                <Select
+                    fullWidth
+                    value={member}
+                    onChange={(e) => setMember(e.target.value)}
                     className="dialog-input"
                     disabled={!isAdmin || !!editData}
                 >
@@ -285,11 +308,11 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
                         <MenuItem key={m.member_name} value={m.member_name}>{m.member_name}</MenuItem>
                     ))}
                 </Select>
-                <Select 
-                    fullWidth 
-                    value={workout} 
-                    onChange={(e) => setWorkout(e.target.value)} 
-                    className="dialog-input" 
+                <Select
+                    fullWidth
+                    value={workout}
+                    onChange={(e) => setWorkout(e.target.value)}
+                    className="dialog-input"
                     sx={{ mt: 2 }}
                     disabled={!!editData}
                 >
@@ -297,14 +320,14 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
                         <MenuItem key={w.workout_name} value={w.workout_name}>{w.workout_name}</MenuItem>
                     ))}
                 </Select>
-                <TextField 
-                    fullWidth 
-                    label="Duration (mins)" 
-                    type="number" 
-                    value={duration} 
-                    onChange={(e) => setDuration(e.target.value)} 
-                    className="dialog-input" 
-                    sx={{ mt: 2 }} 
+                <TextField
+                    fullWidth
+                    label="Duration (mins)"
+                    type="number"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="dialog-input"
+                    sx={{ mt: 2 }}
                 />
             </DialogContent>
             <DialogActions>
