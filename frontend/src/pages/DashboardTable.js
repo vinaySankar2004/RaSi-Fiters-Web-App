@@ -81,20 +81,28 @@ const DashboardTable = () => {
     const handleDelete = async (log) => {
         if (window.confirm("Are you sure you want to delete this log?")) {
             try {
+                console.log("Deleting log:", log); // Log to see what data we have
+
+                // Create the deleteData object with all available identifiers
                 const deleteData = {
                     workout_name: log.workout_name,
                     date: log.date
                 };
 
-                // Use member_id if available, otherwise use member_name
+                // Include member_id if it exists in the log object (should be there from our backend response)
                 if (log.member_id) {
                     deleteData.member_id = log.member_id;
-                } else if (log.member_name) {
+                    console.log("Using member_id for deletion:", log.member_id);
+                }
+                // Fallback to member_name if no member_id
+                else if (log.member_name) {
                     deleteData.member_name = log.member_name;
+                    console.log("Using member_name for deletion:", log.member_name);
                 }
 
                 await api.deleteWorkoutLog(deleteData);
-                fetchLogs();
+                console.log("Log deleted successfully");
+                fetchLogs(); // Refresh the logs list
             } catch (error) {
                 console.error("Error deleting log:", error);
             }

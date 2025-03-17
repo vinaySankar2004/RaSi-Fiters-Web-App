@@ -159,18 +159,28 @@ router.put("/", authenticateToken, async (req, res) => {
 // Delete a workout log - check if user can modify this log
 router.delete("/", authenticateToken, async (req, res) => {
     try {
-        const { member_name, workout_name, date } = req.body;
+        const { member_id, member_name, workout_name, date } = req.body;
+
+        console.log("Delete request received:", { member_id, member_name, workout_name, date });
 
         if (!workout_name || !date) {
             return res.status(400).json({ error: "Workout name and date are required." });
         }
 
-        // Get member_id from member_name if provided
-        let member_id = req.user.id;
+        // Build the where condition
+        const whereCondition = {
+            workout_name,
+            date
+        };
 
-        if (member_name && member_name !== req.user.member_name) {
-            // Only admins can delete other members' logs
-            if (req.user.role !== 'admin') {
+        // If member_id is provided directly, use it
+        if (member_id) {
+            whereCondition.member_id = member_id;
+        }
+        // Otherwise try to find the member by name
+        else if (member_name) {
+            // Only admins can delete other members' logs by name
+            if (req.user.role !== 'admin' && req.user.member_name !== member_name) {
                 return res.status(403).json({ error: "You can only delete your own logs." });
             }
 
@@ -182,20 +192,27 @@ router.delete("/", authenticateToken, async (req, res) => {
                 return res.status(404).json({ error: "Member not found." });
             }
 
-            member_id = member.id;
+            whereCondition.member_id = member.id;
         }
+        // If neither is provided, use the current user's ID
+        else {
+            whereCondition.member_id = req.user.id;
+        }
+
+        console.log("Final where condition:", whereCondition);
 
         // Find the log
         const log = await WorkoutLog.findOne({
-            where: {
-                member_id,
-                workout_name,
-                date
-            }
+            where: whereCondition
         });
 
         if (!log) {
             return res.status(404).json({ error: "Workout log not found." });
+        }
+
+        // Check if user has permission to delete this log
+        if (req.user.role !== 'admin' && log.member_id !== req.user.id) {
+            return res.status(403).json({ error: "You can only delete your own logs." });
         }
 
         // Delete the log
