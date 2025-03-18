@@ -211,32 +211,6 @@ const HeroSection = () => {
                                         }
                                     }}
                                 />
-
-                                {/* Overlay text */}
-                                <Box
-                                    sx={{
-                                        position: 'absolute',
-                                        top: 20,
-                                        right: 20,
-                                        backgroundColor: 'rgba(255,184,0,0.8)',
-                                        borderRadius: '30px',
-                                        padding: '10px 20px',
-                                        zIndex: 2,
-                                        transform: 'rotate(2deg)',
-                                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                                    }}
-                                >
-                                    <Typography
-                                        variant="h6"
-                                        sx={{
-                                            color: '#4a148c',
-                                            fontWeight: 700,
-                                            letterSpacing: '0.5px'
-                                        }}
-                                    >
-                                        RaSi Fit'ers
-                                    </Typography>
-                                </Box>
                             </Paper>
                         </Box>
                     </Grid>
