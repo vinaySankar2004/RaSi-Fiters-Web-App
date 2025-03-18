@@ -16,7 +16,7 @@ import {
     CssBaseline,
     alpha
 } from "@mui/material";
-import { Visibility, VisibilityOff, FitnessCenterOutlined, LockOutlined } from "@mui/icons-material";
+import { Visibility, VisibilityOff, LockOutlined } from "@mui/icons-material";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 
