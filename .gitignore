@@ -140,4 +140,5 @@ dist
 .vscode/
 backend/.DS_Store
 frontend/README.md
+frontend/src/styles
 

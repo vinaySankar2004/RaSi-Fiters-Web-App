@@ -1,14 +1,69 @@
 import React, { useState, useEffect } from "react";
 import {
-    Container, Typography, Box, Tabs, Tab, TextField, Button,
-    Avatar, IconButton, Dialog, DialogActions, DialogContent, DialogTitle,
-    InputAdornment, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+    Container,
+    Typography,
+    Box,
+    Tabs,
+    Tab,
+    TextField,
+    Button,
+    Avatar,
+    IconButton,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    InputAdornment,
+    CssBaseline,
+    ThemeProvider,
+    createTheme,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
 } from "@mui/material";
-import { Edit, Visibility, VisibilityOff, PhotoCamera, Refresh } from "@mui/icons-material";
+import { Edit, PhotoCamera, Refresh, Visibility, VisibilityOff } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
-import "../styles/MyAccount.css";
+
+const darkTheme = createTheme({
+    palette: {
+        mode: "dark",
+        primary: {
+            main: "#ffb800",
+            light: "#ffce00",
+            dark: "#ff9d00",
+            contrastText: "#111"
+        },
+        background: {
+            default: "#121212",
+            paper: "#1e1e1e"
+        },
+        text: {
+            primary: "#fff",
+            secondary: "rgba(255,255,255,0.7)"
+        }
+    },
+    typography: {
+        fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif'
+    },
+    components: {
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    background: "rgba(30,30,30,0.7)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: "0 15px 45px rgba(0,0,0,0.3)"
+                }
+            }
+        }
+    }
+});
 
 const MyAccount = () => {
     const { user, updateUser } = useAuth();
@@ -24,87 +79,61 @@ const MyAccount = () => {
     const [memberGender, setMemberGender] = useState("");
     const [memberDob, setMemberDob] = useState("");
 
-    // Calculate age from date of birth
     const calculateAge = (dob) => {
         if (!dob) return "";
-
         const today = new Date();
         const birthDate = new Date(dob);
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-
-        // Adjust age if birthday hasn't occurred yet this year
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
-
         return age;
     };
 
-    // Fetch member details and workout logs
+    const formatDate = (dateString) => {
+        if (!dateString) return "Not provided";
+        const options = { year: "numeric", month: "long", day: "numeric" };
+        return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                const token = localStorage.getItem("token");
+                const memberName = localStorage.getItem("member_name");
 
-                // Use the token to get the current user's info first
-                const token = localStorage.getItem('token');
-                const memberName = localStorage.getItem('member_name');
-
-                // First, let's find the current user's ID since it's not properly stored
-                try {
-                    // Get all members
-                    const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-
-                    if (membersResponse.ok) {
-                        const allMembers = await membersResponse.json();
-
-                        // Find this member by member_name
-                        const currentMember = allMembers.find(m =>
-                            m.member_name === memberName
-                        );
-
-                        if (currentMember) {
-                            // We found the member!
-                            console.log("Found member:", currentMember);
-
-                            // Set the member data
-                            setMember(currentMember);
-                            setMemberGender(currentMember.gender || "");
-                            setMemberDob(currentMember.date_of_birth || "");
-                            setDateOfBirth(currentMember.date_of_birth || "");
-
-                            // Store the actual userId for future use - using id instead of user_id
-                            localStorage.setItem('userId', currentMember.id);
-                        }
+                // Fetch member details
+                const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (membersResponse.ok) {
+                    const allMembers = await membersResponse.json();
+                    const currentMember = allMembers.find((m) => m.member_name === memberName);
+                    if (currentMember) {
+                        setMember(currentMember);
+                        setMemberGender(currentMember.gender || "");
+                        setMemberDob(currentMember.date_of_birth || "");
+                        setDateOfBirth(currentMember.date_of_birth || "");
+                        localStorage.setItem("userId", currentMember.id);
                     }
-                } catch (memberError) {
-                    console.error("Error finding member:", memberError);
                 }
 
                 // Fetch workout logs
                 if (memberName) {
-                    try {
-                        const logs = await api.getAllWorkoutLogs(memberName);
-                        const sortedLogs = Array.isArray(logs)
-                            ? logs.sort((a, b) => new Date(b.date) - new Date(a.date))
-                            : [];
-                        setWorkoutLogs(sortedLogs);
-                    } catch (logsError) {
-                        setWorkoutLogs([]);
-                    }
+                    const logs = await api.getAllWorkoutLogs(memberName);
+                    const sortedLogs = Array.isArray(logs)
+                        ? logs.sort((a, b) => new Date(b.date) - new Date(a.date))
+                        : [];
+                    setWorkoutLogs(sortedLogs);
                 }
-
                 setLoading(false);
             } catch (error) {
+                console.error("Error fetching data:", error);
                 setLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
@@ -129,40 +158,27 @@ const MyAccount = () => {
 
     const handleSaveChanges = async () => {
         try {
-            const userId = localStorage.getItem('userId');
-
-            if (!userId) {
-                throw new Error("User ID not found");
-            }
+            const userId = localStorage.getItem("userId");
+            if (!userId) throw new Error("User ID not found");
 
             const dataToUpdate = {};
-
-            if (dateOfBirth) {
-                dataToUpdate.date_of_birth = dateOfBirth;
-            }
-
-            if (newPassword) {
-                dataToUpdate.password = newPassword;
-            }
+            if (dateOfBirth) dataToUpdate.date_of_birth = dateOfBirth;
+            if (newPassword) dataToUpdate.password = newPassword;
 
             if (Object.keys(dataToUpdate).length > 0) {
                 await api.updateMember(userId, dataToUpdate);
 
-                // Refetch member data after update
-                const token = localStorage.getItem('token');
+                // Refresh member data
+                const token = localStorage.getItem("token");
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/members/${userId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { Authorization: `Bearer ${token}` }
                 });
-
                 if (response.ok) {
                     const updatedMember = await response.json();
                     setMember(updatedMember);
                     setMemberGender(updatedMember.gender || "");
                     setMemberDob(updatedMember.date_of_birth || "");
                 }
-
                 handleEditDialogClose();
                 alert("Profile updated successfully!");
             }
@@ -174,7 +190,6 @@ const MyAccount = () => {
     const handleProfilePicChange = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-
         try {
             const reader = new FileReader();
             reader.onloadend = async () => {
@@ -188,59 +203,30 @@ const MyAccount = () => {
         }
     };
 
-    // Format date for display
-    const formatDate = (dateString) => {
-        if (!dateString) return "Not provided";
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
-    };
-
     const handleRefresh = async () => {
         setLoading(true);
         try {
-            // Reuse the same data fetching logic from useEffect
-            const token = localStorage.getItem('token');
-            const memberName = localStorage.getItem('member_name');
-
-            try {
-                // Get all members
-                const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (membersResponse.ok) {
-                    const allMembers = await membersResponse.json();
-
-                    // Find this member by member_name
-                    const currentMember = allMembers.find(m =>
-                        m.member_name === memberName
-                    );
-
-                    if (currentMember) {
-                        // We found the member!
-                        setMember(currentMember);
-                        setMemberGender(currentMember.gender || "");
-                        setMemberDob(currentMember.date_of_birth || "");
-                        setDateOfBirth(currentMember.date_of_birth || "");
-                    }
+            const token = localStorage.getItem("token");
+            const memberName = localStorage.getItem("member_name");
+            const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/members`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (membersResponse.ok) {
+                const allMembers = await membersResponse.json();
+                const currentMember = allMembers.find((m) => m.member_name === memberName);
+                if (currentMember) {
+                    setMember(currentMember);
+                    setMemberGender(currentMember.gender || "");
+                    setMemberDob(currentMember.date_of_birth || "");
+                    setDateOfBirth(currentMember.date_of_birth || "");
                 }
-            } catch (memberError) {
-                console.error("Error finding member:", memberError);
             }
-
-            // Fetch workout logs
             if (memberName) {
-                try {
-                    const logs = await api.getAllWorkoutLogs(memberName);
-                    const sortedLogs = Array.isArray(logs)
-                        ? logs.sort((a, b) => new Date(b.date) - new Date(a.date))
-                        : [];
-                    setWorkoutLogs(sortedLogs);
-                } catch (logsError) {
-                    setWorkoutLogs([]);
-                }
+                const logs = await api.getAllWorkoutLogs(memberName);
+                const sortedLogs = Array.isArray(logs)
+                    ? logs.sort((a, b) => new Date(b.date) - new Date(a.date))
+                    : [];
+                setWorkoutLogs(sortedLogs);
             }
         } catch (error) {
             console.error("Error refreshing data:", error);
@@ -253,224 +239,348 @@ const MyAccount = () => {
         return (
             <>
                 <NavbarLoggedIn />
-                <Container className="my-account-container">
-                    <Typography variant="h4">Loading...</Typography>
+                <Container sx={{ pt: 10, pb: 2, textAlign: "center" }}>
+                    <Typography variant="h4" sx={{ color: "#ffb800" }}>
+                        Loading...
+                    </Typography>
                 </Container>
             </>
         );
     }
 
     return (
-        <>
+        <ThemeProvider theme={darkTheme}>
+            <CssBaseline />
             <NavbarLoggedIn />
-            <div className="my-account-page">
-                <Container className="my-account-container">
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                        <Typography variant="h3" className="members-title" style={{ flex: 1, textAlign: 'center' }}>
+            <Box
+                sx={{
+                    minHeight: "100vh",
+                    backgroundImage:
+                        "radial-gradient(circle at 10% 20%, rgba(25,25,25,0.8) 0%, rgba(18,18,18,1) 90%)",
+                    position: "relative",
+                    pb: 4,
+                    overflow: "hidden",
+                    "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: "20%",
+                        left: "10%",
+                        width: "50%",
+                        height: "60%",
+                        background: "radial-gradient(ellipse, rgba(255,184,0,0.03) 0%, transparent 70%)",
+                        zIndex: 0
+                    },
+                    "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        bottom: "10%",
+                        right: "5%",
+                        width: "30%",
+                        height: "40%",
+                        background: "radial-gradient(ellipse, rgba(74,20,140,0.03) 0%, transparent 70%)",
+                        zIndex: 0
+                    }
+                }}
+            >
+                <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, pt: 10, pb: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                        <Typography
+                            variant="h3"
+                            sx={{ flex: 1, textAlign: "center", color: "#ffb800", fontWeight: 700 }}
+                        >
                             My Account
                         </Typography>
-                        <IconButton
-                            onClick={handleRefresh}
-                            className="refresh-button"
-                            title="Refresh Data"
-                            sx={{ color: "#FFD700" }}
-                        >
+                        <IconButton onClick={handleRefresh} sx={{ color: "#FFD700" }} title="Refresh Data">
                             <Refresh />
                         </IconButton>
                     </Box>
-
-                    <div className="my-account-tabs-container">
+                    <Box sx={{ mb: 3 }}>
                         <Tabs
                             value={tabValue}
                             onChange={handleTabChange}
-                            className="my-account-tabs"
                             variant="fullWidth"
-                            TabIndicatorProps={{ style: { display: 'none' } }}
+                            textColor="inherit"
+                            indicatorColor="primary"
+                            sx={{
+                                "& .MuiTab-root": { fontWeight: 600 },
+                                "& .MuiTabs-indicator": { display: "none" }
+                            }}
                         >
-                            <Tab
-                                label="MY DETAILS"
-                                className={tabValue === 0 ? "tab-active" : ""}
-                            />
-                            <Tab
-                                label="MY WORKOUTS"
-                                className={tabValue === 1 ? "tab-active" : ""}
-                            />
+                            <Tab label="MY DETAILS" />
+                            <Tab label="MY WORKOUTS" />
                         </Tabs>
-                    </div>
-
+                    </Box>
                     {tabValue === 0 && (
-                        <div className="my-account-details-container">
-                            <Box className="my-account-profile-section">
-                                <Box className="my-account-avatar-container">
-                                    <div className="my-account-avatar-wrapper">
-                                        <Avatar
-                                            src={profilePic || user?.profilePic}
-                                            alt={member?.member_name || user?.username}
-                                            className="my-account-avatar"
-                                            variant="square"
-                                        />
-                                    </div>
+                        <Box
+                            sx={{
+                                p: 3,
+                                mt: 3,
+                                background: 'rgba(30,30,30,0.6)',
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.05)',
+                                borderRadius: '16px',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', gap: 4 }}>
+                                {/* Avatar & upload button */}
+                                <Box
+                                    sx={{
+                                        position: 'relative',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    <Avatar
+                                        src={profilePic || user?.profilePic}
+                                        alt={member?.member_name || user?.username}
+                                        variant="rounded"
+                                        sx={{
+                                            width: 200,
+                                            height: 200,
+                                            borderRadius: '16px',
+                                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                                            marginY: 2
+                                        }}
+                                    />
+
+                                    {/* Hidden file input */}
                                     <input
                                         accept="image/*"
-                                        className="my-account-file-input"
-                                        id="profile-pic-upload"
                                         type="file"
-                                        onChange={handleProfilePicChange}
+                                        id="profile-pic-upload"
                                         hidden
+                                        onChange={handleProfilePicChange}
                                     />
+
+                                    {/* Camera icon button */}
                                     <label htmlFor="profile-pic-upload">
                                         <IconButton
                                             component="span"
-                                            className="my-account-upload-button"
+                                            sx={{
+                                                mt: 1,
+                                                background: 'rgba(0,0,0,0.5)',
+                                                color: '#ffb800',
+                                                borderRadius: '8px',
+                                                p: 0.5,
+                                                '&:hover': {
+                                                    background: 'rgba(0,0,0,0.7)',
+                                                },
+                                            }}
                                         >
-                                            <PhotoCamera />
+                                            <PhotoCamera fontSize="medium" />
                                         </IconButton>
                                     </label>
                                 </Box>
 
-                                <Box className="my-account-info-container">
-                                    <Box className="my-account-info-row">
-                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                {/* Info fields */}
+                                <Box sx={{ flex: 1 }}>
+                                    {/* Name */}
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            py: 2,
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{ fontWeight: 600, minWidth: 110, color: 'rgba(255,255,255,0.8)' }}
+                                        >
                                             Name:
                                         </Typography>
-                                        <Typography variant="body1" className="my-account-info-value">
-                                            {member?.member_name || localStorage.getItem('member_name') || "Not available"}
+                                        <Typography variant="body1" sx={{ color: '#fff', ml: 2 }}>
+                                            {member?.member_name || 'Not available'}
                                         </Typography>
                                     </Box>
 
-                                    <Box className="my-account-info-row">
-                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                    {/* Username */}
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            py: 2,
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{ fontWeight: 600, minWidth: 110, color: 'rgba(255,255,255,0.8)' }}
+                                        >
                                             Username:
                                         </Typography>
-                                        <Typography variant="body1" className="my-account-info-value">
-                                            {member?.username || localStorage.getItem('username') || "Not available"}
+                                        <Typography variant="body1" sx={{ color: '#fff', ml: 2 }}>
+                                            {member?.username || 'Not available'}
                                         </Typography>
                                     </Box>
 
-                                    <Box className="my-account-info-row">
-                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                    {/* Gender */}
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            py: 2,
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{ fontWeight: 600, minWidth: 110, color: 'rgba(255,255,255,0.8)' }}
+                                        >
                                             Gender:
                                         </Typography>
-                                        <Typography variant="body1" className="my-account-info-value">
-                                            {memberGender || "Not available"}
+                                        <Typography variant="body1" sx={{ color: '#fff', ml: 2 }}>
+                                            {memberGender || 'Not available'}
                                         </Typography>
                                     </Box>
 
-                                    <Box className="my-account-info-row">
-                                        <Typography variant="subtitle1" className="my-account-info-label">
+                                    {/* DOB & Age */}
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            py: 2,
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{ fontWeight: 600, minWidth: 110, color: 'rgba(255,255,255,0.8)' }}
+                                        >
                                             Date of Birth:
                                         </Typography>
-                                        <Typography variant="body1" className="my-account-info-value">
-                                            {memberDob ? (
-                                                `${formatDate(memberDob)} (Age: ${calculateAge(memberDob)})`
-                                            ) : (
-                                                "Not provided"
-                                            )}
+                                        <Typography variant="body1" sx={{ color: '#fff', ml: 2 }}>
+                                            {memberDob
+                                                ? `${formatDate(memberDob)} (Age: ${calculateAge(memberDob)})`
+                                                : 'Not provided'}
                                         </Typography>
                                     </Box>
                                 </Box>
                             </Box>
 
-                            <Box display="flex" justifyContent="center" mb={2}>
+                            {/* Edit Profile Button */}
+                            <Box sx={{ textAlign: 'center', mt: 3 }}>
                                 <Button
                                     variant="contained"
                                     startIcon={<Edit />}
-                                    className="my-account-edit-button"
                                     onClick={handleEditDialogOpen}
+                                    sx={{
+                                        background: 'linear-gradient(45deg, #ffb800 30%, #ff9d00 90%)',
+                                        color: '#111',
+                                        borderRadius: '50px',
+                                        px: 3,
+                                        py: 1,
+                                        boxShadow: '0 4px 20px rgba(255,184,0,0.25)',
+                                        '&:hover': {
+                                            background: 'linear-gradient(45deg, #ffce00 30%, #ffb800 90%)',
+                                            boxShadow: '0 6px 25px rgba(255,184,0,0.35)',
+                                        },
+                                    }}
                                 >
                                     EDIT PROFILE
                                 </Button>
                             </Box>
-                        </div>
+                        </Box>
                     )}
-
                     {tabValue === 1 && (
-                        <div className="my-account-workouts-container">
-                            <TableContainer>
+                        <Box>
+                            <TableContainer component={Paper} sx={{ borderRadius: "16px" }}>
                                 <Table>
                                     <TableHead>
-                                        <TableRow className="table-header-row">
-                                            <TableCell>Date</TableCell>
-                                            <TableCell>Workout</TableCell>
-                                            <TableCell>Duration (mins)</TableCell>
+                                        <TableRow
+                                            sx={{
+                                                background: "rgba(0,0,0,0.15)",
+                                                borderBottom: "2px solid rgba(255,255,255,0.1)"
+                                            }}
+                                        >
+                                            <TableCell sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "rgba(255,255,255,0.85)" }}>
+                                                Date
+                                            </TableCell>
+                                            <TableCell sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "rgba(255,255,255,0.85)" }}>
+                                                Workout
+                                            </TableCell>
+                                            <TableCell sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "rgba(255,255,255,0.85)" }}>
+                                                Duration (mins)
+                                            </TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {workoutLogs && workoutLogs.length > 0 ? (
                                             workoutLogs.map((log, index) => (
-                                                <TableRow key={`${log.date}-${log.workout_name}-${index}`} className="table-body-row">
-                                                    <TableCell>{formatDate(log.date)}</TableCell>
+                                                <TableRow key={index}>
+                                                    <TableCell>{log.date}</TableCell>
                                                     <TableCell>{log.workout_name}</TableCell>
                                                     <TableCell>{log.duration}</TableCell>
                                                 </TableRow>
                                             ))
                                         ) : (
-                                            <TableRow className="table-body-row">
-                                                <TableCell colSpan={3} align="center">
-                                                    No workout logs found
+                                            <TableRow>
+                                                <TableCell colSpan={3} sx={{ textAlign: "center" }}>
+                                                    No workout logs found.
                                                 </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
                             </TableContainer>
-                        </div>
+                        </Box>
                     )}
-
-                    {/* Edit Profile Dialog */}
-                    <Dialog open={editDialogOpen} onClose={handleEditDialogClose} className="my-account-dialog">
-                        <DialogTitle>Edit Profile</DialogTitle>
-                        <DialogContent>
-                            <TextField
-                                margin="dense"
-                                label="New Password (leave blank to keep current)"
-                                type={showPassword ? "text" : "password"}
-                                fullWidth
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="dialog-input"
-                                InputProps={{
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <IconButton
-                                                onClick={handleTogglePasswordVisibility}
-                                                edge="end"
-                                            >
-                                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                                            </IconButton>
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-
-                            <TextField
-                                margin="dense"
-                                label="Date of Birth"
-                                type="date"
-                                fullWidth
-                                value={dateOfBirth}
-                                onChange={(e) => setDateOfBirth(e.target.value)}
-                                className="dialog-input"
-                                InputLabelProps={{
-                                    shrink: true,
-                                }}
-                                inputProps={{
-                                    max: new Date().toISOString().split('T')[0] // Prevent future dates
-                                }}
-                            />
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={handleEditDialogClose} className="cancel-button">
-                                Cancel
-                            </Button>
-                            <Button onClick={handleSaveChanges} className="save-button">
-                                Save Changes
-                            </Button>
-                        </DialogActions>
-                    </Dialog>
                 </Container>
-            </div>
-        </>
+                <Dialog open={editDialogOpen} onClose={handleEditDialogClose} fullWidth maxWidth="sm">
+                    <DialogTitle sx={{ background: "rgba(30,30,30,0.8)", color: "#ffb800" }}>
+                        Edit Profile
+                    </DialogTitle>
+                    <DialogContent sx={{ background: "rgba(30,30,30,0.8)" }}>
+                        <TextField
+                            fullWidth
+                            label="New Password"
+                            type={showPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            margin="normal"
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton onClick={handleTogglePasswordVisibility}>
+                                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }}
+                            sx={{ background: "rgba(0,0,0,0.1)", borderRadius: "4px" }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Date of Birth"
+                            type="date"
+                            value={dateOfBirth}
+                            onChange={(e) => setDateOfBirth(e.target.value)}
+                            margin="normal"
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ background: "rgba(0,0,0,0.1)", borderRadius: "4px" }}
+                        />
+                    </DialogContent>
+                    <DialogActions sx={{ background: "rgba(30,30,30,0.8)" }}>
+                        <Button onClick={handleEditDialogClose} sx={{ color: "#ff5252" }}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSaveChanges}
+                            sx={{
+                                background: "linear-gradient(45deg, #ffb800 30%, #ff9d00 90%)",
+                                color: "#111",
+                                borderRadius: "50px",
+                                boxShadow: "0 4px 20px rgba(255,184,0,0.25)"
+                            }}
+                        >
+                            Save Changes
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            </Box>
+        </ThemeProvider>
     );
 };
 

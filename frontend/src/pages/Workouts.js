@@ -16,13 +16,55 @@ import {
     DialogContent,
     DialogTitle,
     TextField,
-    Box
+    Box,
+    CssBaseline,
+    ThemeProvider,
+    createTheme
 } from "@mui/material";
 import { Refresh, Add, Edit, Delete } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
-import "../styles/Workouts.css"; 
+
+const darkTheme = createTheme({
+    palette: {
+        mode: 'dark',
+        primary: {
+            main: '#ffb800',
+            light: '#ffce00',
+            dark: '#ff9d00',
+            contrastText: '#111111'
+        },
+        background: {
+            default: '#121212',
+            paper: '#1e1e1e'
+        }
+    },
+    typography: {
+        fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif'
+    },
+    components: {
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    background: 'rgba(30,30,30,0.6)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+                }
+            }
+        },
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    background: 'rgba(30,30,30,0.8)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }
+            }
+        }
+    }
+});
 
 const Workouts = () => {
     const { user } = useAuth();
@@ -84,42 +126,109 @@ const Workouts = () => {
     };
 
     return (
-        <>
+        <ThemeProvider theme={darkTheme}>
+            <CssBaseline />
             <NavbarLoggedIn />
-            <Container className="workouts-container">
-                <Typography variant="h4" className="workouts-title">Workouts List</Typography>
-
-                <Box className="workouts-actions">
+            <Container
+                maxWidth="lg"
+                sx={{ position: 'relative', zIndex: 1, pt: 10, pb: 2 }}
+            >
+                <Typography
+                    variant="h4"
+                    sx={{ mb: 3, textAlign: 'center', color: '#ffb800', fontWeight: 700 }}
+                >
+                    Workouts List
+                </Typography>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: 2
+                    }}
+                >
                     {isAdmin && (
-                        <Button className="workouts-add-button" onClick={() => handleOpen()}>
-                            <Add /> Add Workout
+                        <Button
+                            onClick={() => handleOpen()}
+                            sx={{
+                                background: 'linear-gradient(45deg, #ffb800 30%, #ff9d00 90%)',
+                                color: '#111',
+                                borderRadius: '50px',
+                                px: 3,
+                                py: 1,
+                                boxShadow: '0 4px 20px rgba(255,184,0,0.25)'
+                            }}
+                        >
+                            <Add sx={{ mr: 1 }} /> Add Workout
                         </Button>
                     )}
-                    <IconButton className="workouts-refresh-button" onClick={fetchWorkouts}>
+                    <IconButton onClick={fetchWorkouts} sx={{ color: '#ffb800' }}>
                         <Refresh />
                     </IconButton>
                 </Box>
-
-                <TableContainer component={Paper} className="workouts-table-container">
+                <TableContainer
+                    component={Paper}
+                    sx={{ mb: 3, p: 2, borderRadius: '16px' }}
+                >
                     <Table>
                         <TableHead>
-                            <TableRow className="table-header-row">
-                                <TableCell>#</TableCell>
-                                <TableCell>Workout Name</TableCell>
-                                {isAdmin && <TableCell>Actions</TableCell>}
+                            <TableRow
+                                sx={{
+                                    background: 'rgba(0,0,0,0.15)',
+                                    borderBottom: '2px solid rgba(255,255,255,0.1)'
+                                }}
+                            >
+                                <TableCell
+                                    sx={{
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        color: 'rgba(255,255,255,0.85)'
+                                    }}
+                                >
+                                    #
+                                </TableCell>
+                                <TableCell
+                                    sx={{
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        color: 'rgba(255,255,255,0.85)'
+                                    }}
+                                >
+                                    Workout Name
+                                </TableCell>
+                                {isAdmin && (
+                                    <TableCell
+                                        sx={{
+                                            fontWeight: 600,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px',
+                                            color: 'rgba(255,255,255,0.85)'
+                                        }}
+                                    >
+                                        Actions
+                                    </TableCell>
+                                )}
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {workouts.map((workout, index) => (
-                                <TableRow key={workout.workout_name} className="table-body-row">
+                                <TableRow key={workout.workout_name}>
                                     <TableCell>{index + 1}</TableCell>
                                     <TableCell>{workout.workout_name}</TableCell>
                                     {isAdmin && (
                                         <TableCell>
-                                            <IconButton className="edit-button" onClick={() => handleOpen(workout)}>
+                                            <IconButton
+                                                onClick={() => handleOpen(workout)}
+                                                sx={{ color: '#ffb800' }}
+                                            >
                                                 <Edit />
                                             </IconButton>
-                                            <IconButton className="delete-button" onClick={() => handleDelete(workout.workout_name)}>
+                                            <IconButton
+                                                onClick={() => handleDelete(workout.workout_name)}
+                                                sx={{ color: '#ff5252' }}
+                                            >
                                                 <Delete />
                                             </IconButton>
                                         </TableCell>
@@ -129,21 +238,44 @@ const Workouts = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
-
                 {isAdmin && (
-                    <Dialog open={open} onClose={handleClose} className="workouts-dialog">
-                        <DialogTitle className="dialog-title">{editData ? "Edit Workout" : "Add New Workout"}</DialogTitle>
-                        <DialogContent className="dialog-content">
-                            <TextField fullWidth label="Workout Name" disabled={!!editData} value={newWorkout.workout_name} onChange={(e) => setNewWorkout({ ...newWorkout, workout_name: e.target.value })} className="dialog-input" />
+                    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+                        <DialogTitle sx={{ background: 'rgba(30,30,30,0.8)', color: '#ffb800' }}>
+                            {editData ? "Edit Workout" : "Add New Workout"}
+                        </DialogTitle>
+                        <DialogContent sx={{ background: 'rgba(30,30,30,0.8)' }}>
+                            <TextField
+                                fullWidth
+                                label="Workout Name"
+                                disabled={!!editData}
+                                value={newWorkout.workout_name}
+                                onChange={(e) =>
+                                    setNewWorkout({ ...newWorkout, workout_name: e.target.value })
+                                }
+                                sx={{ background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}
+                                margin="normal"
+                            />
                         </DialogContent>
-                        <DialogActions>
-                            <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
-                            <Button className="save-button" onClick={handleSave}>{editData ? "Save Changes" : "Add"}</Button>
+                        <DialogActions sx={{ background: 'rgba(30,30,30,0.8)' }}>
+                            <Button onClick={handleClose} sx={{ color: '#ff5252' }}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSave}
+                                sx={{
+                                    background: 'linear-gradient(45deg, #ffb800 30%, #ff9d00 90%)',
+                                    color: '#111',
+                                    borderRadius: '50px',
+                                    boxShadow: '0 4px 20px rgba(255,184,0,0.25)'
+                                }}
+                            >
+                                {editData ? "Save Changes" : "Add"}
+                            </Button>
                         </DialogActions>
                     </Dialog>
                 )}
             </Container>
-        </>
+        </ThemeProvider>
     );
 };
 

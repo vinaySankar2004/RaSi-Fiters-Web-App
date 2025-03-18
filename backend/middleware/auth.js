@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-// const { Member } = require("../models");
 
 // Middleware to authenticate token
 const authenticateToken = (req, res, next) => {

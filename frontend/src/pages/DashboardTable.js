@@ -20,13 +20,55 @@ import {
     Select,
     MenuItem,
     Box,
-    Tooltip
+    Tooltip,
+    CssBaseline,
+    ThemeProvider,
+    createTheme
 } from "@mui/material";
 import { Delete, Edit, Add, Refresh, Visibility } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
-import "../styles/DashboardTable.css";
+
+const darkTheme = createTheme({
+    palette: {
+        mode: 'dark',
+        primary: {
+            main: '#ffb800',
+            light: '#ffce00',
+            dark: '#ff9d00',
+            contrastText: '#111111'
+        },
+        background: {
+            default: '#121212',
+            paper: '#1e1e1e'
+        }
+    },
+    typography: {
+        fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif'
+    },
+    components: {
+        MuiPaper: {
+            styleOverrides: {
+                root: {
+                    background: 'rgba(30,30,30,0.6)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                }
+            }
+        },
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    background: 'rgba(30,30,30,0.8)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }
+            }
+        }
+    }
+});
 
 const DashboardTable = () => {
     const { date } = useParams();
@@ -44,13 +86,10 @@ const DashboardTable = () => {
     const fetchLogs = useCallback(async () => {
         try {
             const data = await api.getWorkoutLogs(date);
-            console.log("Logs data received:", data);
-
             // Sort logs alphabetically by member_name
             const sortedLogs = Array.isArray(data)
                 ? [...data].sort((a, b) => a.member_name.localeCompare(b.member_name))
                 : [];
-
             setLogs(sortedLogs);
         } catch (error) {
             console.error("Error fetching logs:", error);
@@ -81,28 +120,17 @@ const DashboardTable = () => {
     const handleDelete = async (log) => {
         if (window.confirm("Are you sure you want to delete this log?")) {
             try {
-                console.log("Deleting log:", log); // Log to see what data we have
-
-                // Create the deleteData object with all available identifiers
                 const deleteData = {
                     workout_name: log.workout_name,
                     date: log.date
                 };
-
-                // Include member_id if it exists in the log object (should be there from our backend response)
                 if (log.member_id) {
                     deleteData.member_id = log.member_id;
-                    console.log("Using member_id for deletion:", log.member_id);
-                }
-                // Fallback to member_name if no member_id
-                else if (log.member_name) {
+                } else if (log.member_name) {
                     deleteData.member_name = log.member_name;
-                    console.log("Using member_name for deletion:", log.member_name);
                 }
-
                 await api.deleteWorkoutLog(deleteData);
-                console.log("Log deleted successfully");
-                fetchLogs(); // Refresh the logs list
+                fetchLogs();
             } catch (error) {
                 console.error("Error deleting log:", error);
             }
@@ -119,59 +147,71 @@ const DashboardTable = () => {
         setEditData(null);
     };
 
-    // Check if user can edit this log based on the canEdit flag or role
+    // Check if the user can edit this log
     const canEditLog = (log) => {
-        // For admin users
-        if (isAdmin) {
-            return true;
-        }
-
-        // For regular members - check both member_name and member_id
-        if (log.member_name === memberName) {
-            return true;
-        }
-
-        if (log.member_id && log.member_id === userId) {
-            return true;
-        }
-
-        // If the backend provided a canEdit flag, use it
-        if (log.canEdit !== undefined) {
-            return log.canEdit;
-        }
-
-        // Default fallback
+        if (isAdmin) return true;
+        if (log.member_name === memberName) return true;
+        if (log.member_id && log.member_id === userId) return true;
+        if (log.canEdit !== undefined) return log.canEdit;
         return false;
     };
 
     return (
-        <>
+        <ThemeProvider theme={darkTheme}>
+            <CssBaseline />
             <NavbarLoggedIn />
-            <Container className="dashboard-container">
-                <Typography variant="h4" className="dashboard-title">Workout Log for {date}</Typography>
-
-                <Box className="dashboard-actions">
-                    <Box className="dashboard-add">
-                        <Button className="dashboard-add-button" onClick={() => handleOpen()}>
-                            <Add /> Add Log
-                        </Button>
-                    </Box>
-                    <Box className="dashboard-refresh">
-                        <IconButton className="dashboard-refresh-button" onClick={fetchLogs}>
-                            <Refresh />
-                        </IconButton>
-                    </Box>
+            <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, pt: 10, pb: 2 }}>
+                <Typography
+                    variant="h4"
+                    sx={{ mb: 3, textAlign: 'center', color: '#ffb800', fontWeight: 700 }}
+                >
+                    Workout Log for {date}
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Button
+                        onClick={() => handleOpen()}
+                        sx={{
+                            background: 'linear-gradient(45deg, #ffb800 30%, #ff9d00 90%)',
+                            color: '#111',
+                            borderRadius: '50px',
+                            px: 3,
+                            py: 1,
+                            boxShadow: '0 4px 20px rgba(255,184,0,0.25)'
+                        }}
+                    >
+                        <Add sx={{ mr: 1 }} /> Add Log
+                    </Button>
+                    <IconButton onClick={fetchLogs} sx={{ color: '#ffb800' }}>
+                        <Refresh />
+                    </IconButton>
                 </Box>
-
-                <TableContainer component={Paper} className="dashboard-table-container">
+                <TableContainer
+                    component={Paper}
+                    sx={{ mb: 3, p: 2, borderRadius: '16px' }}
+                >
                     <Table>
                         <TableHead>
-                            <TableRow className="table-header-row">
-                                <TableCell>#</TableCell>
-                                <TableCell>Member</TableCell>
-                                <TableCell>Workout</TableCell>
-                                <TableCell>Duration (mins)</TableCell>
-                                <TableCell>Actions</TableCell>
+                            <TableRow
+                                sx={{
+                                    background: 'rgba(0,0,0,0.15)',
+                                    borderBottom: '2px solid rgba(255,255,255,0.1)'
+                                }}
+                            >
+                                <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>
+                                    #
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>
+                                    Member
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>
+                                    Workout
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>
+                                    Duration (mins)
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>
+                                    Actions
+                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -179,7 +219,7 @@ const DashboardTable = () => {
                                 logs.map((log, index) => (
                                     <TableRow
                                         key={`${log.member_name}-${log.workout_name}-${log.date}`}
-                                        className={`table-body-row ${log.member_name === memberName ? 'own-log-row' : ''}`}
+                                        sx={log.member_name === memberName ? { background: 'rgba(255,184,0,0.1)' } : {}}
                                     >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>{log.member_name}</TableCell>
@@ -188,16 +228,16 @@ const DashboardTable = () => {
                                         <TableCell>
                                             {canEditLog(log) ? (
                                                 <>
-                                                    <IconButton className="edit-button" onClick={() => handleOpen(log)}>
+                                                    <IconButton onClick={() => handleOpen(log)} sx={{ color: '#ffb800' }}>
                                                         <Edit />
                                                     </IconButton>
-                                                    <IconButton className="delete-button" onClick={() => handleDelete(log)}>
+                                                    <IconButton onClick={() => handleDelete(log)} sx={{ color: '#ff5252' }}>
                                                         <Delete />
                                                     </IconButton>
                                                 </>
                                             ) : (
                                                 <Tooltip title="View only">
-                                                    <IconButton className="view-button">
+                                                    <IconButton sx={{ color: '#ffb800' }}>
                                                         <Visibility />
                                                     </IconButton>
                                                 </Tooltip>
@@ -213,7 +253,6 @@ const DashboardTable = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
-
                 <LogFormModal
                     open={open}
                     handleClose={handleClose}
@@ -226,11 +265,21 @@ const DashboardTable = () => {
                     memberName={memberName}
                 />
             </Container>
-        </>
+        </ThemeProvider>
     );
 };
 
-const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, workouts, isAdmin, memberName }) => {
+const LogFormModal = ({
+                          open,
+                          handleClose,
+                          editData,
+                          date,
+                          fetchLogs,
+                          members,
+                          workouts,
+                          isAdmin,
+                          memberName
+                      }) => {
     const [member, setMember] = useState("");
     const [workout, setWorkout] = useState("");
     const [duration, setDuration] = useState("");
@@ -241,7 +290,6 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
             setWorkout(editData.workout_name);
             setDuration(editData.duration);
         } else {
-            // If not admin, pre-select the member's name and disable the field
             setMember(isAdmin ? "" : memberName);
             setWorkout("");
             setDuration("");
@@ -250,44 +298,28 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
 
     const handleSubmit = async () => {
         try {
-            // Validate inputs
             if (!member || !workout || !duration) {
                 alert("All fields are required");
                 return;
             }
-
             if (isNaN(duration) || parseInt(duration) <= 0) {
                 alert("Duration must be a positive number");
                 return;
             }
-
-            // Try to get member_id from members list
             let member_id = null;
-            const memberObj = members.find(m => m.member_name === member);
+            const memberObj = members.find((m) => m.member_name === member);
             if (memberObj) {
                 member_id = memberObj.id;
             }
-
-            console.log("Submitting log:", {
-                member_name: member,
-                member_id,
-                workout_name: workout,
-                date: editData ? editData.date : date,
-                duration: parseInt(duration, 10)
-            });
-
             const logData = {
                 member_name: member,
                 workout_name: workout,
                 date: editData ? editData.date : date,
                 duration: parseInt(duration, 10)
             };
-
-            // Include member_id if available
             if (member_id) {
                 logData.member_id = member_id;
             }
-
             if (editData) {
                 await api.updateWorkoutLog(logData);
             } else {
@@ -302,30 +334,35 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
     };
 
     return (
-        <Dialog open={open} onClose={handleClose} className="dashboard-dialog">
-            <DialogTitle className="dialog-title">{editData ? "Edit Log" : "Add Log"}</DialogTitle>
-            <DialogContent className="dialog-content">
+        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+            <DialogTitle sx={{ background: 'rgba(30,30,30,0.8)', color: '#ffb800' }}>
+                {editData ? "Edit Log" : "Add Log"}
+            </DialogTitle>
+            <DialogContent sx={{ background: 'rgba(30,30,30,0.8)' }}>
                 <Select
                     fullWidth
                     value={member}
                     onChange={(e) => setMember(e.target.value)}
-                    className="dialog-input"
+                    sx={{ mt: 2, background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}
                     disabled={!isAdmin || !!editData}
                 >
                     {members.map((m) => (
-                        <MenuItem key={m.member_name} value={m.member_name}>{m.member_name}</MenuItem>
+                        <MenuItem key={m.member_name} value={m.member_name}>
+                            {m.member_name}
+                        </MenuItem>
                     ))}
                 </Select>
                 <Select
                     fullWidth
                     value={workout}
                     onChange={(e) => setWorkout(e.target.value)}
-                    className="dialog-input"
-                    sx={{ mt: 2 }}
+                    sx={{ mt: 2, background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}
                     disabled={!!editData}
                 >
                     {workouts.map((w) => (
-                        <MenuItem key={w.workout_name} value={w.workout_name}>{w.workout_name}</MenuItem>
+                        <MenuItem key={w.workout_name} value={w.workout_name}>
+                            {w.workout_name}
+                        </MenuItem>
                     ))}
                 </Select>
                 <TextField
@@ -333,14 +370,38 @@ const LogFormModal = ({ open, handleClose, editData, date, fetchLogs, members, w
                     label="Duration (mins)"
                     type="number"
                     value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="dialog-input"
-                    sx={{ mt: 2 }}
+                    onChange={(e) => {
+                        // Convert to number
+                        const val = parseInt(e.target.value, 10);
+                        // If user typed something below 1, clamp it to 1
+                        if (val < 1 || isNaN(val)) {
+                            setDuration("1");
+                        } else {
+                            setDuration(e.target.value);
+                        }
+                    }}
+                    // Add HTML attribute to block going below 1 with the up/down arrows
+                    inputProps={{
+                        min: 1,
+                    }}
+                    sx={{ mt: 2, background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}
                 />
             </DialogContent>
-            <DialogActions>
-                <Button className="cancel-button" onClick={handleClose}>Cancel</Button>
-                <Button className="save-button" onClick={handleSubmit}>{editData ? "Modify" : "Add"}</Button>
+            <DialogActions sx={{ background: 'rgba(30,30,30,0.8)' }}>
+                <Button onClick={handleClose} sx={{ color: '#ff5252' }}>
+                    Cancel
+                </Button>
+                <Button
+                    onClick={handleSubmit}
+                    sx={{
+                        background: 'linear-gradient(45deg, #ffb800 30%, #ff9d00 90%)',
+                        color: '#111',
+                        borderRadius: '50px',
+                        boxShadow: '0 4px 20px rgba(255,184,0,0.25)'
+                    }}
+                >
+                    {editData ? "Modify" : "Add"}
+                </Button>
             </DialogActions>
         </Dialog>
     );
