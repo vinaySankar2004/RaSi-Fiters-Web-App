@@ -7,6 +7,7 @@ import DashboardTable from "./pages/DashboardTable";
 import Members from "./pages/Members";
 import Workouts from "./pages/Workouts";
 import MyAccount from "./pages/MyAccount";
+import Analytics from "./pages/Analytics"; // Import the Analytics component
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const ProtectedRoute = ({ children }) => {
@@ -36,6 +37,7 @@ function AppRoutes() {
             <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
             <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
             <Route path="/my-account" element={<ProtectedRoute><MyAccount /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} /> {/* Add Analytics route */}
             {/* Catch-all route for undefined routes */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
