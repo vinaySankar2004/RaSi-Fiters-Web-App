@@ -133,8 +133,14 @@ const Login = () => {
                 });
 
                 setTimeout(() => {
-                    // Redirect user after login
-                    navigate("/dashboard", { replace: true });
+                    // Redirect user based on role
+                    if (data.role === 'logger') {
+                        // Logger goes to dashboard
+                        navigate("/dashboard", { replace: true });
+                    } else {
+                        // Admin and Member go to analytics
+                        navigate("/analytics", { replace: true });
+                    }
                 }, 100);
             } else {
                 setError(data.error || "Invalid username or password.");

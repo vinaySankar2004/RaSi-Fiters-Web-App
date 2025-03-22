@@ -590,41 +590,90 @@ const MemberDashboard = ({ workoutLogs, members, workouts, timeRange, selectedMe
                                             border: '1px solid rgba(255,255,255,0.1)',
                                             borderRadius: '8px'
                                         }}
+                                        formatter={(value, name) => {
+                                            if (timeRange === 'year') {
+                                                return [`${value} days`, 'Workout Days'];
+                                            }
+                                            return [`${value} mins`, 'Duration'];
+                                        }}
                                     />
-                                    <Line type="monotone" dataKey="duration" stroke="#ffb800" name="Duration (mins)" />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="duration"
+                                        stroke="#ffb800"
+                                        name={timeRange === 'year' ? 'Workout Days' : 'Duration (mins)'}
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         }
-                        info="Workout duration history over time"
+                        info={timeRange === 'year' ? "Number of days with workouts each month" : "Workout duration history over time"}
                     />
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                    <ChartCard
-                        title="Workout Type Distribution"
-                        chart={
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={memberWorkoutTypes}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="count"
-                                        animationDuration={1000}
-                                    >
-                                        {memberWorkoutTypes.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip content={renderCustomPieTooltip} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        }
-                        info="Distribution of workout types"
-                    />
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            height: '100%',
+                            background: 'rgba(30,30,30,0.6)',
+                            backdropFilter: 'blur(10px)',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                Workout Type Distribution
+                            </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', p: 2 }}>
+                            <Box sx={{ width: '50%' }}>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={memberWorkoutTypes}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="count"
+                                            animationDuration={1000}
+                                        >
+                                            {memberWorkoutTypes.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip content={renderCustomPieTooltip} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </Box>
+                            <Box sx={{ width: '50%' }}>
+                                {memberWorkoutTypes.slice(0, 6).map((workout, index) => (
+                                    <Box key={index} sx={{ mb: 2, pb: 2, borderBottom: index < 5 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                            <Box
+                                                sx={{
+                                                    width: 12,
+                                                    height: 12,
+                                                    borderRadius: '3px',
+                                                    bgcolor: chartColors[index % chartColors.length],
+                                                    mr: 1.5
+                                                }}
+                                            />
+                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                {workout.name}
+                                            </Typography>
+                                        </Box>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', ml: 3.5 }}>
+                                            {workout.count} workouts • {workout.avgDuration} mins avg
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                    </Paper>
                 </Grid>
 
                 <Grid item xs={12} md={6}>
@@ -959,8 +1008,38 @@ const processMemberWorkoutHistory = (logs, memberName, timeRange) => {
     if (!logs || !logs.length || !memberName) return [];
 
     const memberLogs = logs.filter(log => log.member_name === memberName);
-    // Use your existing UTC helper (imported from analyticsUtils), or replicate the logic:
     const now = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()));
+
+    if (timeRange === 'year') {
+        const currentYear = now.getUTCFullYear();
+        const monthlyData = [];
+
+        // For each month (0-11)
+        for (let month = 0; month < 12; month++) {
+            // Get the month name and year for label
+            const monthDate = new Date(Date.UTC(currentYear, month, 1));
+            const monthName = monthDate.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+
+            // Filter logs for this month
+            const monthLogs = memberLogs.filter(log => {
+                const logDate = new Date(log.date);
+                return logDate.getUTCMonth() === month && logDate.getUTCFullYear() === currentYear;
+            });
+
+            // Count unique days worked out
+            const uniqueDays = new Set(monthLogs.map(log => log.date)).size;
+
+            monthlyData.push({
+                date: monthDate.toISOString().split('T')[0],
+                label: monthName, // Just show month name on x-axis
+                duration: uniqueDays, // Use duration field to store unique days count
+                count: monthLogs.length
+            });
+        }
+
+        return monthlyData;
+    }
+
     const timeRangeMap = {
         'month': 30,
         'quarter': 90,

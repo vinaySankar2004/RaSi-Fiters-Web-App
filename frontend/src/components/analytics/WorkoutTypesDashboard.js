@@ -41,12 +41,9 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
     PieChart,
     Pie,
     Cell,
-    LineChart,
-    Line,
     ScatterChart,
     Scatter,
     ZAxis
@@ -63,8 +60,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
     const workoutTypeData = processWorkoutTypeData(workoutLogs, members, selectedMember, isAdmin);
     const workoutDurationData = processWorkoutDurationData(workoutLogs, selectedMember, isAdmin);
     const workoutParticipationData = processWorkoutParticipationData(workoutLogs, members, selectedMember, isAdmin);
-    const workoutTrendsData = processWorkoutTrendsData(workoutLogs, workouts, timeRange, selectedMember, isAdmin);
-    const workoutTypeMatrix = calculateWorkoutTypeMatrix(workoutLogs, selectedMember, isAdmin);
+    const workoutTypeMatrix = calculateWorkoutTypeMatrix(workoutLogs, members, selectedMember, isAdmin);
 
     // Get top workout types for summary stats
     const topWorkouts = [...workoutTypeData].sort((a, b) => b.count - a.count).slice(0, 4);
@@ -156,7 +152,6 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                     <Tab label="Popularity" icon={<BarChart />} iconPosition="start" />
                     <Tab label="Duration Analysis" icon={<Timer />} iconPosition="start" />
                     <Tab label="Participation" icon={<Group />} iconPosition="start" />
-                    <Tab label="Trends" icon={<TrendingUp />} iconPosition="start" />
                     <Tab label="Comparison Matrix" icon={<CompareArrows />} iconPosition="start" />
                 </Tabs>
             </Box>
@@ -167,12 +162,13 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                     <Grid item xs={12} md={7}>
                         <ChartCard
                             title="Workout Type Popularity"
+                            minHeight={450}
                             chart={
                                 <ResponsiveContainer width="100%" height={400}>
                                     <RechartsBarChart
                                         data={workoutTypeData}
                                         layout="vertical"
-                                        margin={{ top: 20, right: 30, left: 150, bottom: 5 }}
+                                        margin={{ top: 20, right: 40, left: 10, bottom: 5 }}
                                     >
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                                         <XAxis type="number" stroke="rgba(255,255,255,0.7)" />
@@ -189,7 +185,6 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                                 borderRadius: '8px'
                                             }}
                                         />
-                                        <Legend />
                                         <Bar dataKey="count" name="Total Workouts" fill="#ffb800">
                                             {workoutTypeData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
@@ -203,39 +198,71 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                     </Grid>
 
                     <Grid item xs={12} md={5}>
-                        <ChartCard
-                            title="Workout Distribution"
-                            chart={
-                                <ResponsiveContainer width="100%" height={400}>
-                                    <PieChart>
-                                        <Pie
-                                            data={workoutTypeData}
-                                            cx="50%"
-                                            cy="50%"
-                                            labelLine={false}
-                                            outerRadius={120}
-                                            fill="#8884d8"
-                                            dataKey="count"
-                                            nameKey="name"
-                                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                                        >
-                                            {workoutTypeData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(30,30,30,0.8)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '8px'
-                                            }}
-                                            formatter={(value, name) => [`${value} workouts`, name]}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            }
-                            info="Percentage distribution of workout types"
-                        />
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                height: '100%',
+                                background: 'rgba(30,30,30,0.6)',
+                                backdropFilter: 'blur(10px)',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(255,255,255,0.05)',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                        Workout Distribution
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: 'flex', p: 2 }}>
+                                <Box sx={{ width: '60%' }}>
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <PieChart>
+                                            <Pie
+                                                data={workoutTypeData}
+                                                cx="50%"
+                                                cy="50%"
+                                                labelLine={false}
+                                                outerRadius={120}
+                                                fill="#8884d8"
+                                                dataKey="count"
+                                                nameKey="name"
+                                            >
+                                                {workoutTypeData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </Box>
+                                <Box sx={{ width: '40%', pl: 2, overflowY: 'auto', maxHeight: 400 }}>
+                                    {workoutTypeData.slice(0, 10).map((workout, index) => (
+                                        <Box key={index} sx={{ mb: 2, pb: 2, borderBottom: index < workoutTypeData.slice(0, 10).length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                                <Box
+                                                    sx={{
+                                                        width: 12,
+                                                        height: 12,
+                                                        borderRadius: '3px',
+                                                        bgcolor: chartColors[index % chartColors.length],
+                                                        mr: 1.5
+                                                    }}
+                                                />
+                                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                    {workout.name}
+                                                </Typography>
+                                            </Box>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', ml: 3.5 }}>
+                                                {workout.count} workouts ({(workout.count / workoutTypeData.reduce((sum, item) => sum + item.count, 0) * 100).toFixed(0)}%)
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Box>
+                        </Paper>
                     </Grid>
 
                     <Grid item xs={12}>
@@ -338,6 +365,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                     <Grid item xs={12} md={6}>
                         <ChartCard
                             title="Workout Duration by Type"
+                            minHeight={450}
                             chart={
                                 <ResponsiveContainer width="100%" height={400}>
                                     <RechartsBarChart
@@ -360,8 +388,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                                 borderRadius: '8px'
                                             }}
                                         />
-                                        <Legend />
-                                        <Bar dataKey="avgDuration" name="Average Duration (mins)" fill="#4a148c">
+                                        <Bar dataKey="avgDuration" name="Average Duration (mins)" fill="#ffffff">
                                             {workoutDurationData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={chartColors[(index + 2) % chartColors.length]} />
                                             ))}
@@ -378,7 +405,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                             title="Duration vs. Frequency"
                             chart={
                                 <ResponsiveContainer width="100%" height={400}>
-                                    <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+                                    <ScatterChart margin={{ top: 20, right: 30, left: 10, bottom: 30 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                                         <XAxis
                                             type="number"
@@ -388,7 +415,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                             label={{
                                                 value: 'Workout Count',
                                                 position: 'insideBottom',
-                                                offset: -5,
+                                                offset: -15,
                                                 fill: 'rgba(255,255,255,0.7)'
                                             }}
                                         />
@@ -397,28 +424,9 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                             dataKey="avgDuration"
                                             name="Avg. Duration"
                                             stroke="rgba(255,255,255,0.7)"
-                                            label={{
-                                                value: 'Avg. Duration (mins)',
-                                                angle: -90,
-                                                position: 'insideLeft',
-                                                fill: 'rgba(255,255,255,0.7)'
-                                            }}
                                         />
                                         <ZAxis dataKey="totalDuration" range={[60, 600]} name="Total Duration" />
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(30,30,30,0.8)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '8px'
-                                            }}
-                                            formatter={(value, name, props) => {
-                                                const workout = props.payload;
-                                                return [
-                                                    `${workout.name}\nCount: ${workout.count}\nAvg Duration: ${workout.avgDuration} mins\nTotal Duration: ${workout.totalDuration} mins`,
-                                                    ''
-                                                ];
-                                            }}
-                                        />
+                                        <Tooltip content={<CustomScatterTooltip />} />
                                         <Scatter
                                             name="Workouts"
                                             data={workoutDurationData}
@@ -602,16 +610,17 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={7}>
                         <ChartCard
+                            minHeight={500}
                             title="Member Participation by Workout Type"
                             chart={
-                                <ResponsiveContainer width="100%" height={400}>
+                                <ResponsiveContainer width="100%" height={450}>
                                     <RechartsBarChart
                                         data={workoutParticipationData}
                                         layout="vertical"
-                                        margin={{ top: 20, right: 30, left: 150, bottom: 5 }}
+                                        margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
                                     >
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis type="number" stroke="rgba(255,255,255,0.7)" domain={[0, 100]} label={{ value: 'Participation (%)', position: 'insideBottom', offset: -5 }} />
+                                        <XAxis type="number" stroke="rgba(255,255,255,0.7)" domain={[0, 100]} />
                                         <YAxis
                                             dataKey="name"
                                             type="category"
@@ -624,9 +633,9 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                                 border: '1px solid rgba(255,255,255,0.1)',
                                                 borderRadius: '8px'
                                             }}
-                                            formatter={(value) => [`${value}%`, 'Participation Rate']}
+                                            formatter={(value) => [`${value}%`, 'Participation']}
                                         />
-                                        <Bar dataKey="participationRate" name="Participation Rate" fill="#4caf50">
+                                        <Bar dataKey="participationRate" name="Participation" fill="#4caf50">
                                             {workoutParticipationData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={chartColors[(index + 3) % chartColors.length]} />
                                             ))}
@@ -783,9 +792,10 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                         </Paper>
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid item xs={12} height={500}>
                         <ChartCard
                             title="Workout Participation Matrix"
+                            minHeight={450}
                             chart={
                                 <ResponsiveContainer width="100%" height={400}>
                                     <RechartsBarChart
@@ -813,13 +823,12 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                                 borderRadius: '8px'
                                             }}
                                         />
-                                        <Legend />
-                                        <Bar yAxisId="left" dataKey="participationCount" name="Member Count" fill={chartColors[3]}>
+                                        <Bar yAxisId="left" dataKey="participationCount" name="Member Count" fill={'#ffffff'}>
                                             {workoutParticipationData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={chartColors[(index + 3) % chartColors.length]} />
                                             ))}
                                         </Bar>
-                                        <Bar yAxisId="right" dataKey="avgFrequencyPerParticipant" name="Avg. Workouts per Participant" fill={chartColors[1]}>
+                                        <Bar yAxisId="right" dataKey="avgFrequencyPerParticipant" name="Avg. Workouts per Participant" fill={'#ffffff'}>
                                             {workoutParticipationData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={chartColors[(index + 5) % chartColors.length]} />
                                             ))}
@@ -833,233 +842,8 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                 </Grid>
             )}
 
-            {/* Trends Analysis */}
-            {activeTab === 3 && (
-                <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                        <ChartCard
-                            title="Workout Type Trends Over Time"
-                            chart={
-                                <ResponsiveContainer width="100%" height={400}>
-                                    <LineChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis
-                                            dataKey="period"
-                                            stroke="rgba(255,255,255,0.7)"
-                                            data={workoutTrendsData.periodData}
-                                        />
-                                        <YAxis stroke="rgba(255,255,255,0.7)" />
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(30,30,30,0.8)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '8px'
-                                            }}
-                                        />
-                                        <Legend />
-
-                                        {workoutTrendsData.workoutTrends.map((workout, index) => (
-                                            <Line
-                                                key={workout.name}
-                                                type="monotone"
-                                                data={workout.data}
-                                                dataKey="count"
-                                                name={workout.name}
-                                                stroke={chartColors[index % chartColors.length]}
-                                                activeDot={{ r: 8 }}
-                                                strokeWidth={2}
-                                            />
-                                        ))}
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            }
-                            info={`Trend of workout types over the selected ${timeRange} period`}
-                        />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                        <ChartCard
-                            title="Workout Type Growth Rate"
-                            chart={
-                                <ResponsiveContainer width="100%" height={400}>
-                                    <RechartsBarChart
-                                        data={workoutTrendsData.growthRates}
-                                        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis
-                                            dataKey="name"
-                                            stroke="rgba(255,255,255,0.7)"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={80}
-                                        />
-                                        <YAxis stroke="rgba(255,255,255,0.7)" />
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(30,30,30,0.8)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '8px'
-                                            }}
-                                            formatter={(value) => [`${value > 0 ? '+' : ''}${value}%`, 'Growth Rate']}
-                                        />
-                                        <Bar dataKey="growthRate" name="Growth Rate (%)" radius={[4, 4, 0, 0]}>
-                                            {workoutTrendsData.growthRates.map((entry) => (
-                                                <Cell
-                                                    key={`cell-${entry.name}`}
-                                                    fill={entry.growthRate >= 0 ? '#4caf50' : '#ff5252'}
-                                                />
-                                            ))}
-                                        </Bar>
-                                    </RechartsBarChart>
-                                </ResponsiveContainer>
-                            }
-                            info="Growth rate of each workout type compared to the previous period"
-                        />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                height: '100%',
-                                background: 'rgba(30,30,30,0.6)',
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: '16px',
-                                border: '1px solid rgba(255,255,255,0.05)',
-                                overflow: 'hidden',
-                                display: 'flex',
-                                flexDirection: 'column'
-                            }}
-                        >
-                            <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center' }}>
-                                <TrendingUp sx={{ color: '#ffb800', mr: 1 }} />
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Trending Insights
-                                </Typography>
-                            </Box>
-
-                            <Box sx={{ p: 3, flex: 1 }}>
-                                <Grid container spacing={2} sx={{ mb: 3 }}>
-                                    <Grid item xs={6}>
-                                        <Box
-                                            sx={{
-                                                p: 2,
-                                                borderRadius: '10px',
-                                                bgcolor: alpha('#4caf50', 0.1),
-                                                border: '1px solid rgba(76,175,80,0.2)',
-                                                height: '100%'
-                                            }}
-                                        >
-                                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                                                Trending Up
-                                            </Typography>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#4caf50', mb: 0.5 }}>
-                                                {workoutTrendsData.growthRates.length > 0 ?
-                                                    workoutTrendsData.growthRates
-                                                        .filter(w => w.growthRate > 0)
-                                                        .sort((a, b) => b.growthRate - a.growthRate)[0]?.name || 'N/A' : 'N/A'}
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: '#4caf50' }}>
-                                                {workoutTrendsData.growthRates.length > 0 ?
-                                                    `+${workoutTrendsData.growthRates
-                                                        .filter(w => w.growthRate > 0)
-                                                        .sort((a, b) => b.growthRate - a.growthRate)[0]?.growthRate || 0}%` : 'N/A'}
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-
-                                    <Grid item xs={6}>
-                                        <Box
-                                            sx={{
-                                                p: 2,
-                                                borderRadius: '10px',
-                                                bgcolor: alpha('#ff5252', 0.1),
-                                                border: '1px solid rgba(255,82,82,0.2)',
-                                                height: '100%'
-                                            }}
-                                        >
-                                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                                                Trending Down
-                                            </Typography>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#ff5252', mb: 0.5 }}>
-                                                {workoutTrendsData.growthRates.length > 0 ?
-                                                    workoutTrendsData.growthRates
-                                                        .filter(w => w.growthRate < 0)
-                                                        .sort((a, b) => a.growthRate - b.growthRate)[0]?.name || 'N/A' : 'N/A'}
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: '#ff5252' }}>
-                                                {workoutTrendsData.growthRates.length > 0 ?
-                                                    `${workoutTrendsData.growthRates
-                                                        .filter(w => w.growthRate < 0)
-                                                        .sort((a, b) => a.growthRate - b.growthRate)[0]?.growthRate || 0}%` : 'N/A'}
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-                                </Grid>
-
-                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                    Recent Trends ({timeRange})
-                                </Typography>
-
-                                <Box sx={{ maxHeight: 240, overflowY: 'auto' }}>
-                                    <List dense disablePadding>
-                                        {workoutTrendsData.growthRates
-                                            .sort((a, b) => Math.abs(b.growthRate) - Math.abs(a.growthRate))
-                                            .map((workout, index) => (
-                                                <ListItem
-                                                    key={workout.name}
-                                                    divider={index < workoutTrendsData.growthRates.length - 1}
-                                                    sx={{ py: 1 }}
-                                                >
-                                                    <ListItemText
-                                                        primary={
-                                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                                    {workout.name}
-                                                                </Typography>
-                                                                <Chip
-                                                                    size="small"
-                                                                    icon={workout.growthRate >= 0 ? <TrendingUp fontSize="small" /> : <BarChart fontSize="small" />}
-                                                                    label={`${workout.growthRate > 0 ? '+' : ''}${workout.growthRate}%`}
-                                                                    sx={{
-                                                                        bgcolor: alpha(workout.growthRate >= 0 ? '#4caf50' : '#ff5252', 0.1),
-                                                                        color: workout.growthRate >= 0 ? '#4caf50' : '#ff5252',
-                                                                        fontWeight: 'bold'
-                                                                    }}
-                                                                />
-                                                            </Box>
-                                                        }
-                                                        secondary={
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                                                                <Box sx={{ flex: 1, height: 4, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-                                                                    <Box
-                                                                        sx={{
-                                                                            height: '100%',
-                                                                            width: `${Math.min(100, Math.abs(workout.growthRate))}%`,
-                                                                            bgcolor: workout.growthRate >= 0 ? '#4caf50' : '#ff5252',
-                                                                            borderRadius: 2
-                                                                        }}
-                                                                    />
-                                                                </Box>
-                                                                <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                                                                    {workout.currentCount} workouts
-                                                                </Typography>
-                                                            </Box>
-                                                        }
-                                                    />
-                                                </ListItem>
-                                            ))}
-                                    </List>
-                                </Box>
-                            </Box>
-                        </Paper>
-                    </Grid>
-                </Grid>
-            )}
-
             {/* Comparison Matrix */}
-            {activeTab === 4 && (
+            {activeTab === 3 && (
                 <Grid container spacing={3}>
                     <Grid item xs={12}>
                         <Paper
@@ -1098,7 +882,6 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                             <TableCell align="center" sx={{ fontWeight: 600, bgcolor: 'rgba(0,0,0,0.3)' }}>Participation</TableCell>
                                             <TableCell align="center" sx={{ fontWeight: 600, bgcolor: 'rgba(0,0,0,0.3)' }}>Recurrence Rate</TableCell>
                                             <TableCell align="center" sx={{ fontWeight: 600, bgcolor: 'rgba(0,0,0,0.3)' }}>Top Member</TableCell>
-                                            <TableCell align="center" sx={{ fontWeight: 600, bgcolor: 'rgba(0,0,0,0.3)' }}>Growth Rate</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -1195,18 +978,6 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                                         "N/A"
                                                     )}
                                                 </TableCell>
-                                                <TableCell align="center">
-                                                    <Chip
-                                                        size="small"
-                                                        icon={workout.growthRate >= 0 ? <TrendingUp fontSize="small" /> : <BarChart fontSize="small" />}
-                                                        label={`${workout.growthRate > 0 ? '+' : ''}${workout.growthRate}%`}
-                                                        sx={{
-                                                            bgcolor: alpha(workout.growthRate >= 0 ? '#4caf50' : '#ff5252', 0.1),
-                                                            color: workout.growthRate >= 0 ? '#4caf50' : '#ff5252',
-                                                            fontWeight: 'bold'
-                                                        }}
-                                                    />
-                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -1221,6 +992,66 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
 };
 
 // Helper functions for data processing
+
+const CustomScatterTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+        const workout = payload[0].payload;
+        return (
+            <div style={{
+                backgroundColor: 'rgba(30,30,30,0.8)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                padding: '10px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+            }}>
+                <p style={{ color: '#fff', fontWeight: 'bold', margin: '0 0 5px 0' }}>
+                    {workout.name}
+                </p>
+                <p style={{ color: '#fff', margin: '0 0 3px 0' }}>
+                    Count: {workout.count}
+                </p>
+                <p style={{ color: '#fff', margin: '0 0 3px 0' }}>
+                    Avg Duration: {workout.avgDuration} mins
+                </p>
+                <p style={{ color: '#fff', margin: '0' }}>
+                    Total Duration: {workout.totalDuration} mins
+                </p>
+            </div>
+        );
+    }
+    return null;
+};
+
+const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div
+                style={{
+                    backgroundColor: 'rgba(30,30,30,0.8)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                }}
+            >
+                <p style={{
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    margin: '0 0 4px 0'
+                }}>
+                    {payload[0].name}
+                </p>
+                <p style={{
+                    color: '#fff',
+                    margin: 0
+                }}>
+                    {`${payload[0].value} workouts`}
+                </p>
+            </div>
+        );
+    }
+    return null;
+};
 
 const processWorkoutTypeData = (logs, members, selectedMember, isAdmin) => {
     if (!logs || !logs.length) return [];
@@ -1539,11 +1370,11 @@ const processWorkoutTrendsData = (logs, workouts, timeRange, selectedMember, isA
     };
 };
 
-const calculateWorkoutTypeMatrix = (logs, selectedMember, isAdmin) => {
+const calculateWorkoutTypeMatrix = (logs, members, selectedMember, isAdmin) => {
     // Combine data from other processing functions
-    const typeData = processWorkoutTypeData(logs, [], selectedMember, isAdmin);
+    const typeData = processWorkoutTypeData(logs, members, selectedMember, isAdmin);
     const durationData = processWorkoutDurationData(logs, selectedMember, isAdmin);
-    const participationData = processWorkoutParticipationData(logs, [], selectedMember, isAdmin);
+    const participationData = processWorkoutParticipationData(logs, members, selectedMember, isAdmin);
     const trendData = processWorkoutTrendsData(logs, [], 'month', selectedMember, isAdmin);
 
     // Get top metrics for highlighting

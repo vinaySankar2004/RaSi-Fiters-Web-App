@@ -73,7 +73,7 @@ const darkTheme = createTheme({
 const DashboardTable = () => {
     const { date } = useParams();
     const { user } = useAuth();
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === 'admin' || user?.role === 'logger';
     const memberName = user?.member_name;
     const userId = user?.userId || user?.id;
 

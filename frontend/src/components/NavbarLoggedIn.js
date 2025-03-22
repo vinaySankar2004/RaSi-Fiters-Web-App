@@ -63,7 +63,7 @@ const NavbarLoggedIn = () => {
         { path: "/members", label: "Members", icon: <Group fontSize="small" /> },
         { path: "/workouts", label: "Workouts", icon: <DirectionsRun fontSize="small" /> },
         { path: "/dashboard", label: "Dashboard", icon: <Dashboard fontSize="small" /> },
-        { path: "/analytics", label: "Analytics", icon: <BarChart fontSize="small" /> }
+        ...(user?.role === 'admin' || user?.role === 'member' ? [{ path: "/analytics", label: "Analytics", icon: <BarChart fontSize="small" /> }] : [])
     ];
 
     const isActive = (path) => {
@@ -72,7 +72,7 @@ const NavbarLoggedIn = () => {
 
     return (
         <AppBar
-            position="fixed"
+            position="static"
             elevation={0}
             sx={{
                 background: 'transparent',
@@ -266,6 +266,24 @@ const NavbarLoggedIn = () => {
                                 >
                                     {user?.member_name || user?.username || 'User'}
                                 </Typography>
+
+                                {user?.role === 'logger' && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: '#ffb800',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 700,
+                                            display: 'block',
+                                            lineHeight: 1,
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
+                                        }}
+                                    >
+                                        LOGGER
+                                    </Typography>
+                                )}
 
                                 {user?.role === 'admin' && (
                                     <Typography

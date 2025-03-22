@@ -15,19 +15,14 @@ const Navbar = () => {
 
     return (
         <AppBar
-            position="fixed"
+            position="static"
             elevation={0}
             sx={{
-                background: 'transparent', // Fully transparent background
-                backdropFilter: 'none', // Remove blur
-                borderBottom: 'none', // Remove border
+                background: 'transparent',
+                backdropFilter: 'none',
+                borderBottom: 'none',
                 boxShadow: 'none',
-                '&::before': {
-                    content: 'none' // Remove top gradient line
-                },
-                '&::after': {
-                    content: 'none' // Remove bottom gradient line
-                }
+                py: 0.5
             }}
         >
             <Container maxWidth="lg">
