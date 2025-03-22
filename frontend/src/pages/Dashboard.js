@@ -393,7 +393,7 @@ const Dashboard = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 1.5,
-                                color: '#ffb800'
+                                color: '#ffb800',
                             }}
                         >
                             <CalendarMonthIcon
