@@ -21,7 +21,7 @@ const WorkoutLog = sequelize.define("WorkoutLog", {
         },
     },
     date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.STRING,
         allowNull: false,
         primaryKey: true,
     },
