@@ -69,6 +69,16 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
         setActiveTab(newValue);
     };
 
+    const participationSubtitle = () => {
+        if (!workoutParticipationData[0]) return "No data";
+
+        if (selectedMember !== 'all' || !isAdmin) {
+            return `${workoutParticipationData[0].participationRate}% of workouts`;
+        } else {
+            return `${workoutParticipationData[0].participationRate}% of members`;
+        }
+    };
+
     if (loading) {
         return (
             <Box sx={{ py: 4 }}>
@@ -119,7 +129,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                     <StatCard
                         title="Highest Participation"
                         value={workoutParticipationData[0]?.name || "N/A"}
-                        subtitle={workoutParticipationData[0] ? `${workoutParticipationData[0].participationRate}% of members` : "No data"}
+                        subtitle={participationSubtitle()}
                         icon={<Group />}
                         color="#4caf50"
                         bgColor="rgba(76,175,80,0.15)"
@@ -543,7 +553,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
 
                                         <Box sx={{ mb: 3 }}>
                                             <Grid container spacing={2}>
-                                                {calculateDurationDistribution(workoutLogs).map((category, index) => (
+                                                {calculateDurationDistribution(workoutLogs, selectedMember, isAdmin).map((category, index) => (
                                                     <Grid item xs={6} sm={4} key={category.label}>
                                                         <Box
                                                             sx={{
@@ -580,7 +590,7 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                             </Typography>
 
                                             <Grid container spacing={2}>
-                                                {calculateDurationStats(workoutLogs).map((stat, index) => (
+                                                {calculateDurationStats(workoutLogs, selectedMember, isAdmin).map((stat, index) => (
                                                     <Grid item xs={6} md={3} key={stat.label}>
                                                         <Box sx={{ textAlign: 'center' }}>
                                                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -611,7 +621,8 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                     <Grid item xs={12} md={7}>
                         <ChartCard
                             minHeight={500}
-                            title="Member Participation by Workout Type"
+                            title={selectedMember !== 'all' || !isAdmin ? "Workout Type Distribution" :
+                                "Member Participation by Workout Type"}
                             chart={
                                 <ResponsiveContainer width="100%" height={450}>
                                     <RechartsBarChart
@@ -633,7 +644,12 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                                 border: '1px solid rgba(255,255,255,0.1)',
                                                 borderRadius: '8px'
                                             }}
-                                            formatter={(value) => [`${value}%`, 'Participation']}
+                                            formatter={(value, name) => {
+                                                if (name === "Member Count" && (selectedMember !== 'all' || !isAdmin)) {
+                                                    return ["1", "Times Completed"];
+                                                }
+                                                return [`${value}${name === "Participation" ? "%" : ""}`, name];
+                                            }}
                                         />
                                         <Bar dataKey="participationRate" name="Participation" fill="#4caf50">
                                             {workoutParticipationData.map((entry, index) => (
@@ -643,7 +659,9 @@ const WorkoutTypesDashboard = ({ workoutLogs, members, workouts, timeRange, sele
                                     </RechartsBarChart>
                                 </ResponsiveContainer>
                             }
-                            info="Percentage of members who have done each workout type"
+                            info={selectedMember !== 'all' || !isAdmin ?
+                                "Shows what percentage each workout type makes up of your total workouts" :
+                                "Percentage of members who have done each workout type"}
                         />
                     </Grid>
 
@@ -1064,6 +1082,9 @@ const processWorkoutTypeData = (logs, members, selectedMember, isAdmin) => {
     const workoutTypes = {};
     const memberWorkoutCounts = {};
 
+    // Count total workouts for this member/view (for percentage calculation)
+    const totalWorkouts = filteredLogs.length;
+
     // Process logs to count workout types
     filteredLogs.forEach(log => {
         // Track workout type metrics
@@ -1104,8 +1125,16 @@ const processWorkoutTypeData = (logs, members, selectedMember, isAdmin) => {
         });
 
         // Calculate participation rate
-        const totalMembers = isAdmin ? members.length : 1;
-        const participationRate = Math.round((workout.participants.size / totalMembers) * 100);
+        let participationRate;
+        if (selectedMember !== 'all' || !isAdmin) {
+            // When viewing a specific member's data, show the percentage of this workout
+            // out of all their workouts
+            participationRate = Math.round((workout.count / totalWorkouts) * 100);
+        } else {
+            // For admin viewing all members, show percentage of all members who did this workout
+            const totalMembers = members.length;
+            participationRate = Math.round((workout.participants.size / totalMembers) * 100);
+        }
 
         return {
             name: workout.name,
@@ -1154,11 +1183,40 @@ const processWorkoutDurationData = (logs, selectedMember, isAdmin) => {
 const processWorkoutParticipationData = (logs, members, selectedMember, isAdmin) => {
     if (!logs || !logs.length || !members || !members.length) return [];
 
-    // If viewing as a specific member, participation data doesn't make sense
+    // If viewing as a specific member, calculate workout distribution percentages
     if (!isAdmin || selectedMember !== 'all') {
-        return [];
+        // Get the workout types for this member
+        const memberWorkoutTypes = {};
+
+        // Filter logs for the selected member
+        const memberLogs = selectedMember !== 'all' && isAdmin
+            ? logs.filter(log => log.member_name === selectedMember)
+            : logs;
+
+        const totalWorkouts = memberLogs.length;
+
+        memberLogs.forEach(log => {
+            if (!memberWorkoutTypes[log.workout_name]) {
+                memberWorkoutTypes[log.workout_name] = {
+                    name: log.workout_name,
+                    count: 0
+                };
+            }
+            memberWorkoutTypes[log.workout_name].count++;
+        });
+
+        // Create participation data showing percentage of each workout type in the member's total workouts
+        return Object.values(memberWorkoutTypes).map(workout => ({
+            name: workout.name,
+            participantCount: 1,
+            participationRate: Math.round((workout.count / totalWorkouts) * 100),
+            avgFrequencyPerParticipant: workout.count,
+            totalWorkouts: workout.count,
+            count: workout.count
+        })).sort((a, b) => b.count - a.count);
     }
 
+    // For admin viewing all members, proceed with standard participation calculation
     const workoutParticipation = {};
 
     // Process logs to track participation
@@ -1200,7 +1258,8 @@ const processWorkoutParticipationData = (logs, members, selectedMember, isAdmin)
             participantCount,
             participationRate,
             avgFrequencyPerParticipant,
-            totalWorkouts: workout.count
+            totalWorkouts: workout.count,
+            count: workout.count
         };
     }).sort((a, b) => b.participationRate - a.participationRate);
 };
@@ -1370,11 +1429,16 @@ const processWorkoutTrendsData = (logs, workouts, timeRange, selectedMember, isA
     };
 };
 
+// Fixed version of calculateWorkoutTypeMatrix function
+
 const calculateWorkoutTypeMatrix = (logs, members, selectedMember, isAdmin) => {
     // Combine data from other processing functions
     const typeData = processWorkoutTypeData(logs, members, selectedMember, isAdmin);
     const durationData = processWorkoutDurationData(logs, selectedMember, isAdmin);
+
+    // Participation data will be handled correctly by the updated processWorkoutParticipationData function
     const participationData = processWorkoutParticipationData(logs, members, selectedMember, isAdmin);
+
     const trendData = processWorkoutTrendsData(logs, [], 'month', selectedMember, isAdmin);
 
     // Get top metrics for highlighting
@@ -1433,8 +1497,13 @@ const calculateWorkoutTypeMatrix = (logs, members, selectedMember, isAdmin) => {
 
 // Additional utility functions
 
-const calculateDurationDistribution = (logs) => {
+const calculateDurationDistribution = (logs, selectedMember, isAdmin) => {
     if (!logs || !logs.length) return [];
+
+    // Filter logs for selected member if applicable
+    const filteredLogs = selectedMember !== 'all' && isAdmin
+        ? logs.filter(log => log.member_name === selectedMember)
+        : isAdmin ? logs : logs; // In case the user is a member viewing their own data
 
     // Define duration ranges
     const ranges = [
@@ -1448,7 +1517,7 @@ const calculateDurationDistribution = (logs) => {
     // Count logs in each range
     const distribution = ranges.map(range => ({ ...range, count: 0 }));
 
-    logs.forEach(log => {
+    filteredLogs.forEach(log => {
         const rangeIndex = distribution.findIndex(range =>
             log.duration >= range.min && log.duration <= range.max
         );
@@ -1458,18 +1527,30 @@ const calculateDurationDistribution = (logs) => {
     });
 
     // Calculate percentages
-    const totalWorkouts = logs.length;
+    const totalWorkouts = filteredLogs.length;
     distribution.forEach(range => {
-        range.percentage = (range.count / totalWorkouts) * 100;
+        range.percentage = totalWorkouts > 0 ? (range.count / totalWorkouts) * 100 : 0;
     });
 
     return distribution;
 };
 
-const calculateDurationStats = (logs) => {
+const calculateDurationStats = (logs, selectedMember, isAdmin) => {
     if (!logs || !logs.length) return [];
 
-    const durations = logs.map(log => log.duration);
+    // Filter logs for selected member if applicable
+    const filteredLogs = selectedMember !== 'all' && isAdmin
+        ? logs.filter(log => log.member_name === selectedMember)
+        : isAdmin ? logs : logs; // In case the user is a member viewing their own data
+
+    if (filteredLogs.length === 0) return [
+        { label: 'Average', value: 0, color: '#ffb800' },
+        { label: 'Median', value: 0, color: '#4a148c' },
+        { label: 'Min', value: 0, color: '#4caf50' },
+        { label: 'Max', value: 0, color: '#ff5252' }
+    ];
+
+    const durations = filteredLogs.map(log => log.duration);
 
     // Calculate statistics
     const sum = durations.reduce((acc, val) => acc + val, 0);

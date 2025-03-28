@@ -26,9 +26,14 @@ import {
     Paper,
 } from "@mui/material";
 import { Edit, PhotoCamera, Refresh, Visibility, VisibilityOff } from "@mui/icons-material";
+import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
+import { compactCalendarStyles } from "../components/common/CalendarStyles";
 
 const darkTheme = createTheme({
     palette: {
@@ -97,6 +102,25 @@ const MyAccount = () => {
         return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
+    // Convert any date format to dayjs object for date picker
+    const formatDateForPicker = (dateString) => {
+        if (!dateString) return null;
+
+        // If it's in YYYY-MM-DD format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dayjs(dateString);
+        }
+
+        // If it's in DD-MM-YYYY format
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+            const [day, month, year] = dateString.split('-');
+            return dayjs(`${year}-${month}-${day}`);
+        }
+
+        // Try general parsing
+        return dayjs(dateString);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -154,6 +178,15 @@ const MyAccount = () => {
 
     const handleTogglePasswordVisibility = () => {
         setShowPassword(!showPassword);
+    };
+
+    const handleDobChange = (newDate) => {
+        if (newDate) {
+            const dateString = newDate.format('YYYY-MM-DD');
+            setDateOfBirth(dateString);
+        } else {
+            setDateOfBirth("");
+        }
     };
 
     const handleSaveChanges = async () => {
@@ -457,6 +490,26 @@ const MyAccount = () => {
                                                 : 'Not provided'}
                                         </Typography>
                                     </Box>
+
+                                    {/* Date Joined */}
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            py: 2,
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{ fontWeight: 600, minWidth: 110, color: 'rgba(255,255,255,0.8)' }}
+                                        >
+                                            Date Joined:
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ color: '#fff', ml: 2 }}>
+                                            {member?.date_joined || '01-03-2025'}
+                                        </Typography>
+                                    </Box>
                                 </Box>
                             </Box>
 
@@ -549,18 +602,81 @@ const MyAccount = () => {
                                     </InputAdornment>
                                 )
                             }}
-                            sx={{ background: "rgba(0,0,0,0.1)", borderRadius: "4px" }}
+                            sx={{
+                                background: "rgba(0,0,0,0.1)",
+                                borderRadius: "4px",
+                                '& .MuiOutlinedInput-root': {
+                                    '& fieldset': {
+                                        borderColor: 'rgba(255,255,255,0.2)', // Grey outline by default
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: 'rgba(255,255,255,0.3)',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#ffb800', // Yellow when focused
+                                        borderWidth: 2,
+                                    }
+                                }
+                            }}
                         />
-                        <TextField
-                            fullWidth
-                            label="Date of Birth"
-                            type="date"
-                            value={dateOfBirth}
-                            onChange={(e) => setDateOfBirth(e.target.value)}
-                            margin="normal"
-                            InputLabelProps={{ shrink: true }}
-                            sx={{ background: "rgba(0,0,0,0.1)", borderRadius: "4px" }}
-                        />
+
+                        <Box sx={{ margin: "16px 0" }}>
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <DesktopDatePicker
+                                    label="Date of Birth"
+                                    value={dateOfBirth ? formatDateForPicker(dateOfBirth) : null}
+                                    onChange={handleDobChange}
+                                    closeOnSelect={true}
+                                    format="MM/DD/YYYY"
+                                    sx={compactCalendarStyles}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                            margin: "normal",
+                                            sx: {
+                                                background: "rgba(0,0,0,0.1)",
+                                                borderRadius: "4px",
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '4px',
+                                                    '& fieldset': {
+                                                        borderColor: 'rgba(255,255,255,0.2)', // Grey outline by default
+                                                    },
+                                                    '&:hover fieldset': {
+                                                        borderColor: 'rgba(255,255,255,0.3)',
+                                                    },
+                                                    '&.Mui-focused fieldset': {
+                                                        borderColor: '#ffb800', // Yellow when focused
+                                                        borderWidth: 2,
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        popper: {
+                                            placement: "bottom-start", // Position above the input
+                                            disablePortal: false,
+                                            modifiers: [
+                                                {
+                                                    name: "offset",
+                                                    options: {
+                                                        offset: [0, -8], // Negative vertical offset to position above
+                                                    },
+                                                },
+                                                {
+                                                    name: "flip",
+                                                    enabled: false, // Disable automatic flipping
+                                                },
+                                                {
+                                                    name: "preventOverflow",
+                                                    options: {
+                                                        boundary: document.body,
+                                                    },
+                                                }
+                                            ]
+                                        }
+                                    }}
+                                />
+                            </LocalizationProvider>
+                        </Box>
                     </DialogContent>
                     <DialogActions sx={{ background: "rgba(30,30,30,0.8)" }}>
                         <Button onClick={handleEditDialogClose} sx={{ color: "#ff5252" }}>

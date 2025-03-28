@@ -22,21 +22,17 @@ import {
     Dashboard,
     Group,
     FitnessCenter,
-    Timeline,
     ArrowDropDown,
-    InfoOutlined
+    InfoOutlined, DateRange
 } from "@mui/icons-material";
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 
-// Import dashboard components
 import OverviewDashboard from "../components/analytics/OverviewDashboard";
 import MemberDashboard from "../components/analytics/MemberDashboard";
 import WorkoutTypesDashboard from "../components/analytics/WorkoutTypesDashboard";
-import TrendsDashboard from "../components/analytics/TrendsDashboard";
-
-// Import theme and styles
+import DateRangeDashboard from "../components/analytics/DateRangeDashboard";
 import { createTheme } from "@mui/material";
 
 // Create analytics theme with glassmorphism and dark mode
@@ -204,7 +200,7 @@ const Analytics = () => {
         { label: "Overview", icon: <Dashboard sx={{ mr: 1 }} /> },
         { label: "Members", icon: <Group sx={{ mr: 1 }} /> },
         { label: "Workout Types", icon: <FitnessCenter sx={{ mr: 1 }} /> },
-        { label: "Trends", icon: <Timeline sx={{ mr: 1 }} /> }
+        { label: "Date Filter", icon: <DateRange sx={{ mr: 1 }} /> }
     ];
 
     const fetchData = useCallback(async () => {
@@ -296,7 +292,7 @@ const Analytics = () => {
             case 2:
                 return <WorkoutTypesDashboard {...dashboardProps} />;
             case 3:
-                return <TrendsDashboard {...dashboardProps} />;
+                return <DateRangeDashboard {...dashboardProps} />;
             default:
                 return <OverviewDashboard {...dashboardProps} />;
         }

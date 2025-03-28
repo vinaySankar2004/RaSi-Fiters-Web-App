@@ -27,9 +27,14 @@ import {
     createTheme
 } from "@mui/material";
 import { Refresh, Add, Edit, Delete, Visibility, VisibilityOff } from "@mui/icons-material";
+import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import NavbarLoggedIn from "../components/NavbarLoggedIn";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
+import { compactCalendarStyles } from "../components/common/CalendarStyles";
 
 const darkTheme = createTheme({
     palette: {
@@ -83,6 +88,7 @@ const Members = () => {
         member_name: "",
         gender: "",
         date_of_birth: null,
+        date_joined: null,
         password: ""
     });
     const [showPassword, setShowPassword] = useState(false);
@@ -99,6 +105,38 @@ const Members = () => {
             age--;
         }
         return age;
+    };
+
+    // Format date for display to ensure consistent DD-MM-YYYY format
+    const formatDate = (dateString) => {
+        if (!dateString) return "01-03-2025"; // Default date in DD-MM-YYYY format
+
+        // If it's in YYYY-MM-DD format, convert to DD-MM-YYYY
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        // If it's already in DD-MM-YYYY format, return as is
+        return dateString;
+    };
+
+    // Convert any date format to dayjs object for date picker
+    const formatDateForPicker = (dateString) => {
+        if (!dateString) return dayjs('2025-03-01');
+
+        // If it's in DD-MM-YYYY format, convert to YYYY-MM-DD for dayjs
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+            const [day, month, year] = dateString.split('-');
+            return dayjs(`${year}-${month}-${day}`);
+        }
+
+        // If it's already in YYYY-MM-DD format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dayjs(dateString);
+        }
+
+        return dayjs(dateString);
     };
 
     const fetchMembers = async () => {
@@ -130,12 +168,19 @@ const Members = () => {
         if (member) {
             setNewMember({
                 ...member,
+                date_joined: member.date_joined || '01-03-2025',
                 password: "" // Clear password for editing
             });
             const username = member.member_name.toLowerCase().replace(/\s+/g, '');
             setGeneratedUsername(username);
         } else {
-            setNewMember({ member_name: "", gender: "", date_of_birth: null, password: "" });
+            setNewMember({
+                member_name: "",
+                gender: "",
+                date_of_birth: null,
+                date_joined: '01-03-2025',
+                password: ""
+            });
             setGeneratedUsername("");
         }
         setOpen(true);
@@ -144,7 +189,7 @@ const Members = () => {
     const handleClose = () => {
         setOpen(false);
         setEditData(null);
-        setNewMember({ member_name: "", gender: "", date_of_birth: null, password: "" });
+        setNewMember({ member_name: "", gender: "", date_of_birth: null, date_joined: null, password: "" });
         setShowPassword(false);
     };
 
@@ -158,6 +203,14 @@ const Members = () => {
                 ...newMember,
                 member_name: newMember.member_name.trim()
             };
+
+            // Make sure date_joined has a value
+            if (!trimmedMember.date_joined) {
+                trimmedMember.date_joined = '01-03-2025';
+            }
+
+            console.log("Member data being saved:", trimmedMember); // Debugging
+
             const generatedUsername = trimmedMember.member_name.toLowerCase().replace(/\s+/g, '');
             if (!editData && !trimmedMember.password) {
                 alert("Password is required for new members");
@@ -168,6 +221,8 @@ const Members = () => {
                     ...trimmedMember,
                     username: generatedUsername
                 };
+                console.log("Updating member with data:", dataToSend); // Log data being sent
+
                 if (!dataToSend.password) {
                     delete dataToSend.password;
                 }
@@ -185,6 +240,7 @@ const Members = () => {
                     member_name: trimmedMember.member_name,
                     gender: trimmedMember.gender,
                     date_of_birth: trimmedMember.date_of_birth,
+                    date_joined: trimmedMember.date_joined,
                     password: trimmedMember.password,
                     username: generatedUsername
                 });
@@ -213,11 +269,37 @@ const Members = () => {
         setShowPassword(!showPassword);
     };
 
-    const handleDobChange = (e) => {
-        setNewMember({
-            ...newMember,
-            date_of_birth: e.target.value
-        });
+    const handleDobChange = (newDate) => {
+        if (newDate) {
+            const dateString = newDate.format('YYYY-MM-DD');
+            setNewMember({
+                ...newMember,
+                date_of_birth: dateString
+            });
+        } else {
+            setNewMember({
+                ...newMember,
+                date_of_birth: null
+            });
+        }
+    };
+
+    const handleDateJoinedChange = (newDate) => {
+        if (newDate) {
+            const dateString = newDate.format('YYYY-MM-DD');
+            // Store in DD-MM-YYYY format for backend
+            const [year, month, day] = dateString.split('-');
+            const formattedDate = `${day}-${month}-${year}`;
+            setNewMember({
+                ...newMember,
+                date_joined: formattedDate
+            });
+        } else {
+            setNewMember({
+                ...newMember,
+                date_joined: '01-03-2025' // Default value
+            });
+        }
     };
 
     const canEditMember = (member) => {
@@ -304,6 +386,7 @@ const Members = () => {
                                         <>
                                             <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>Gender</TableCell>
                                             <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)' }}>Age</TableCell>
+                                            <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.85)', textAlign: 'center' }}>Date Joined</TableCell>
                                         </>
                                     )}
                                     {isAdmin && (
@@ -322,6 +405,7 @@ const Members = () => {
                                             <>
                                                 <TableCell>{member.gender}</TableCell>
                                                 <TableCell>{calculateAge(member.date_of_birth)}</TableCell>
+                                                <TableCell align="center">{formatDate(member.date_joined || '2025-03-01')}</TableCell>
                                             </>
                                         )}
                                         {isAdmin && (
@@ -407,18 +491,123 @@ const Members = () => {
                                     </Select>
                                 </FormControl>
                             )}
+
                             {isAdmin && (
-                                <TextField
-                                    fullWidth
-                                    label="Date of Birth"
-                                    type="date"
-                                    value={newMember.date_of_birth || ''}
-                                    onChange={handleDobChange}
-                                    margin="normal"
-                                    InputLabelProps={{ shrink: true }}
-                                    inputProps={{ max: new Date().toISOString().split('T')[0] }}
-                                    sx={{ background: 'rgba(0,0,0,0.1)', borderRadius: '4px' }}
-                                />
+                                <Box sx={{ margin: "16px 0" }}>
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DesktopDatePicker
+                                            label="Date of Birth"
+                                            value={newMember.date_of_birth ? formatDateForPicker(newMember.date_of_birth) : null}
+                                            onChange={handleDobChange}
+                                            closeOnSelect={true}
+                                            format="MM/DD/YYYY"
+                                            sx={compactCalendarStyles}
+                                            slotProps={{
+                                                textField: {
+                                                    fullWidth: true,
+                                                    sx: {
+                                                        background: 'rgba(0,0,0,0.1)',
+                                                        borderRadius: '4px',
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: '4px',
+                                                            '& fieldset': {
+                                                                borderColor: 'rgba(255,255,255,0.2)', // Grey outline by default
+                                                            },
+                                                            '&:hover fieldset': {
+                                                                borderColor: 'rgba(255,255,255,0.3)',
+                                                            },
+                                                            '&.Mui-focused fieldset': {
+                                                                borderColor: '#ffb800', // Yellow when focused
+                                                                borderWidth: 2,
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                popper: {
+                                                    placement: "top-start", // Position above the input
+                                                    disablePortal: false,
+                                                    modifiers: [
+                                                        {
+                                                            name: "offset",
+                                                            options: {
+                                                                offset: [0, -8], // Negative vertical offset to position above
+                                                            },
+                                                        },
+                                                        {
+                                                            name: "flip",
+                                                            enabled: false, // Disable automatic flipping
+                                                        },
+                                                        {
+                                                            name: "preventOverflow",
+                                                            options: {
+                                                                boundary: document.body,
+                                                            },
+                                                        }
+                                                    ]
+                                                }
+                                            }}
+                                        />
+                                    </LocalizationProvider>
+                                </Box>
+                            )}
+
+                            {isAdmin && (
+                                <Box sx={{ margin: "16px 0" }}>
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DesktopDatePicker
+                                            label="Date Joined"
+                                            value={formatDateForPicker(newMember.date_joined || '01-03-2025')}
+                                            onChange={handleDateJoinedChange}
+                                            closeOnSelect={true}
+                                            format="MM/DD/YYYY"
+                                            sx={compactCalendarStyles}
+                                            slotProps={{
+                                                textField: {
+                                                    fullWidth: true,
+                                                    sx: {
+                                                        background: 'rgba(0,0,0,0.1)',
+                                                        borderRadius: '4px',
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: '4px',
+                                                            '& fieldset': {
+                                                                borderColor: 'rgba(255,255,255,0.2)', // Grey outline by default
+                                                            },
+                                                            '&:hover fieldset': {
+                                                                borderColor: 'rgba(255,255,255,0.3)',
+                                                            },
+                                                            '&.Mui-focused fieldset': {
+                                                                borderColor: '#ffb800', // Yellow when focused
+                                                                borderWidth: 2,
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                popper: {
+                                                    placement: "top-start", // Position above the input
+                                                    disablePortal: false,
+                                                    modifiers: [
+                                                        {
+                                                            name: "offset",
+                                                            options: {
+                                                                offset: [0, -8], // Negative vertical offset to position above
+                                                            },
+                                                        },
+                                                        {
+                                                            name: "flip",
+                                                            enabled: false, // Disable automatic flipping
+                                                        },
+                                                        {
+                                                            name: "preventOverflow",
+                                                            options: {
+                                                                boundary: document.body,
+                                                            },
+                                                        }
+                                                    ]
+                                                }
+                                            }}
+                                        />
+                                    </LocalizationProvider>
+                                </Box>
                             )}
                         </DialogContent>
                         <DialogActions sx={{ background: 'rgba(30,30,30,0.8)' }}>
