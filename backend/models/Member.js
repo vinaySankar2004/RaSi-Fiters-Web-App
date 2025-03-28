@@ -42,6 +42,11 @@ const Member = sequelize.define("Member", {
             isIn: [['admin', 'member']]
         }
     },
+    date_joined: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: '2025-03-01'
+    },
     created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,

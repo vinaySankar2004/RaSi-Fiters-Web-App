@@ -34,6 +34,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
             username: member.username,
             gender: member.gender,
             date_of_birth: member.date_of_birth,
+            date_joined: member.date_joined,
             role: member.role,
             created_at: member.created_at,
             updated_at: member.updated_at
@@ -51,7 +52,7 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try {
-        const { member_name, gender, date_of_birth, age, password } = req.body;
+        const { member_name, gender, date_of_birth, age, password, date_joined } = req.body;
 
         if (!member_name || !gender || (!date_of_birth && !age) || !password) {
             await transaction.rollback();
@@ -79,6 +80,7 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
             password,
             gender,
             date_of_birth,
+            date_joined: date_joined || '2025-03-01', // Use provided date or default
             role: 'member'
         }, { transaction });
 
@@ -91,6 +93,7 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
             username: newMember.username,
             gender: newMember.gender,
             date_of_birth: newMember.date_of_birth,
+            date_joined: newMember.date_joined,
             role: newMember.role
         };
 
@@ -107,7 +110,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try {
-        const { date_of_birth, gender, password } = req.body;
+        const { date_of_birth, gender, password, date_joined } = req.body;
         const member = await Member.findByPk(req.params.id, { transaction });
 
         if (!member) {
@@ -129,6 +132,9 @@ router.put("/:id", authenticateToken, async (req, res) => {
         if (date_of_birth !== undefined) updateData.date_of_birth = date_of_birth;
         if (gender !== undefined) updateData.gender = gender;
         if (password !== undefined) updateData.password = password;
+
+        // Only allow admins to update date_joined
+        if (isAdmin && date_joined !== undefined) updateData.date_joined = date_joined;
 
         // Update member
         await member.update(updateData, { transaction });

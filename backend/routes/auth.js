@@ -35,7 +35,8 @@ router.post("/login", async (req, res) => {
             userId: member.id, // Keeping for backward compatibility
             username: member.username,
             member_name: member.member_name,
-            role: member.role
+            role: member.role,
+            date_joined: member.date_joined // Include date_joined in the JWT
         };
 
         // Generate token
@@ -47,6 +48,7 @@ router.post("/login", async (req, res) => {
             username: member.username,
             role: member.role,
             member_name: member.member_name,
+            date_joined: member.date_joined, // Include date_joined in the response
             message: "Login successful!"
         });
     } catch (error) {
@@ -85,12 +87,14 @@ router.post("/register", async (req, res) => {
             member_name,
             gender: gender || null,
             date_of_birth: date_of_birth || null,
+            date_joined: '2025-03-01', // Set the default join date
             role: 'member'
         });
 
         res.status(201).json({
             message: "Account created successfully",
-            member_id: newMember.id
+            member_id: newMember.id,
+            date_joined: newMember.date_joined
         });
     } catch (error) {
         console.error("Registration error:", error);
