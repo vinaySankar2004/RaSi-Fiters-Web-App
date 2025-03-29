@@ -216,6 +216,7 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
     // Create a one-time initialization callback
     const initializeData = useCallback(() => {
         filterData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);  // Empty dependency array means this never changes
 
     // Effect to filter data only on initial load
