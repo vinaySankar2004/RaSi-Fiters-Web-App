@@ -216,7 +216,7 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
     // Effect to filter data when date range or selected member changes
     useEffect(() => {
         filterData();
-    }, [filterData]);
+    }, []);
 
     // Handle date change for start date
     const handleStartDateChange = (newDate) => {
