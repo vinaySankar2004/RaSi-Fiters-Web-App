@@ -215,64 +215,14 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
 
     // Create a one-time initialization callback
     const initializeData = useCallback(() => {
-        // This function only runs at mount to initialize data
-        const initialFilterData = () => {
-            setIsFiltering(true);
-            setError(null);
+        filterData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);  // Empty dependency array means this never changes
 
-            try {
-                // Validate date range
-                if (startDate > endDate) {
-                    setError("Start date cannot be after end date");
-                    setIsFiltering(false);
-                    return;
-                }
-
-                // Filter members based on join date (only for admin with all members)
-                let validMembers = members;
-                if (isAdmin && selectedMember === 'all') {
-                    validMembers = members.filter(member => {
-                        // If date_joined is not available, default to include the member
-                        if (!member.date_joined) return true;
-
-                        // Include member if their join date is on or before the end date
-                        return compareDates(endDate, member.date_joined);
-                    });
-                }
-
-                // Filter workout logs based on date range
-                let filteredLogs = workoutLogs.filter(log => {
-                    return log.date >= startDate && log.date <= endDate;
-                });
-
-                // If specific member is selected (either by admin or regular user)
-                if (selectedMember !== 'all') {
-                    const effectiveMemberName = isAdmin ? selectedMember : memberName;
-                    filteredLogs = filteredLogs.filter(log => log.member_name === effectiveMemberName);
-                }
-
-                // Process member stats with filtered logs
-                const memberStats = processFilteredData(filteredLogs, validMembers);
-
-                setFilteredData(memberStats);
-                setIsFiltering(false);
-            } catch (error) {
-                console.error("Error filtering data:", error);
-                setError("Failed to filter data. Please try again.");
-                setIsFiltering(false);
-            }
-        };
-
-        initialFilterData();
-    }, [
-        startDate, endDate, members, workoutLogs, selectedMember,
-        isAdmin, memberName, compareDates, processFilteredData
-    ]); // Include all dependencies for initialization
-
-// Effect to filter data only on initial load
+    // Effect to filter data only on initial load
     useEffect(() => {
         initializeData();
-    }, []);  // IMPORTANT: Empty dependency array means this runs once on mount
+    }, [initializeData]);  // This will only run once since initializeData never changes
 
     // Handle date change for start date
     const handleStartDateChange = (newDate) => {
