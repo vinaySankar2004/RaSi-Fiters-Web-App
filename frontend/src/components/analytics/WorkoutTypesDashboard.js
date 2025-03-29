@@ -1461,9 +1461,23 @@ const calculateWorkoutTypeMatrix = (logs, members, selectedMember, isAdmin) => {
 
     const recurrenceRates = Object.keys(workoutRecurrence).map(name => {
         const data = workoutRecurrence[name];
-        const rate = data.participants.size > 0
-            ? Math.round((data.totalWorkouts / data.participants.size) * 10) / 10
-            : 0;
+
+        // MODIFIED PART: Adjust recurrence rate calculation based on context
+        let rate;
+        if (selectedMember !== 'all' || !isAdmin) {
+            // For individual member view, just show their count for this workout
+            const memberLogs = logs.filter(log =>
+                (selectedMember !== 'all' && isAdmin)
+                    ? log.member_name === selectedMember && log.workout_name === name
+                    : log.workout_name === name);
+            rate = memberLogs.length;
+        } else {
+            // For admin viewing all members, calculate average per participant
+            rate = data.participants.size > 0
+                ? Math.round((data.totalWorkouts / data.participants.size) * 10) / 10
+                : 0;
+        }
+
         return { name, rate };
     });
 
