@@ -213,10 +213,15 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
         }
     }, [startDate, endDate, members, workoutLogs, selectedMember, isAdmin, memberName, compareDates, processFilteredData]);
 
-    // Effect to filter data when date range or selected member changes
-    useEffect(() => {
+    // Create a one-time initialization callback
+    const initializeData = useCallback(() => {
         filterData();
-    }, []);
+    }, []);  // Empty dependency array means this never changes
+
+    // Effect to filter data only on initial load
+    useEffect(() => {
+        initializeData();
+    }, [initializeData]);  // This will only run once since initializeData never changes
 
     // Handle date change for start date
     const handleStartDateChange = (newDate) => {
