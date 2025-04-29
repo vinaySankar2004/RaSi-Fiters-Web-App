@@ -182,7 +182,7 @@ const OverviewDashboard = ({ workoutLogs, members, workouts, timeRange, selected
                         <StatCard
                             title="MTD Participation"
                             value={`${overallStats?.mtd?.participationRate || 0}%`}
-                            subtitle="of members active this month"
+                            subtitle="of members active vs. prior MTD"
                             icon={<Group />}
                             trend={overallStats?.mtd?.trend || 0}
                         />
@@ -190,7 +190,7 @@ const OverviewDashboard = ({ workoutLogs, members, workouts, timeRange, selected
                         <StatCard
                             title="MTD Participation"
                             value={`${memberParticipation.participationRate}%`}
-                            subtitle="of days you worked out this month"
+                            subtitle="of active days vs. prior MTD"
                             icon={<Group />}
                             trend={memberParticipation.trend}
                         />
@@ -200,7 +200,7 @@ const OverviewDashboard = ({ workoutLogs, members, workouts, timeRange, selected
                     <StatCard
                         title="Total Workouts"
                         value={overallStats?.mtd?.totalWorkouts || 0}
-                        subtitle="workouts logged this month"
+                        subtitle="of workouts vs. prior MTD"
                         icon={<DirectionsRun />}
                         trend={overallStats?.mtd?.totalWorkoutsTrend || 0}
                         color="#4a148c"
@@ -212,7 +212,7 @@ const OverviewDashboard = ({ workoutLogs, members, workouts, timeRange, selected
                         title="Total Duration"
                         // Convert minutes to hours for display
                         value={`${Math.round((overallStats?.mtd?.totalDuration || 0) / 60)} hrs`}
-                        subtitle="of exercise this month"
+                        subtitle="of exercise vs. prior MTD"
                         icon={<Timeline />}
                         // Use the new totalDurationTrend field
                         trend={overallStats?.mtd?.totalDurationTrend || 0}
@@ -224,7 +224,7 @@ const OverviewDashboard = ({ workoutLogs, members, workouts, timeRange, selected
                     <StatCard
                         title="Avg. Workout Duration"
                         value={`${overallStats?.mtd?.avgDuration || 0} mins`}
-                        subtitle="per session"
+                        subtitle="per session vs. prior MTD"
                         icon={<Assessment />}
                         trend={overallStats?.mtd?.avgDurationTrend || 0}
                         color="#4caf50"
@@ -512,7 +512,14 @@ const processMemberActivityData = (logs, members) => {
             activeDays: memberData[name].dates.size,
             averageDuration: Math.round(memberData[name].totalDuration / memberData[name].workoutCount)
         }))
-        .sort((a, b) => b.workoutCount - a.workoutCount);
+        .sort((a, b) => {
+            // First compare by top active days
+            if (b.activeDays !== a.activeDays) {
+                return b.activeDays - a.activeDays;
+            }
+            // If active days are equal, compare by top total workout duration
+            return b.totalDuration - a.totalDuration;
+        });
 };
 
 const processTimelineData = (logs, timeRange) => {

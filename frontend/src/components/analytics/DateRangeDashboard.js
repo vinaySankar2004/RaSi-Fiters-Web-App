@@ -23,7 +23,8 @@ import {
     DateRange,
     FilterAlt,
     EmojiEvents,
-    InfoOutlined
+    InfoOutlined,
+    FileDownload
 } from "@mui/icons-material";
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -162,7 +163,14 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
                     logs: member.logs
                 };
             })
-            .sort((a, b) => b.workoutCount - a.workoutCount);
+            .sort((a, b) => {
+                // First compare by top active days
+                if (b.activeDays !== a.activeDays) {
+                    return b.activeDays - a.activeDays;
+                }
+                // If active days are equal, compare by top total workout duration
+                return b.totalDuration - a.totalDuration;
+            });
     }, [calculateLongestStreak]);
 
     // Function to filter data based on date range and member selection - memoized
@@ -245,6 +253,67 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
         filterData();
     };
 
+    // For downloading the member performance metrics table (admin view)
+    const handleDownloadPerformanceCSV = () => {
+        if (!filteredData || filteredData.length === 0) return;
+
+        const headers = ['Member', 'Active Days', 'Total Duration', 'Workouts', 'Avg. Duration', 'Workout Types', 'Longest Streak'];
+
+        const csvData = filteredData.map(member => [
+            member.name,
+            member.activeDays,
+            `${member.totalDuration}`,
+            member.workoutCount,
+            `${member.averageDuration}`,
+            member.uniqueWorkoutTypes,
+            member.longestStreak
+        ]);
+
+        csvData.unshift(headers);
+        const csvString = csvData.map(row => row.join(',')).join('\n');
+
+        // Create download
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `member-performance-${startDate}-to-${endDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+// For downloading the individual member's workout details (member view)
+    const handleDownloadWorkoutsCSV = () => {
+        const effectiveMemberName = isAdmin ? selectedMember : memberName;
+        const memberData = filteredData.find(m => m.name === effectiveMemberName);
+
+        if (!memberData || !memberData.logs || memberData.logs.length === 0) return;
+
+        const headers = ['Date', 'Workout', 'Duration (mins)'];
+
+        const csvData = memberData.logs
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .map(log => [
+                log.date,
+                log.workout_name,
+                log.duration
+            ]);
+
+        csvData.unshift(headers);
+        const csvString = csvData.map(row => row.join(',')).join('\n');
+
+        // Create download
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${effectiveMemberName}-workouts-${startDate}-to-${endDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     // Render individual member details
     const renderMemberDetails = () => {
         const effectiveMemberName = isAdmin ? selectedMember : memberName;
@@ -265,9 +334,26 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
 
         return (
             <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                    Workout Details for {effectiveMemberName}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        Workout Details for {effectiveMemberName}
+                    </Typography>
+                    <Tooltip title="Download as CSV">
+                        <IconButton
+                            size="small"
+                            sx={{
+                                color: '#ffb800',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(255,184,0,0.1)'
+                                }
+                            }}
+                            onClick={handleDownloadWorkoutsCSV}
+                            disabled={!memberData || memberData.workoutCount === 0}
+                        >
+                            <FileDownload fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
 
                 <TableContainer component={Paper} sx={{ mb: 3, borderRadius: '16px' }}>
                     <Table>
@@ -514,11 +600,29 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
                                 Member Performance Metrics
                             </Typography>
                         </Box>
-                        <Tooltip title="Only includes members who joined on or before the end date">
-                            <IconButton size="small" sx={{ color: 'text.secondary' }}>
-                                <InfoOutlined fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Tooltip title="Download as CSV">
+                                <IconButton
+                                    size="small"
+                                    sx={{
+                                        color: '#ffb800',
+                                        mr: 1,
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(255,184,0,0.1)'
+                                        }
+                                    }}
+                                    onClick={handleDownloadPerformanceCSV}
+                                    disabled={filteredData.length === 0}
+                                >
+                                    <FileDownload fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Only includes members who joined on or before the end date">
+                                <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                                    <InfoOutlined fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
                     </Box>
 
                     <TableContainer>
@@ -526,10 +630,10 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
                             <TableHead>
                                 <TableRow sx={{ background: 'rgba(0,0,0,0.15)' }}>
                                     <TableCell sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Member</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Workouts</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Total Duration</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Avg. Duration</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Active Days</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Total Duration</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Workouts</TableCell>
+                                    <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Avg. Duration</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Workout Types</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Longest Streak</TableCell>
                                 </TableRow>
@@ -558,10 +662,10 @@ const DateRangeDashboard = ({ workoutLogs, members, workouts, selectedMember, is
                                                     </Typography>
                                                 </Box>
                                             </TableCell>
-                                            <TableCell align="center">{member.workoutCount}</TableCell>
-                                            <TableCell align="center">{member.totalDuration} mins</TableCell>
-                                            <TableCell align="center">{member.averageDuration} mins</TableCell>
                                             <TableCell align="center">{member.activeDays}</TableCell>
+                                            <TableCell align="center">{member.totalDuration} mins</TableCell>
+                                            <TableCell align="center">{member.workoutCount}</TableCell>
+                                            <TableCell align="center">{member.averageDuration} mins</TableCell>
                                             <TableCell align="center">{member.uniqueWorkoutTypes}</TableCell>
                                             <TableCell align="center">
                                                 <Chip

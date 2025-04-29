@@ -10,73 +10,65 @@ const getUTCToday = () => {
 };
 
 // Helper functions for analytics calculations
-
 /**
- * Calculate MTD participation for a single member.
- *
- * This returns the percentage of days the member worked out so far in the current month,
- * and the trend (difference compared to the previous month's participation rate).
- *
- * Returns:
- *   {
- *     participationRate: number,   // e.g., 30
- *     trend: number                // e.g., +5 (meaning 5 percentage points higher than last month)
- *   }
+ * Calculate MTD participation for a single member,
+ * comparing current month-to-date with the same period in previous month
  */
 export const calculateMemberMtdParticipation = (workoutLogs, memberName) => {
     if (!workoutLogs.length || !memberName) {
         return { participationRate: 0, trend: 0 };
     }
 
-    // 1) Get "today" in UTC
-    const today = getUTCToday();
-    const currentMonth = today.getUTCMonth();
-    const currentYear = today.getUTCFullYear();
+    // Get current date information
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const todayDate = now.getDate();
 
-    // 2) Get current month logs for this member
+    // Calculate previous month and year
+    const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+
+    // Handle month length differences
+    const lastDayOfPrevMonth = new Date(prevMonthYear, prevMonth + 1, 0).getDate();
+    const comparableDate = Math.min(todayDate, lastDayOfPrevMonth);
+
+    // Filter current month logs for this member up to today
     const currentMonthLogs = workoutLogs.filter(log => {
+        if (log.member_name !== memberName) return false;
+
         const logDate = new Date(log.date);
-        return (
-            log.member_name === memberName &&
-            logDate.getUTCMonth() === currentMonth &&
-            logDate.getUTCFullYear() === currentYear
-        );
+        return logDate.getFullYear() === currentYear &&
+            logDate.getMonth() === currentMonth &&
+            logDate.getDate() <= todayDate;
     });
-    // Count distinct days (each log.date is an ISO string, so we assume it represents a day)
+
+    // Filter previous month logs for this member up to the comparable date
+    const prevMonthLogs = workoutLogs.filter(log => {
+        if (log.member_name !== memberName) return false;
+
+        const logDate = new Date(log.date);
+        return logDate.getFullYear() === prevMonthYear &&
+            logDate.getMonth() === prevMonth &&
+            logDate.getDate() <= comparableDate;
+    });
+
+    // Count distinct workout days in current month
     const currentDaysSet = new Set(currentMonthLogs.map(log => log.date));
     const currentDistinctDays = currentDaysSet.size;
 
-    // 3) Days elapsed so far in current month (using UTC day-of-month)
-    const daysElapsed = today.getUTCDate();
+    // Calculate current month participation rate
+    // (percentage of days in the month so far that member worked out)
+    const participationRate = todayDate > 0 ? Math.round((currentDistinctDays / todayDate) * 100) : 0;
 
-    // 4) Participation rate for current month
-    const participationRate = daysElapsed > 0 ? Math.round((currentDistinctDays / daysElapsed) * 100) : 0;
-
-    // 5) Now for the previous month:
-    let prevMonth, prevMonthYear;
-    if (currentMonth === 0) {
-        prevMonth = 11; // December
-        prevMonthYear = currentYear - 1;
-    } else {
-        prevMonth = currentMonth - 1;
-        prevMonthYear = currentYear;
-    }
-    const prevMonthLogs = workoutLogs.filter(log => {
-        const logDate = new Date(log.date);
-        return (
-            log.member_name === memberName &&
-            logDate.getUTCMonth() === prevMonth &&
-            logDate.getUTCFullYear() === prevMonthYear
-        );
-    });
+    // Count distinct workout days in previous month's comparable period
     const prevDaysSet = new Set(prevMonthLogs.map(log => log.date));
     const prevDistinctDays = prevDaysSet.size;
 
-    // For previous month, use the total days in that month for a full comparison
-    const daysInPrevMonth = new Date(Date.UTC(prevMonthYear, prevMonth + 1, 0)).getUTCDate();
-    const prevParticipationRate = daysInPrevMonth > 0 ? Math.round((prevDistinctDays / daysInPrevMonth) * 100) : 0;
+    // Calculate previous month participation rate for the same period
+    const prevParticipationRate = comparableDate > 0 ? Math.round((prevDistinctDays / comparableDate) * 100) : 0;
 
-    // 6) Trend is the difference in percentage points
+    // Calculate trend (difference in percentage points)
     const trend = participationRate - prevParticipationRate;
 
     return { participationRate, trend };
@@ -483,69 +475,67 @@ export const calculateMemberStats = (workoutLogs, memberName) => {
 export const calculateOverallStats = (workoutLogs, members) => {
     if (!workoutLogs.length || !members.length) return {};
 
-    const today = getUTCToday();
-    const currentMonth = today.getUTCMonth();
-    const currentYear = today.getUTCFullYear();
+    // Get current date information
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const todayDate = now.getDate();
 
-    // Calculate MTD stats for current month using UTC
-    const mtdLogs = workoutLogs.filter(log => {
+    // Calculate previous month and year
+    const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+
+    // Handle month length differences (e.g., March 31 vs February 28)
+    const lastDayOfPrevMonth = new Date(prevMonthYear, prevMonth + 1, 0).getDate();
+    const comparableDate = Math.min(todayDate, lastDayOfPrevMonth);
+
+    // Filter logs for current month up to today
+    const currentMonthLogs = workoutLogs.filter(log => {
         const logDate = new Date(log.date);
-        return logDate.getUTCMonth() === currentMonth && logDate.getUTCFullYear() === currentYear;
+        return logDate.getFullYear() === currentYear &&
+            logDate.getMonth() === currentMonth &&
+            logDate.getDate() <= todayDate;
     });
-    const uniqueMembersMtd = new Set(mtdLogs.map(log => log.member_name)).size;
-    const participationRateMtd = Math.round((uniqueMembersMtd / members.length) * 100);
 
-    // **Total Workouts** for current month
-    const totalWorkoutsMtd = mtdLogs.length;
-
-    // **Total Duration** (in minutes) for current month
-    const totalDurationMtd = mtdLogs.reduce((sum, log) => sum + log.duration, 0);
-
-    // Calculate previous month's logs
-    let prevMonth, prevMonthYear;
-    if (currentMonth === 0) {
-        prevMonth = 11; // December
-        prevMonthYear = currentYear - 1;
-    } else {
-        prevMonth = currentMonth - 1;
-        prevMonthYear = currentYear;
-    }
-
+    // Filter logs for previous month up to the comparable date
     const prevMonthLogs = workoutLogs.filter(log => {
         const logDate = new Date(log.date);
-        return logDate.getUTCMonth() === prevMonth && logDate.getUTCFullYear() === prevMonthYear;
+        return logDate.getFullYear() === prevMonthYear &&
+            logDate.getMonth() === prevMonth &&
+            logDate.getDate() <= comparableDate;
     });
 
-    // **Previous month** stats
+    // Calculate MTD stats for current month
+    const uniqueMembersMtd = new Set(currentMonthLogs.map(log => log.member_name)).size;
+    const participationRateMtd = Math.round((uniqueMembersMtd / members.length) * 100);
+    const totalWorkoutsMtd = currentMonthLogs.length;
+    const totalDurationMtd = currentMonthLogs.reduce((sum, log) => sum + log.duration, 0);
+    const avgDurationMtd = totalWorkoutsMtd > 0 ? Math.round(totalDurationMtd / totalWorkoutsMtd) : 0;
+
+    // Calculate previous month's comparable period stats
     const uniqueMembersPrev = new Set(prevMonthLogs.map(log => log.member_name)).size;
     const participationRatePrev = Math.round((uniqueMembersPrev / members.length) * 100);
     const totalWorkoutsPrev = prevMonthLogs.length;
     const totalDurationPrev = prevMonthLogs.reduce((sum, log) => sum + log.duration, 0);
+    const avgDurationPrev = totalWorkoutsPrev > 0 ? Math.round(totalDurationPrev / totalWorkoutsPrev) : 0;
 
-    // **Trends**: differences or % changes from last month
+    // Calculate trends (comparing equivalent date ranges)
     const participationTrend = participationRateMtd - participationRatePrev;
+
+    // For workouts, duration, and average duration, calculate percentage change
     const totalWorkoutsTrend = totalWorkoutsPrev > 0
         ? Math.round(((totalWorkoutsMtd - totalWorkoutsPrev) / totalWorkoutsPrev) * 100)
         : (totalWorkoutsMtd > 0 ? 100 : 0);
 
-    // For total duration, do a % difference as well
     const totalDurationTrend = totalDurationPrev > 0
         ? Math.round(((totalDurationMtd - totalDurationPrev) / totalDurationPrev) * 100)
         : (totalDurationMtd > 0 ? 100 : 0);
 
-    // Average workouts per active member
-    const workoutsPerMemberMtd = uniqueMembersMtd > 0 ? Math.round(totalWorkoutsMtd / uniqueMembersMtd * 10) / 10 : 0;
+    const avgDurationTrend = avgDurationPrev > 0
+        ? Math.round(((avgDurationMtd - avgDurationPrev) / avgDurationPrev) * 100)
+        : (avgDurationMtd > 0 ? 100 : 0);
 
-    // Average duration per workout (in minutes)
-    const avgDurationMtd = totalWorkoutsMtd > 0 ? Math.round(totalDurationMtd / totalWorkoutsMtd) : 0;
-
-    // Compute previous month's average duration:
-    const prevMonthAvgDuration = totalWorkoutsPrev > 0 ? Math.round(totalDurationPrev / totalWorkoutsPrev) : 0;
-
-    // Calculate the trend as a % difference from last month:
-    const avgDurationTrend = prevMonthAvgDuration > 0 ? Math.round(((avgDurationMtd - prevMonthAvgDuration) / prevMonthAvgDuration) * 100) : (avgDurationMtd > 0 ? 100 : 0);
-
-    // Program to date stats
+    // Program to date stats (this part stays the same)
     const ptdLogs = workoutLogs.filter(log => {
         const logDate = new Date(log.date);
         return logDate >= PROGRAM_START_DATE;
@@ -585,13 +575,12 @@ export const calculateOverallStats = (workoutLogs, members) => {
             uniqueMembers: uniqueMembersMtd,
             participationRate: participationRateMtd,
             totalWorkouts: totalWorkoutsMtd,
-            totalDuration: totalDurationMtd,  // total minutes
-            workoutsPerMember: workoutsPerMemberMtd,
+            totalDuration: totalDurationMtd,
             avgDuration: avgDurationMtd,
-            avgDurationTrend,
-            trend: participationTrend,            // MTD participation trend
-            totalWorkoutsTrend,                   // MTD total workouts trend
-            totalDurationTrend                    // MTD total duration trend
+            trend: participationTrend,
+            totalWorkoutsTrend,
+            totalDurationTrend,
+            avgDurationTrend
         },
         ptd: {
             uniqueMembers: uniqueMembersPtd,

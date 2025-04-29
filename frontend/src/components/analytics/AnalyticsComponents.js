@@ -7,7 +7,7 @@ import {
     IconButton,
     alpha
 } from "@mui/material";
-import { Info, ArrowUpward, ArrowDownward } from '@mui/icons-material';
+import {Info, ArrowUpward, ArrowDownward, ArrowRightAlt} from '@mui/icons-material';
 
 /**
  * Reusable Stat Card Component
@@ -21,8 +21,13 @@ export const StatCard = ({
                              color = '#ffb800',
                              bgColor = 'rgba(255,184,0,0.15)'
                          }) => {
-    const trendIcon = trend > 0 ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />;
-    const trendColor = trend > 0 ? '#4caf50' : '#ff5252';
+    // Updated trend icon logic - use horizontal arrow for 0%
+    const trendIcon = trend > 0 ? <ArrowUpward fontSize="small" /> :
+        trend < 0 ? <ArrowDownward fontSize="small" /> :
+            <ArrowRightAlt fontSize="small" />;
+
+    // This is good - already shows 0% as green
+    const trendColor = trend >= 0 ? '#4caf50' : '#ff5252';
 
     return (
         <Paper
@@ -161,87 +166,6 @@ export const ChartCard = ({
         </Paper>
     );
 };
-
-/**
- * Reusable Progress Card Component
- */
-export const ProgressCard = ({
-                                 title,
-                                 value,
-                                 max,
-                                 percentage,
-                                 color = '#ffb800',
-                                 subtitle,
-                                 icon
-                             }) => {
-    return (
-        <Paper
-            elevation={0}
-            sx={{
-                height: '100%',
-                background: 'rgba(30,30,30,0.6)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '16px',
-                border: '1px solid rgba(255,255,255,0.05)',
-                overflow: 'hidden',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
-                }
-            }}
-        >
-            <Box sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    {icon && (
-                        <Box
-                            sx={{
-                                mr: 2,
-                                width: 40,
-                                height: 40,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: alpha(color, 0.15),
-                                borderRadius: '10px',
-                                color: color
-                            }}
-                        >
-                            {icon}
-                        </Box>
-                    )}
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {title}
-                    </Typography>
-                </Box>
-
-                <Box sx={{ mb: 1 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                        {value} / {max} ({percentage}%)
-                    </Typography>
-                    <Box sx={{ width: '100%', height: '8px', bgcolor: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                        <Box
-                            sx={{
-                                width: `${percentage}%`,
-                                height: '100%',
-                                bgcolor: color,
-                                borderRadius: '4px',
-                                transition: 'width 1s ease-in-out'
-                            }}
-                        />
-                    </Box>
-                </Box>
-
-                {subtitle && (
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {subtitle}
-                    </Typography>
-                )}
-            </Box>
-        </Paper>
-    );
-};
-
 /**
  * Reusable RadialProgress Component
  */
@@ -331,7 +255,6 @@ export const RadialProgressOld = ({
  */
 export const RadialProgress = ({
                                    value,
-                                   maxValue,
                                    size = 120,
                                    strokeWidth = 8,
                                    color = '#ffb800',

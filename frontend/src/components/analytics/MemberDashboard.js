@@ -980,7 +980,14 @@ const processMemberComparisonData = (logs, members) => {
             activeDays: member.activeDays.size,
             uniqueWorkoutTypes: member.workoutTypes.size
         }))
-        .sort((a, b) => b.workoutCount - a.workoutCount);
+        .sort((a, b) => {
+            // First compare by top active days
+            if (b.activeDays !== a.activeDays) {
+                return b.activeDays - a.activeDays;
+            }
+            // If active days are equal, compare by top total workout duration
+            return b.totalDuration - a.totalDuration;
+        });
 };
 
 // Custom tooltip for the Workout Type Distribution PieChart with white text
