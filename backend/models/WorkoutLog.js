@@ -28,6 +28,10 @@ const WorkoutLog = sequelize.define("WorkoutLog", {
     duration: {
         type: DataTypes.INTEGER,
         allowNull: false,
+    },
+    program_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
     }
 }, {
     tableName: "workout_logs",

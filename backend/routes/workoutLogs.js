@@ -50,7 +50,7 @@ router.get("/", authenticateToken, async (req, res) => {
 // Add a new workout log
 router.post("/", authenticateToken, async (req, res) => {
     try {
-        const { member_name, workout_name, date, duration } = req.body;
+        const { member_name, member_id: bodyMemberId, workout_name, date, duration, program_id } = req.body;
 
         console.log("Received log data:", { member_name, workout_name, date, duration });
 
@@ -66,19 +66,18 @@ router.post("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Duration must be a number." });
         }
 
-        // Get member_id - either from the authenticated user or by looking up the member_name
-        let member_id = req.user.id; // Default to the authenticated user
+        // Determine target member_id
+        let member_id = req.user.id; // default to the authenticated user
 
-        // If adding a log for a different member (admin functionality)
-        if (member_name && member_name !== req.user.member_name && req.user.role === 'admin') {
-            const member = await Member.findOne({
-                where: { member_name }
-            });
+        const isAdminLike = req.user.role === 'admin' || req.user.global_role === 'global_admin';
 
+        if (bodyMemberId && isAdminLike) {
+            member_id = bodyMemberId;
+        } else if (member_name && member_name !== req.user.member_name && isAdminLike) {
+            const member = await Member.findOne({ where: { member_name } });
             if (!member) {
                 return res.status(404).json({ error: "Member not found." });
             }
-
             member_id = member.id;
         }
 
@@ -87,7 +86,8 @@ router.post("/", authenticateToken, async (req, res) => {
             member_id,
             workout_name,
             date,
-            duration: parseInt(duration, 10)
+            duration: parseInt(duration, 10),
+            program_id: program_id || null
         });
 
         // Get the member info to include in response

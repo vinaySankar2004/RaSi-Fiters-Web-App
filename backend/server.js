@@ -4,8 +4,17 @@ const { connectDB } = require("./config/database");
 require("./models/index");
 const authRoutes = require("./routes/auth");
 const memberRoutes = require("./routes/members");
+const programMembershipRoutes = require("./routes/programMemberships");
+const memberMetricsRoutes = require("./routes/memberMetrics");
+const memberHistoryRoutes = require("./routes/memberHistory");
+const memberStreaksRoutes = require("./routes/memberStreaks");
+const memberRecentRoutes = require("./routes/memberRecent");
 const workoutRoutes = require("./routes/workouts");
 const workoutLogRoutes = require("./routes/workoutLogs");
+const analyticsRoutes = require("./routes/analytics");
+const analyticsV2Routes = require("./routes/analyticsV2");
+const dailyHealthLogRoutes = require("./routes/dailyHealthLogs");
+const programRoutes = require("./routes/programs");
 require("dotenv").config();
 
 const app = express();
@@ -24,8 +33,17 @@ app.use(express.json());
 // Register Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/members", memberRoutes);
+app.use("/api/program-memberships", programMembershipRoutes);
+app.use("/api/member-metrics", memberMetricsRoutes);
+app.use("/api/member-history", memberHistoryRoutes);
+app.use("/api/member-streaks", memberStreaksRoutes);
+app.use("/api/member-recent", memberRecentRoutes);
 app.use("/api/workouts", workoutRoutes);
 app.use("/api/workout-logs", workoutLogRoutes);
+app.use("/api/daily-health-logs", dailyHealthLogRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/analytics-v2", analyticsV2Routes);
+app.use("/api/programs", programRoutes);
 
 // for testing purposes
 app.get("/api/test", (req, res) => {

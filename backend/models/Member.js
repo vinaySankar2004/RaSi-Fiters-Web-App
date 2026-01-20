@@ -39,7 +39,16 @@ const Member = sequelize.define("Member", {
         allowNull: false,
         defaultValue: 'member',
         validate: {
-            isIn: [['admin', 'member']]
+            // Include legacy logger value to avoid validation errors on existing data
+            isIn: [['admin', 'member', 'logger']]
+        }
+    },
+    global_role: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'standard',
+        validate: {
+            isIn: [['standard', 'global_admin']]
         }
     },
     date_joined: {

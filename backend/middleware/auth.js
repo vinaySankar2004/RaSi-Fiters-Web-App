@@ -24,7 +24,9 @@ const isAdmin = (req, res, next) => {
         return res.status(401).json({ error: "Authentication required." });
     }
 
-    if (req.user.role !== 'admin') {
+    const isAdminRole = req.user.role === 'admin';
+    const isGlobalAdmin = req.user.global_role === 'global_admin';
+    if (!isAdminRole && !isGlobalAdmin) {
         return res.status(403).json({ error: "Access denied. Admin privileges required." });
     }
 

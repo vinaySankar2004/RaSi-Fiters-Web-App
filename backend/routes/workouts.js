@@ -32,6 +32,22 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
     }
 });
 
+// POST new workout (mobile) - admin only
+router.post("/mobile", authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { workout_name } = req.body;
+        if (!workout_name) {
+            return res.status(400).json({ error: "Workout name is required." });
+        }
+
+        const newWorkout = await Workout.create({ workout_name });
+        res.status(201).json(newWorkout);
+    } catch (err) {
+        console.error("Error adding workout (mobile):", err);
+        res.status(500).json({ error: "Failed to add workout." });
+    }
+});
+
 // UPDATE existing workout - admin only
 router.put("/:workout_name", authenticateToken, isAdmin, async (req, res) => {
     try {
