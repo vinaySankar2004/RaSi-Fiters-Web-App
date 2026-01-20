@@ -56,39 +56,41 @@ struct LoginView: View {
                 }
 
                 Button(action: { Task { await handleLogin() } }) {
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(colorScheme == .dark ? .black : .white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    } else {
-                        Text("Login")
-                            .font(.headline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                    Group {
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(colorScheme == .dark ? .black : .white)
+                        } else {
+                            Text("Login")
+                                .font(.headline.weight(.semibold))
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .frame(maxWidth: 240)
+                    .foregroundColor(colorScheme == .dark ? .black : .white)
+                    .background(
+                        Capsule()
+                            .fill(Color(.label))
+                    )
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(colorScheme == .dark ? .black : .white)
-                .frame(maxWidth: 240)
-                .background(
-                    Capsule()
-                        .fill(Color(.label))
-                )
                 .adaptiveShadow(radius: 8, y: 4)
                 .disabled(isLoading || username.isEmpty || password.isEmpty)
 
-                Text("Training hard? Login to track your progress.")
-                    .font(.footnote)
-                    .foregroundColor(Color(.secondaryLabel))
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 6)
+                VStack(spacing: 4) {
+                    Text("Training hard? Login to track your progress.")
+                        .font(.footnote)
+                        .foregroundColor(Color(.secondaryLabel))
+                        .frame(maxWidth: .infinity, alignment: .center)
 
-                Link("Privacy Policy", destination: privacyPolicyURL)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundColor(.appOrange)
-                    .padding(.top, 2)
+                    Link("Privacy Policy", destination: privacyPolicyURL)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(.appOrange)
+                }
+                .padding(.top, 6)
 
                 Spacer()
             }
