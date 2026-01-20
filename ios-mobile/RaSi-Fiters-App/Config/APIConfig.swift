@@ -7,16 +7,19 @@ enum APIConfig {
     // Physical device on same LAN as your Mac — replace with your Mac’s IP when you test on device.
     static let deviceBaseURL = URL(string: "http://192.168.0.100:5001/api")!
 
-    // Hosted Render URL (placeholder; update when ready).
-    static let renderBaseURL = URL(string: "https://<your-render-app>.onrender.com/api")!
+    // Hosted Render URL.
+    static let renderBaseURL = URL(string: "https://rasi-fiters-api.onrender.com/api")!
 
-    // Active base URL; tweak this if you want to force a specific endpoint.
+    // Active base URL; debug uses local endpoints, release uses Render.
     static var activeBaseURL: URL {
+        #if DEBUG
         #if targetEnvironment(simulator)
         return simulatorBaseURL
         #else
         return deviceBaseURL
         #endif
+        #else
+        return renderBaseURL
+        #endif
     }
 }
-

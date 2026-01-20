@@ -10,9 +10,22 @@
 		8A5EC6272EEA7CFA003215B8 /* RaSi-Fiters-App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RaSi-Fiters-App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8A3D37A12F203BA700E22FD2 /* Exceptions for "RaSi-Fiters-App" folder in "RaSi-Fiters-App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8A5EC6262EEA7CFA003215B8 /* RaSi-Fiters-App */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8A5EC6292EEA7CFA003215B8 /* RaSi-Fiters-App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8A3D37A12F203BA700E22FD2 /* Exceptions for "RaSi-Fiters-App" folder in "RaSi-Fiters-App" target */,
+			);
 			path = "RaSi-Fiters-App";
 			sourceTree = "<group>";
 		};
@@ -256,6 +269,8 @@
 				DEVELOPMENT_TEAM = VSTTF2AM22;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RaSi-Fiters-App/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "RaSi Fit'ers";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +303,8 @@
 				DEVELOPMENT_TEAM = VSTTF2AM22;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RaSi-Fiters-App/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "RaSi Fit'ers";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
