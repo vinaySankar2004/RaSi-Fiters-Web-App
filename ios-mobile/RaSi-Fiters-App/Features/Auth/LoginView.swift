@@ -10,6 +10,7 @@ struct LoginView: View {
     @State private var alertMessage: String?
     @State private var isShowingAlert: Bool = false
     @State private var navigateToProgramPicker: Bool = false
+    private let privacyPolicyURL = URL(string: "https://vinaysankar2004.github.io/RaSi-Fiters-Web-App/")!
 
     var body: some View {
         ZStack {
@@ -83,6 +84,11 @@ struct LoginView: View {
                     .foregroundColor(Color(.secondaryLabel))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 6)
+
+                Link("Privacy Policy", destination: privacyPolicyURL)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.appOrange)
+                    .padding(.top, 2)
 
                 Spacer()
             }
