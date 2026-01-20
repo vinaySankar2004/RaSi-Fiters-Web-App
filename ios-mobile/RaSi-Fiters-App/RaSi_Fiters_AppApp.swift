@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct RaSi_Fiters_AppApp: App {
+    @StateObject private var themeManager = ThemeManager()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppRootView()
+                .environmentObject(themeManager)
+                .preferredColorScheme(themeManager.preferredColorScheme)
         }
     }
 }

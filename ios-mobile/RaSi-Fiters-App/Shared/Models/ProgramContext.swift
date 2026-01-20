@@ -1,0 +1,1065 @@
+import Foundation
+import Combine
+
+/// Shared program context so all tabs and queries know the active program.
+final class ProgramContext: ObservableObject {
+    @Published var authToken: String?
+    @Published var refreshToken: String? = nil
+    @Published var name: String
+    @Published var status: String
+    @Published var startDate: Date
+    @Published var endDate: Date
+    @Published var adminName: String
+    @Published var activeMembers: Int
+    @Published var atRiskMembers: Int
+    @Published var totalLogsThisPeriod: Int
+    @Published var totalWorkouts: Int
+    @Published var totalDurationHours: Int
+    @Published var averageDurationMinutes: Int
+    @Published var logsChangePct: Double
+    @Published var durationChangePct: Double
+    @Published var avgDurationChangePct: Double
+    @Published var timelinePoints: [AnalyticsSummary.TimelinePoint]
+    @Published var distributionByDay: [String: AnalyticsSummary.DayDistribution]
+    @Published var distributionByDayCounts: [String: Int]
+    @Published var topPerformers: [AnalyticsSummary.TopPerformer]
+    @Published var topWorkoutTypes: [AnalyticsSummary.TopWorkoutType]
+    @Published var programId: String?
+    @Published var programs: [APIClient.ProgramDTO]
+    @Published var mtdParticipation: APIClient.MTDParticipationDTO?
+    @Published var totalWorkoutsMTD: Int
+    @Published var totalWorkoutsChangePct: Double
+    @Published var totalDurationHoursMTD: Double
+    @Published var totalDurationChangePct: Double
+    @Published var avgDurationMinutesMTD: Int
+    @Published var avgDurationChangePctMTD: Double
+    @Published var activityTimeline: [APIClient.ActivityTimelinePoint]
+    @Published var activityTimelineLabel: String
+    @Published var activityTimelineDailyAverage: Double
+    @Published var healthTimeline: [APIClient.HealthTimelinePoint]
+    @Published var healthTimelineDailyAverageSleep: Double
+    @Published var healthTimelineDailyAverageFood: Double
+    @Published var workoutTypes: [APIClient.WorkoutTypeDTO]
+    @Published var workoutTypesTotal: Int
+    @Published var workoutTypeMostPopular: APIClient.WorkoutTypeMostPopularDTO?
+    @Published var workoutTypeLongestDuration: APIClient.WorkoutTypeLongestDurationDTO?
+    @Published var workoutTypeHighestParticipation: APIClient.WorkoutTypeHighestParticipationDTO?
+    @Published var members: [APIClient.MemberDTO]
+    @Published var membersProgramId: String?
+    @Published var workouts: [APIClient.WorkoutDTO]
+    @Published var lastFetchedPeriod: String?
+    @Published var memberMetrics: [APIClient.MemberMetricsDTO] = []
+    @Published var memberMetricsTotal: Int = 0
+    @Published var memberMetricsFiltered: Int = 0
+    @Published var memberMetricsSort: String = "workouts"
+    @Published var memberMetricsDirection: String = "desc"
+    @Published var memberMetricsRangeStart: Date?
+    @Published var memberMetricsRangeEnd: Date?
+    @Published var globalRole: String = "standard"
+    @Published var selectedMemberOverview: APIClient.MemberMetricsDTO?
+    @Published var memberHistory: [APIClient.MemberHistoryPoint] = []
+    @Published var memberHistoryLabel: String = ""
+    @Published var memberHistoryDailyAverage: Double = 0
+    @Published var memberHistoryStartDate: Date = Date()
+    @Published var memberHistoryEndDate: Date = Date()
+    @Published var memberStreaks: APIClient.MemberStreaksResponse?
+    @Published var memberRecent: [APIClient.MemberRecentWorkoutsResponse.Item] = []
+    @Published var memberHealthLogs: [APIClient.MemberHealthLogResponse.Item] = []
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
+    
+    // Logged-in user info
+    @Published var loggedInUserId: String?
+    @Published var loggedInUserName: String?
+    @Published var loggedInUsername: String?
+    @Published var loggedInUserProgramRole: String = "member" // "admin" or "member" in current program
+    
+    // Membership details for program management
+    @Published var membershipDetails: [APIClient.MembershipDetailDTO] = []
+
+    init(
+        authToken: String? = nil,
+        name: String = "Program 1",
+        status: String = "Active",
+        startDate: Date = Date(timeIntervalSinceNow: -180 * 24 * 60 * 60),
+        endDate: Date = Calendar.current.date(byAdding: .day, value: 180, to: Date()) ?? Date(),
+        adminName: String = "Admin",
+        activeMembers: Int = 35,
+        atRiskMembers: Int = 2,
+        totalLogsThisPeriod: Int = 0,
+        totalWorkouts: Int = 0,
+        totalDurationHours: Int = 0,
+        averageDurationMinutes: Int = 0,
+        logsChangePct: Double = 0,
+        durationChangePct: Double = 0,
+        avgDurationChangePct: Double = 0,
+        timelinePoints: [AnalyticsSummary.TimelinePoint] = [],
+        distributionByDay: [String: AnalyticsSummary.DayDistribution] = [:],
+        distributionByDayCounts: [String: Int] = [:],
+        topPerformers: [AnalyticsSummary.TopPerformer] = [],
+        topWorkoutTypes: [AnalyticsSummary.TopWorkoutType] = [],
+        programId: String? = nil,
+        programs: [APIClient.ProgramDTO] = [],
+        mtdParticipation: APIClient.MTDParticipationDTO? = nil,
+        totalWorkoutsMTD: Int = 0,
+        totalWorkoutsChangePct: Double = 0,
+        totalDurationHoursMTD: Double = 0,
+        totalDurationChangePct: Double = 0,
+        avgDurationMinutesMTD: Int = 0,
+        avgDurationChangePctMTD: Double = 0,
+        activityTimeline: [APIClient.ActivityTimelinePoint] = [],
+        activityTimelineLabel: String = "",
+        activityTimelineDailyAverage: Double = 0,
+        healthTimeline: [APIClient.HealthTimelinePoint] = [],
+        healthTimelineDailyAverageSleep: Double = 0,
+        healthTimelineDailyAverageFood: Double = 0,
+        workoutTypes: [APIClient.WorkoutTypeDTO] = [],
+        workoutTypesTotal: Int = 0,
+        workoutTypeMostPopular: APIClient.WorkoutTypeMostPopularDTO? = nil,
+        workoutTypeLongestDuration: APIClient.WorkoutTypeLongestDurationDTO? = nil,
+        workoutTypeHighestParticipation: APIClient.WorkoutTypeHighestParticipationDTO? = nil,
+        members: [APIClient.MemberDTO] = [],
+        membersProgramId: String? = nil,
+        workouts: [APIClient.WorkoutDTO] = [],
+        lastFetchedPeriod: String? = nil,
+        memberHistoryLabel: String = "",
+        memberHistoryDailyAverage: Double = 0,
+        memberHistoryStartDate: Date = Date(),
+        memberHistoryEndDate: Date = Date()
+    ) {
+        self.authToken = authToken
+        self.name = name
+        self.status = status
+        self.startDate = startDate
+        self.endDate = endDate
+        self.adminName = adminName
+        self.activeMembers = activeMembers
+        self.atRiskMembers = atRiskMembers
+        self.totalLogsThisPeriod = totalLogsThisPeriod
+        self.totalWorkouts = totalWorkouts
+        self.totalDurationHours = totalDurationHours
+        self.averageDurationMinutes = averageDurationMinutes
+        self.logsChangePct = logsChangePct
+        self.durationChangePct = durationChangePct
+        self.avgDurationChangePct = avgDurationChangePct
+        self.timelinePoints = timelinePoints
+        self.distributionByDay = distributionByDay
+        self.distributionByDayCounts = distributionByDayCounts
+        self.topPerformers = topPerformers
+        self.topWorkoutTypes = topWorkoutTypes
+        self.programId = programId
+        self.programs = programs
+        self.mtdParticipation = mtdParticipation
+        self.totalWorkoutsMTD = totalWorkoutsMTD
+        self.totalWorkoutsChangePct = totalWorkoutsChangePct
+        self.totalDurationHoursMTD = totalDurationHoursMTD
+        self.totalDurationChangePct = totalDurationChangePct
+        self.avgDurationMinutesMTD = avgDurationMinutesMTD
+        self.avgDurationChangePctMTD = avgDurationChangePctMTD
+        self.activityTimeline = activityTimeline
+        self.activityTimelineLabel = activityTimelineLabel
+        self.activityTimelineDailyAverage = activityTimelineDailyAverage
+        self.healthTimeline = healthTimeline
+        self.healthTimelineDailyAverageSleep = healthTimelineDailyAverageSleep
+        self.healthTimelineDailyAverageFood = healthTimelineDailyAverageFood
+        self.workoutTypes = workoutTypes
+        self.workoutTypesTotal = workoutTypesTotal
+        self.workoutTypeMostPopular = workoutTypeMostPopular
+        self.workoutTypeLongestDuration = workoutTypeLongestDuration
+        self.workoutTypeHighestParticipation = workoutTypeHighestParticipation
+        self.members = members
+        self.membersProgramId = membersProgramId
+        self.workouts = workouts
+        self.lastFetchedPeriod = lastFetchedPeriod
+        self.memberHistoryLabel = memberHistoryLabel
+        self.memberHistoryDailyAverage = memberHistoryDailyAverage
+        self.memberHistoryStartDate = memberHistoryStartDate
+        self.memberHistoryEndDate = memberHistoryEndDate
+
+        restorePersistedSession()
+        configureAPIClientHandlers()
+    }
+
+    var dateRangeLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        let start = formatter.string(from: startDate)
+        formatter.dateFormat = "MMM d, yyyy"
+        let end = formatter.string(from: endDate)
+        return "\(start) – \(end)"
+    }
+
+    var totalDays: Int {
+        Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+    }
+
+    var elapsedDays: Int {
+        let today = Date()
+        guard today > startDate else { return 0 }
+        return min(Calendar.current.dateComponents([.day], from: startDate, to: today).day ?? 0, totalDays)
+    }
+
+    var remainingDays: Int {
+        max(totalDays - elapsedDays, 0)
+    }
+
+    var completionPercent: Int {
+        guard totalDays > 0 else { return 0 }
+        return Int(round((Double(elapsedDays) / Double(totalDays)) * 100))
+    }
+
+    var adminInitials: String {
+        adminName
+            .split(separator: " ")
+            .compactMap { $0.first }
+            .prefix(2)
+            .map { String($0).uppercased() }
+            .joined()
+    }
+
+    func apply(program: APIClient.ProgramDTO) {
+        name = program.name
+        status = program.status ?? "Active"
+        activeMembers = program.active_members ?? 0
+        atRiskMembers = 0
+        programId = program.id
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let start = program.start_date, let d = formatter.date(from: start) {
+            startDate = d
+        }
+        if let end = program.end_date, let d = formatter.date(from: end) {
+            endDate = d
+        }
+    }
+
+    @MainActor
+    func loadLookupData() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        do {
+            let membersData: [APIClient.MemberDTO]
+            if let pid = programId {
+                membersData = try await APIClient.shared.fetchProgramMembers(token: token, programId: pid)
+            } else {
+                membersData = try await APIClient.shared.fetchMembers(token: token)
+            }
+            let workoutsData = try await APIClient.shared.fetchWorkouts(token: token)
+            let programsData = try await APIClient.shared.fetchPrograms(token: token)
+            members = membersData
+            membersProgramId = programId
+            workouts = workoutsData
+            programs = programsData
+        } catch {
+            // Do not fail hard; just log error
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadMemberMetrics(
+        search: String = "",
+        sort: String = "workouts",
+        direction: String = "desc",
+        filters: [String: String] = [:],
+        dateRange: (start: Date?, end: Date?) = (nil, nil)
+    ) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for member metrics."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchMemberMetrics(
+                token: token,
+                programId: pid,
+                search: search,
+                sort: sort,
+                direction: direction,
+                filters: filters
+            )
+            memberMetrics = resp.members
+            memberMetricsTotal = resp.total
+            memberMetricsFiltered = resp.filtered
+            memberMetricsSort = resp.sort
+            memberMetricsDirection = resp.direction
+            if let dr = resp.date_range {
+                memberMetricsRangeStart = dr.start.flatMap { Self.dateFromString($0) }
+                memberMetricsRangeEnd = dr.end.flatMap { Self.dateFromString($0) }
+            } else {
+                memberMetricsRangeStart = dateRange.start
+                memberMetricsRangeEnd = dateRange.end
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadMemberOverview(
+        memberId: String,
+        filters: [String: String] = [:],
+        dateRange: (start: Date?, end: Date?) = (nil, nil)
+    ) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for member metrics."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchMemberMetrics(
+                token: token,
+                programId: pid,
+                search: nil,
+                sort: nil,
+                direction: nil,
+                memberId: memberId,
+                filters: filters
+            )
+            selectedMemberOverview = resp.members.first
+            if let dr = resp.date_range {
+                memberMetricsRangeStart = dr.start.flatMap { Self.dateFromString($0) }
+                memberMetricsRangeEnd = dr.end.flatMap { Self.dateFromString($0) }
+            } else {
+                memberMetricsRangeStart = dateRange.start
+                memberMetricsRangeEnd = dateRange.end
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadMemberHistory(memberId: String, period: String) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for member history."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchMemberHistory(
+                token: token,
+                programId: pid,
+                memberId: memberId,
+                period: period
+            )
+            memberHistory = resp.buckets
+            memberHistoryLabel = resp.label
+            memberHistoryDailyAverage = resp.daily_average
+            memberHistoryStartDate = Self.dateFromString(resp.start) ?? Date()
+            memberHistoryEndDate = Self.dateFromString(resp.end) ?? Date()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadMemberStreaks(memberId: String) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for member streaks."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchMemberStreaks(
+                token: token,
+                programId: pid,
+                memberId: memberId
+            )
+            memberStreaks = resp
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadMemberRecent(
+        memberId: String,
+        limit: Int = 1000,
+        startDate: String? = nil,
+        endDate: String? = nil,
+        sortBy: String? = nil,
+        sortDir: String? = nil
+    ) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for member recent."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchMemberRecentWorkouts(
+                token: token,
+                programId: pid,
+                memberId: memberId,
+                limit: limit,
+                startDate: startDate,
+                endDate: endDate,
+                sortBy: sortBy,
+                sortDir: sortDir
+            )
+            memberRecent = resp.items
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadMemberHealthLogs(
+        memberId: String,
+        limit: Int = 1000,
+        startDate: String? = nil,
+        endDate: String? = nil,
+        sortBy: String? = nil,
+        sortDir: String? = nil
+    ) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for daily health logs."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchMemberHealthLogs(
+                token: token,
+                programId: pid,
+                memberId: memberId,
+                limit: limit,
+                startDate: startDate,
+                endDate: endDate,
+                sortBy: sortBy,
+                sortDir: sortDir
+            )
+            memberHealthLogs = resp.items
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    @MainActor
+    func deleteWorkoutLog(memberId: String, workoutName: String, date: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        try await APIClient.shared.deleteWorkoutLog(
+            token: token,
+            memberId: memberId,
+            workoutName: workoutName,
+            date: date
+        )
+    }
+
+    @MainActor
+    func updateDailyHealthLog(
+        memberId: String,
+        logDate: String,
+        sleepHours: Double?,
+        foodQuality: Int?
+    ) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+        try await APIClient.shared.updateDailyHealthLog(
+            token: token,
+            programId: pid,
+            memberId: memberId,
+            logDate: logDate,
+            sleepHours: sleepHours,
+            foodQuality: foodQuality
+        )
+    }
+
+    @MainActor
+    func deleteDailyHealthLog(memberId: String, logDate: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+        try await APIClient.shared.deleteDailyHealthLog(
+            token: token,
+            programId: pid,
+            memberId: memberId,
+            logDate: logDate
+        )
+    }
+
+    private static func dateFromString(_ s: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.date(from: s)
+    }
+
+    @MainActor
+    func loadMTDParticipation() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for MTD participation."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchMTDParticipation(token: token, programId: pid)
+            mtdParticipation = data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadTotalWorkoutsMTD() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for total workouts."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchTotalWorkoutsMTD(token: token, programId: pid)
+            totalWorkoutsMTD = data.total_workouts
+            totalWorkoutsChangePct = data.change_pct
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadTotalDurationMTD() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for total duration."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchTotalDurationMTD(token: token, programId: pid)
+            let hours = Double(data.total_minutes) / 60.0
+            totalDurationHoursMTD = (hours * 10).rounded() / 10.0
+            totalDurationChangePct = data.change_pct
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadAvgDurationMTD() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for avg duration."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchAvgDurationMTD(token: token, programId: pid)
+            avgDurationMinutesMTD = data.avg_minutes
+            avgDurationChangePctMTD = data.change_pct
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadActivityTimeline(period: String) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for activity timeline."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchActivityTimeline(token: token, period: period, programId: pid)
+            activityTimeline = resp.buckets
+            activityTimelineLabel = resp.label
+            activityTimelineDailyAverage = resp.daily_average
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadHealthTimeline(period: String, memberId: String? = nil) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for health timeline."
+            return
+        }
+        do {
+            let resp = try await APIClient.shared.fetchHealthTimeline(
+                token: token,
+                period: period,
+                programId: pid,
+                memberId: memberId
+            )
+            healthTimeline = resp.buckets
+            healthTimelineDailyAverageSleep = resp.daily_average_sleep
+            healthTimelineDailyAverageFood = resp.daily_average_food
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadAnalytics(period: String) async {
+        guard let token = authToken, !token.isEmpty else {
+            errorMessage = "No auth token set. Log in to load analytics."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let summary = try await APIClient.shared.fetchAnalyticsSummary(token: token, period: period, programId: programId)
+            totalLogsThisPeriod = summary.totals.logs
+            totalWorkouts = summary.totals.logs
+            totalDurationHours = Int(round(Double(summary.totals.duration_minutes) / 60.0))
+            averageDurationMinutes = summary.totals.avg_duration_minutes
+            logsChangePct = summary.totals.logs_change_pct
+            durationChangePct = summary.totals.duration_change_pct
+            avgDurationChangePct = summary.totals.avg_duration_change_pct
+            activeMembers = summary.members.active
+            atRiskMembers = summary.members.at_risk
+            timelinePoints = summary.timeline
+            distributionByDay = summary.distribution_by_day
+            topPerformers = summary.top_performers
+            topWorkoutTypes = summary.top_workout_types
+            lastFetchedPeriod = period
+            distributionByDayCounts = summary.distribution_by_day.mapValues { $0.workouts }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    @MainActor
+    func loadDistributionByDay() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for distribution."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchDistributionByDay(token: token, programId: pid)
+            distributionByDayCounts = [
+                "Sunday": data.Sunday,
+                "Monday": data.Monday,
+                "Tuesday": data.Tuesday,
+                "Wednesday": data.Wednesday,
+                "Thursday": data.Thursday,
+                "Friday": data.Friday,
+                "Saturday": data.Saturday
+            ]
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadWorkoutTypes(memberId: String? = nil, limit: Int = 100) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for workout types."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchWorkoutTypes(token: token, programId: pid, memberId: memberId, limit: limit)
+            workoutTypes = data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadWorkoutTypesTotal(memberId: String? = nil) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for workout types total."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchWorkoutTypesTotal(token: token, programId: pid, memberId: memberId)
+            workoutTypesTotal = data.total_types
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadWorkoutTypeMostPopular(memberId: String? = nil) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for most popular workout type."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchWorkoutTypeMostPopular(token: token, programId: pid, memberId: memberId)
+            workoutTypeMostPopular = data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadWorkoutTypeLongestDuration(memberId: String? = nil) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for longest duration workout type."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchWorkoutTypeLongestDuration(token: token, programId: pid, memberId: memberId)
+            workoutTypeLongestDuration = data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func loadWorkoutTypeHighestParticipation(memberId: String? = nil) async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for highest participation workout type."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchWorkoutTypeHighestParticipation(token: token, programId: pid, memberId: memberId)
+            workoutTypeHighestParticipation = data
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Role & Permission Helpers
+
+    var isGlobalAdmin: Bool {
+        globalRole == "global_admin"
+    }
+
+    var isProgramAdmin: Bool {
+        loggedInUserProgramRole == "admin" || isGlobalAdmin
+    }
+
+    var canEditProgramData: Bool {
+        isProgramAdmin
+    }
+
+    var loggedInUserInitials: String {
+        guard let name = loggedInUserName else { return "?" }
+        return name
+            .split(separator: " ")
+            .compactMap { $0.first }
+            .prefix(2)
+            .map { String($0).uppercased() }
+            .joined()
+    }
+
+    // MARK: - Program Management
+
+    @MainActor
+    func updateProgram(name: String?, status: String?, startDate: Date?, endDate: Date?) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let startStr = startDate.map { formatter.string(from: $0) }
+        let endStr = endDate.map { formatter.string(from: $0) }
+
+        let response = try await APIClient.shared.updateProgram(
+            token: token,
+            programId: pid,
+            name: name,
+            status: status,
+            startDate: startStr,
+            endDate: endStr
+        )
+
+        // Update local state
+        if let newName = name { self.name = newName }
+        if let newStatus = status { self.status = newStatus }
+        if let newStart = startDate { self.startDate = newStart }
+        if let newEnd = endDate { self.endDate = newEnd }
+    }
+
+    // MARK: - Membership Management
+
+    @MainActor
+    func loadMembershipDetails() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for membership details."
+            return
+        }
+        do {
+            let data = try await APIClient.shared.fetchMembershipDetails(token: token, programId: pid)
+            membershipDetails = data
+
+            // Update logged-in user's program role
+            if let userId = loggedInUserId,
+               let myMembership = data.first(where: { $0.member_id == userId }) {
+                loggedInUserProgramRole = myMembership.program_role
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func updateMembership(memberId: String, role: String?, isActive: Bool?, joinedAt: Date?) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let joinedStr = joinedAt.map { formatter.string(from: $0) }
+
+        _ = try await APIClient.shared.updateMembership(
+            token: token,
+            programId: pid,
+            memberId: memberId,
+            role: role,
+            isActive: isActive,
+            joinedAt: joinedStr
+        )
+
+        // Refresh membership details
+        await loadMembershipDetails()
+        await loadLookupData()
+    }
+
+    @MainActor
+    func removeMember(memberId: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+
+        try await APIClient.shared.removeMemberFromProgram(token: token, programId: pid, memberId: memberId)
+
+        // Refresh data
+        await loadMembershipDetails()
+        await loadLookupData()
+    }
+
+    // MARK: - Member Profile Management
+
+    @MainActor
+    func updateMemberProfile(memberId: String, gender: String?, dateOfBirth: String?, password: String?, dateJoined: String?) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.updateMemberProfile(
+            token: token,
+            memberId: memberId,
+            gender: gender,
+            dateOfBirth: dateOfBirth,
+            password: password,
+            dateJoined: dateJoined
+        )
+    }
+
+    // MARK: - Workout Type Management
+
+    @MainActor
+    func addWorkoutType(name: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.addWorkoutType(token: token, workoutName: name)
+        await loadLookupData()
+    }
+
+    @MainActor
+    func updateWorkoutType(oldName: String, newName: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.updateWorkoutType(token: token, oldName: oldName, newName: newName)
+        await loadLookupData()
+    }
+
+    @MainActor
+    func deleteWorkoutType(name: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        try await APIClient.shared.deleteWorkoutType(token: token, workoutName: name)
+        await loadLookupData()
+    }
+
+    // MARK: - Program Management (Delete)
+
+    @MainActor
+    func deleteProgram(programId: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.deleteProgram(token: token, programId: programId)
+
+        // Remove from local programs array
+        programs.removeAll { $0.id == programId }
+
+        // Clear selection if deleted program was selected
+        if self.programId == programId {
+            self.programId = nil
+            self.name = ""
+            self.status = ""
+        }
+    }
+
+    // MARK: - Program Management (Create)
+
+    @MainActor
+    func createProgram(name: String, status: String, startDate: Date?, endDate: Date?) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let startStr = startDate.map { formatter.string(from: $0) }
+        let endStr = endDate.map { formatter.string(from: $0) }
+
+        let response = try await APIClient.shared.createProgram(
+            token: token,
+            name: name,
+            status: status,
+            startDate: startStr,
+            endDate: endStr
+        )
+
+        // Refresh programs list to include the new program
+        let updatedPrograms = try await APIClient.shared.fetchPrograms(token: token)
+        programs = updatedPrograms
+    }
+
+    // MARK: - Session Persistence
+
+    private enum SessionDefaultsKeys {
+        static let userId = "session.userId"
+        static let userName = "session.userName"
+        static let username = "session.username"
+        static let globalRole = "session.globalRole"
+        static let programId = "session.programId"
+        static let programRole = "session.programRole"
+    }
+
+    private func configureAPIClientHandlers() {
+        APIClient.shared.tokenUpdateHandler = { [weak self] accessToken, refreshToken in
+            Task { @MainActor in
+                self?.authToken = accessToken
+                self?.refreshToken = refreshToken
+                self?.persistSession()
+            }
+        }
+
+        APIClient.shared.authFailureHandler = { [weak self] in
+            Task { @MainActor in
+                self?.signOut()
+            }
+        }
+    }
+
+    private func restorePersistedSession() {
+        authToken = SessionStore.shared.accessToken
+        refreshToken = SessionStore.shared.refreshToken
+
+        let defaults = UserDefaults.standard
+        loggedInUserId = defaults.string(forKey: SessionDefaultsKeys.userId)
+        loggedInUserName = defaults.string(forKey: SessionDefaultsKeys.userName)
+        loggedInUsername = defaults.string(forKey: SessionDefaultsKeys.username)
+        globalRole = defaults.string(forKey: SessionDefaultsKeys.globalRole) ?? globalRole
+        programId = defaults.string(forKey: SessionDefaultsKeys.programId)
+        loggedInUserProgramRole = defaults.string(forKey: SessionDefaultsKeys.programRole) ?? loggedInUserProgramRole
+
+        if let name = loggedInUserName {
+            adminName = name
+        }
+    }
+
+    func persistSession() {
+        SessionStore.shared.saveTokens(accessToken: authToken, refreshToken: refreshToken)
+
+        let defaults = UserDefaults.standard
+        setDefault(defaults, value: loggedInUserId, key: SessionDefaultsKeys.userId)
+        setDefault(defaults, value: loggedInUserName, key: SessionDefaultsKeys.userName)
+        setDefault(defaults, value: loggedInUsername, key: SessionDefaultsKeys.username)
+        setDefault(defaults, value: globalRole, key: SessionDefaultsKeys.globalRole)
+        setDefault(defaults, value: programId, key: SessionDefaultsKeys.programId)
+        setDefault(defaults, value: loggedInUserProgramRole, key: SessionDefaultsKeys.programRole)
+    }
+
+    private func clearPersistedSession() {
+        SessionStore.shared.clearTokens()
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: SessionDefaultsKeys.userId)
+        defaults.removeObject(forKey: SessionDefaultsKeys.userName)
+        defaults.removeObject(forKey: SessionDefaultsKeys.username)
+        defaults.removeObject(forKey: SessionDefaultsKeys.globalRole)
+        defaults.removeObject(forKey: SessionDefaultsKeys.programId)
+        defaults.removeObject(forKey: SessionDefaultsKeys.programRole)
+    }
+
+    private func setDefault(_ defaults: UserDefaults, value: String?, key: String) {
+        if let value {
+            defaults.set(value, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    @MainActor
+    func refreshSessionIfNeeded() async {
+        guard let refreshToken, !refreshToken.isEmpty else { return }
+        do {
+            let response = try await APIClient.shared.refreshSession(refreshToken: refreshToken)
+            authToken = response.token
+            self.refreshToken = response.refreshToken ?? refreshToken
+            persistSession()
+            await loadLookupData()
+            if programId != nil {
+                await loadMembershipDetails()
+            }
+        } catch {
+            signOut()
+        }
+    }
+
+    // MARK: - Sign Out
+
+    func signOut() {
+        let tokenToRevoke = refreshToken
+        authToken = nil
+        refreshToken = nil
+        loggedInUserId = nil
+        loggedInUserName = nil
+        loggedInUsername = nil
+        loggedInUserProgramRole = "member"
+        globalRole = "standard"
+        programId = nil
+        membershipDetails = []
+        clearPersistedSession()
+
+        if let tokenToRevoke {
+            Task {
+                try? await APIClient.shared.logout(refreshToken: tokenToRevoke)
+            }
+        }
+    }
+}
