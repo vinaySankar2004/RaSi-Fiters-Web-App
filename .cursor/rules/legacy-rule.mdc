@@ -1,6 +1,0 @@
----
-alwaysApply: true
----
-# Overview
-
-Whenever we are making code changes ensure you are not changing any functionality from the legacy web app (be it the front end, back end end points whatever). And so far we have maintained that in the development of the ios-mobile app, if you notice otherwise then let me know. So let us keep it that way thanks! 
