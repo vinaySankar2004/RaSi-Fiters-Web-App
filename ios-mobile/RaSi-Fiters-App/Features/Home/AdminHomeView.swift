@@ -3581,7 +3581,7 @@ private struct ProgramMyAccountSection: View {
     @EnvironmentObject var programContext: ProgramContext
     @EnvironmentObject var themeManager: ThemeManager
     @State private var showSignOutConfirm = false
-    private let privacyPolicyURL = URL(string: "https://vinaysankar2004.github.io/RaSi-Fiters-Web-App/")!
+    private let privacyPolicyURL = URL(string: "https://vinaysankar2004.github.io/RaSi-Fiters/")!
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
