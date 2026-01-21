@@ -2,9 +2,9 @@
 
 Effective date: 2026-01-20
 
-RaSi Fit'ers ("we", "us", or "our") respects your privacy. This policy
+RaSi Fiters ("we", "us", or "our") respects your privacy. This policy
 explains what information we collect, how we use it, and the choices you
-have. This policy applies to the RaSi Fit'ers mobile app and related
+have. This policy applies to the RaSi Fiters mobile app and related
 services.
 
 Information we collect
@@ -42,8 +42,7 @@ Your choices
 - Request deletion by contacting us.
 
 Children's privacy
-RaSi Fit'ers is not intended for children under 13. We do not knowingly
-collect personal information from children under 13.
+RaSi Fiters is not intended for children under 4.
 
 Changes to this policy
 We may update this policy from time to time. If we make changes, we will
