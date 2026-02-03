@@ -26,15 +26,19 @@ const ProgramMembership = sequelize.define("ProgramMembership", {
         allowNull: false,
         defaultValue: DataTypes.NOW
     },
-    is_active: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: true
-    },
     role: {
         type: DataTypes.STRING,
         allowNull: false,
         defaultValue: "member"
+    },
+    status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "active"
+    },
+    left_at: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: "program_memberships",

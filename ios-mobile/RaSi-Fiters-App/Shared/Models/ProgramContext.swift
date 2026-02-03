@@ -47,6 +47,7 @@ final class ProgramContext: ObservableObject {
     @Published var members: [APIClient.MemberDTO]
     @Published var membersProgramId: String?
     @Published var workouts: [APIClient.WorkoutDTO]
+    @Published var programWorkouts: [APIClient.ProgramWorkoutDTO] = []
     @Published var lastFetchedPeriod: String?
     @Published var memberMetrics: [APIClient.MemberMetricsDTO] = []
     @Published var memberMetricsTotal: Int = 0
@@ -76,6 +77,9 @@ final class ProgramContext: ObservableObject {
     
     // Membership details for program management
     @Published var membershipDetails: [APIClient.MembershipDetailDTO] = []
+    
+    // Pending program invites
+    @Published var pendingInvites: [APIClient.PendingInviteDTO] = []
 
     init(
         authToken: String? = nil,
@@ -223,6 +227,9 @@ final class ProgramContext: ObservableObject {
         activeMembers = program.active_members ?? 0
         atRiskMembers = 0
         programId = program.id
+        if let role = program.my_role {
+            loggedInUserProgramRole = role
+        }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -236,12 +243,18 @@ final class ProgramContext: ObservableObject {
 
     @MainActor
     func loadLookupData() async {
-        guard let token = authToken, !token.isEmpty else { return }
+        print("[ProgramContext] loadLookupData called - programId: \(programId ?? "nil")")
+        guard let token = authToken, !token.isEmpty else { 
+            print("[ProgramContext] loadLookupData: No auth token")
+            return 
+        }
         do {
             let membersData: [APIClient.MemberDTO]
             if let pid = programId {
+                print("[ProgramContext] loadLookupData: Fetching program members for programId=\(pid)")
                 membersData = try await APIClient.shared.fetchProgramMembers(token: token, programId: pid)
             } else {
+                print("[ProgramContext] loadLookupData: Fetching all members (no programId)")
                 membersData = try await APIClient.shared.fetchMembers(token: token)
             }
             let workoutsData = try await APIClient.shared.fetchWorkouts(token: token)
@@ -250,9 +263,11 @@ final class ProgramContext: ObservableObject {
             membersProgramId = programId
             workouts = workoutsData
             programs = programsData
+            print("[ProgramContext] loadLookupData: Loaded \(membersData.count) members, \(workoutsData.count) workouts, \(programsData.count) programs")
         } catch {
             // Do not fail hard; just log error
             errorMessage = error.localizedDescription
+            print("[ProgramContext] loadLookupData error: \(error.localizedDescription)")
         }
     }
 
@@ -569,6 +584,7 @@ final class ProgramContext: ObservableObject {
             activityTimeline = resp.buckets
             activityTimelineLabel = resp.label
             activityTimelineDailyAverage = resp.daily_average
+            errorMessage = nil  // Clear error on success
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -615,7 +631,6 @@ final class ProgramContext: ObservableObject {
             logsChangePct = summary.totals.logs_change_pct
             durationChangePct = summary.totals.duration_change_pct
             avgDurationChangePct = summary.totals.avg_duration_change_pct
-            activeMembers = summary.members.active
             atRiskMembers = summary.members.at_risk
             timelinePoints = summary.timeline
             distributionByDay = summary.distribution_by_day
@@ -789,22 +804,34 @@ final class ProgramContext: ObservableObject {
 
     @MainActor
     func loadMembershipDetails() async {
-        guard let token = authToken, !token.isEmpty else { return }
+        print("[ProgramContext] loadMembershipDetails called")
+        guard let token = authToken, !token.isEmpty else { 
+            print("[ProgramContext] loadMembershipDetails: No auth token")
+            return 
+        }
         guard let pid = programId else {
             errorMessage = "No program selected for membership details."
+            print("[ProgramContext] loadMembershipDetails: No program selected")
             return
         }
         do {
             let data = try await APIClient.shared.fetchMembershipDetails(token: token, programId: pid)
             membershipDetails = data
+            print("[ProgramContext] loadMembershipDetails: Received \(data.count) members")
 
             // Update logged-in user's program role
             if let userId = loggedInUserId,
                let myMembership = data.first(where: { $0.member_id == userId }) {
+                print("[ProgramContext] loadMembershipDetails: Found my membership - program_role: '\(myMembership.program_role)'")
                 loggedInUserProgramRole = myMembership.program_role
+                persistSession()
+                print("[ProgramContext] loadMembershipDetails: Updated loggedInUserProgramRole to '\(loggedInUserProgramRole)'")
+            } else {
+                print("[ProgramContext] loadMembershipDetails: Could not find my membership (userId: \(loggedInUserId ?? "nil"))")
             }
         } catch {
             errorMessage = error.localizedDescription
+            print("[ProgramContext] loadMembershipDetails error: \(error.localizedDescription)")
         }
     }
 
@@ -826,6 +853,7 @@ final class ProgramContext: ObservableObject {
             programId: pid,
             memberId: memberId,
             role: role,
+            status: nil,
             isActive: isActive,
             joinedAt: joinedStr
         )
@@ -851,10 +879,30 @@ final class ProgramContext: ObservableObject {
         await loadLookupData()
     }
 
+    @MainActor
+    func updateMembershipStatus(programId: String, status: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let memberId = loggedInUserId else {
+            throw APIError(message: "No member selected")
+        }
+
+        _ = try await APIClient.shared.updateMembership(
+            token: token,
+            programId: programId,
+            memberId: memberId,
+            role: nil,
+            status: status,
+            isActive: nil,
+            joinedAt: nil
+        )
+    }
+
     // MARK: - Member Profile Management
 
     @MainActor
-    func updateMemberProfile(memberId: String, gender: String?, dateOfBirth: String?, password: String?, dateJoined: String?) async throws {
+    func updateMemberProfile(memberId: String, firstName: String?, lastName: String?, gender: String?) async throws {
         guard let token = authToken, !token.isEmpty else {
             throw APIError(message: "No auth token")
         }
@@ -862,11 +910,79 @@ final class ProgramContext: ObservableObject {
         _ = try await APIClient.shared.updateMemberProfile(
             token: token,
             memberId: memberId,
-            gender: gender,
-            dateOfBirth: dateOfBirth,
-            password: password,
-            dateJoined: dateJoined
+            firstName: firstName,
+            lastName: lastName,
+            gender: gender
         )
+
+        // Update local state if this is the logged-in user
+        if memberId == loggedInUserId {
+            if let first = firstName, let last = lastName {
+                loggedInUserName = "\(first) \(last)".trimmingCharacters(in: .whitespaces)
+            } else if let first = firstName {
+                let currentLast = loggedInUserName?.split(separator: " ").dropFirst().joined(separator: " ") ?? ""
+                loggedInUserName = "\(first) \(currentLast)".trimmingCharacters(in: .whitespaces)
+            } else if let last = lastName {
+                let currentFirst = loggedInUserName?.split(separator: " ").first.map(String.init) ?? ""
+                loggedInUserName = "\(currentFirst) \(last)".trimmingCharacters(in: .whitespaces)
+            }
+            persistSession()
+        }
+    }
+
+    // MARK: - Program Invites
+
+    /// Loads pending invites - fetches appropriate invites based on user's global role
+    /// Global admin sees all invites system-wide, standard users see only their own
+    @MainActor
+    func loadPendingInvites() async {
+        guard let token = authToken, !token.isEmpty else {
+            print("[ProgramContext] loadPendingInvites: No auth token")
+            return
+        }
+        do {
+            if isGlobalAdmin {
+                print("[ProgramContext] loadPendingInvites: Fetching all invites (global_admin)")
+                pendingInvites = try await APIClient.shared.fetchAllInvites(token: token)
+            } else {
+                print("[ProgramContext] loadPendingInvites: Fetching my invites (standard user)")
+                pendingInvites = try await APIClient.shared.fetchMyInvites(token: token)
+            }
+            print("[ProgramContext] loadPendingInvites: Loaded \(pendingInvites.count) invites")
+        } catch {
+            print("[ProgramContext] loadPendingInvites error: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Responds to an invite (accept, decline, or revoke)
+    /// - Parameters:
+    ///   - inviteId: The ID of the invite
+    ///   - action: "accept", "decline", or "revoke" (revoke is admin-only)
+    ///   - blockFuture: If true, blocks future invites from this program (only for decline)
+    /// - Returns: The response message from the server
+    @MainActor
+    func respondToInvite(inviteId: String, action: String, blockFuture: Bool = false) async throws -> String {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        let response = try await APIClient.shared.respondToInvite(
+            token: token,
+            inviteId: inviteId,
+            action: action,
+            blockFuture: blockFuture
+        )
+
+        // Refresh invites list after responding
+        await loadPendingInvites()
+
+        // If accepted, refresh programs list as user may have joined a new program
+        if action == "accept" {
+            await loadLookupData()
+        }
+
+        return response.message
     }
 
     // MARK: - Workout Type Management
@@ -899,6 +1015,93 @@ final class ProgramContext: ObservableObject {
 
         try await APIClient.shared.deleteWorkoutType(token: token, workoutName: name)
         await loadLookupData()
+    }
+
+    // MARK: - Program Workout Management (per-program)
+
+    @MainActor
+    func loadProgramWorkouts() async {
+        guard let token = authToken, !token.isEmpty else { return }
+        guard let pid = programId else {
+            errorMessage = "No program selected for program workouts."
+            return
+        }
+        do {
+            programWorkouts = try await APIClient.shared.fetchProgramWorkouts(token: token, programId: pid)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func toggleWorkoutVisibility(libraryWorkoutId: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+
+        _ = try await APIClient.shared.toggleProgramWorkoutVisibility(
+            token: token,
+            programId: pid,
+            libraryWorkoutId: libraryWorkoutId
+        )
+        await loadProgramWorkouts()
+    }
+
+    @MainActor
+    func toggleCustomWorkoutVisibility(workoutId: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.toggleCustomWorkoutVisibility(
+            token: token,
+            workoutId: workoutId
+        )
+        await loadProgramWorkouts()
+    }
+
+    @MainActor
+    func addCustomProgramWorkout(name: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+
+        _ = try await APIClient.shared.addCustomProgramWorkout(
+            token: token,
+            programId: pid,
+            workoutName: name
+        )
+        await loadProgramWorkouts()
+    }
+
+    @MainActor
+    func editCustomProgramWorkout(workoutId: String, name: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.editCustomProgramWorkout(
+            token: token,
+            workoutId: workoutId,
+            workoutName: name
+        )
+        await loadProgramWorkouts()
+    }
+
+    @MainActor
+    func deleteCustomProgramWorkout(workoutId: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        try await APIClient.shared.deleteCustomProgramWorkout(token: token, workoutId: workoutId)
+        await loadProgramWorkouts()
     }
 
     // MARK: - Program Management (Delete)
@@ -1041,6 +1244,61 @@ final class ProgramContext: ObservableObject {
         }
     }
 
+    // MARK: - Account Management
+
+    /// Changes the user's password
+    @MainActor
+    func changePassword(newPassword: String) async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.changePassword(token: token, newPassword: newPassword)
+    }
+
+    /// Permanently deletes the user's account and all associated data
+    @MainActor
+    func deleteAccount() async throws {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+
+        _ = try await APIClient.shared.deleteAccount(token: token)
+
+        // Clear all local state after successful deletion
+        signOut()
+    }
+
+    // MARK: - Program Membership Actions
+
+    /// Leave the current program (soft removal - data is preserved)
+    @MainActor
+    func leaveProgram() async throws -> String {
+        guard let token = authToken, !token.isEmpty else {
+            throw APIError(message: "No auth token")
+        }
+        guard let pid = programId else {
+            throw APIError(message: "No program selected")
+        }
+
+        let response = try await APIClient.shared.leaveProgram(token: token, programId: pid)
+
+        // Clear current program selection
+        programId = nil
+        name = ""
+        status = ""
+        loggedInUserProgramRole = "member"
+        membershipDetails = []
+
+        // Refresh programs list to reflect the change
+        await loadLookupData()
+
+        // Persist the session without the program
+        persistSession()
+
+        return response.message
+    }
+
     // MARK: - Sign Out
 
     func signOut() {
@@ -1054,6 +1312,7 @@ final class ProgramContext: ObservableObject {
         globalRole = "standard"
         programId = nil
         membershipDetails = []
+        pendingInvites = []
         clearPersistedSession()
 
         if let tokenToRevoke {

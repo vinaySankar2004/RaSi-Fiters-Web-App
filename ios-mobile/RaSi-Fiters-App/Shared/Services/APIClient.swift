@@ -39,15 +39,58 @@ final class APIClient {
     }
 
     // New global-role-aware login
-    func loginGlobal(username: String, password: String) async throws -> AuthResponse {
+    func loginGlobal(identifier: String, password: String) async throws -> AuthResponse {
         var request = URLRequest(url: baseURL.appendingPathComponent("auth/login/global"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body = ["username": username, "password": password]
+        let body = ["identifier": identifier, "password": password]
         request.httpBody = try JSONEncoder().encode(body)
 
         let data = try await data(for: request)
         return try JSONDecoder().decode(AuthResponse.self, from: data)
+    }
+
+    struct RegisterResponse: Decodable {
+        let message: String?
+        let memberId: String?
+        let username: String?
+        let memberName: String?
+
+        enum CodingKeys: String, CodingKey {
+            case message
+            case memberId = "member_id"
+            case username
+            case memberName = "member_name"
+        }
+    }
+
+    func registerAccount(
+        firstName: String,
+        lastName: String,
+        username: String,
+        email: String,
+        password: String,
+        gender: String?
+    ) async throws -> RegisterResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("auth/register"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var body: [String: String] = [
+            "first_name": firstName,
+            "last_name": lastName,
+            "username": username,
+            "email": email,
+            "password": password
+        ]
+        if let gender, !gender.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["gender"] = gender
+        }
+
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(RegisterResponse.self, from: data)
     }
 
     struct TokenRefreshResponse: Decodable {
@@ -124,7 +167,28 @@ final class APIClient {
         let workout_name: String
     }
 
-    struct ProgramDTO: Decodable {
+    // Program-specific workout with source (global/custom) and visibility
+    struct ProgramWorkoutDTO: Decodable, Identifiable {
+        let id: String
+        let workout_name: String
+        let source: String  // "global" or "custom"
+        let is_hidden: Bool
+        let library_workout_id: String?
+
+        var isGlobal: Bool { source == "global" }
+        var isCustom: Bool { source == "custom" }
+    }
+
+    struct ProgramWorkoutResponse: Decodable {
+        let id: String
+        let workout_name: String
+        let source: String
+        let is_hidden: Bool
+        let library_workout_id: String?
+        let message: String?
+    }
+
+    struct ProgramDTO: Decodable, Identifiable, Hashable {
         let id: String
         let name: String
         let status: String?
@@ -134,6 +198,8 @@ final class APIClient {
         let total_members: Int?
         let progress_percent: Int?
         let enrollments_closed: Bool?
+        let my_role: String?
+        let my_status: String?
     }
 
     struct MTDParticipationDTO: Decodable {
@@ -313,6 +379,83 @@ final class APIClient {
         request.httpBody = try JSONEncoder().encode(body)
         let data = try await data(for: request)
         return try JSONDecoder().decode(WorkoutDTO.self, from: data)
+    }
+
+    // MARK: - Program Workouts (per-program workout management)
+
+    func fetchProgramWorkouts(token: String, programId: String) async throws -> [ProgramWorkoutDTO] {
+        var components = URLComponents(url: baseURL.appendingPathComponent("program-workouts"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "programId", value: programId)]
+        guard let url = components.url else { throw APIError(message: "Invalid program workouts URL") }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let data = try await data(for: request)
+        return try JSONDecoder().decode([ProgramWorkoutDTO].self, from: data)
+    }
+
+    func toggleProgramWorkoutVisibility(token: String, programId: String, libraryWorkoutId: String) async throws -> ProgramWorkoutResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-workouts/toggle-visibility"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+            "program_id": programId,
+            "library_workout_id": libraryWorkoutId
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(ProgramWorkoutResponse.self, from: data)
+    }
+
+    func toggleCustomWorkoutVisibility(token: String, workoutId: String) async throws -> ProgramWorkoutResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-workouts/\(workoutId)/toggle-visibility"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(ProgramWorkoutResponse.self, from: data)
+    }
+
+    func addCustomProgramWorkout(token: String, programId: String, workoutName: String) async throws -> ProgramWorkoutResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-workouts/custom"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+            "program_id": programId,
+            "workout_name": workoutName
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(ProgramWorkoutResponse.self, from: data)
+    }
+
+    func editCustomProgramWorkout(token: String, workoutId: String, workoutName: String) async throws -> ProgramWorkoutResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-workouts/\(workoutId)"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body = ["workout_name": workoutName]
+        request.httpBody = try JSONEncoder().encode(body)
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(ProgramWorkoutResponse.self, from: data)
+    }
+
+    func deleteCustomProgramWorkout(token: String, workoutId: String) async throws {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-workouts/\(workoutId)"))
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        _ = try await data(for: request)
     }
 
     func fetchPrograms(token: String) async throws -> [ProgramDTO] {
@@ -817,6 +960,7 @@ final class APIClient {
         let global_role: String?
         let program_role: String
         let is_active: Bool
+        let status: String?
         let joined_at: String?
     }
 
@@ -835,6 +979,7 @@ final class APIClient {
         let member_name: String?
         let role: String
         let is_active: Bool
+        let status: String?
         let joined_at: String?
         let message: String?
     }
@@ -1012,7 +1157,7 @@ final class APIClient {
         return try JSONDecoder().decode([MembershipDetailDTO].self, from: data)
     }
 
-    func updateMembership(token: String, programId: String, memberId: String, role: String?, isActive: Bool?, joinedAt: String?) async throws -> MembershipUpdateResponse {
+    func updateMembership(token: String, programId: String, memberId: String, role: String?, status: String?, isActive: Bool?, joinedAt: String?) async throws -> MembershipUpdateResponse {
         var request = URLRequest(url: baseURL.appendingPathComponent("program-memberships"))
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1024,6 +1169,7 @@ final class APIClient {
             "member_id": memberId
         ]
         if let role { body["role"] = role }
+        if let status { body["status"] = status }
         if let isActive { body["is_active"] = isActive }
         if let joinedAt { body["joined_at"] = joinedAt }
         
@@ -1049,7 +1195,7 @@ final class APIClient {
 
     // MARK: - Member Profile Management
 
-    func updateMemberProfile(token: String, memberId: String, gender: String?, dateOfBirth: String?, password: String?, dateJoined: String?) async throws -> MemberUpdateResponse {
+    func updateMemberProfile(token: String, memberId: String, firstName: String?, lastName: String?, gender: String?) async throws -> MemberUpdateResponse {
         var request = URLRequest(url: baseURL.appendingPathComponent("members/\(memberId)"))
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1057,10 +1203,9 @@ final class APIClient {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         var body: [String: Any] = [:]
+        if let firstName { body["first_name"] = firstName }
+        if let lastName { body["last_name"] = lastName }
         if let gender { body["gender"] = gender }
-        if let dateOfBirth { body["date_of_birth"] = dateOfBirth }
-        if let password { body["password"] = password }
-        if let dateJoined { body["date_joined"] = dateJoined }
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         let data = try await data(for: request)
@@ -1099,6 +1244,172 @@ final class APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         _ = try await data(for: request)
+    }
+
+    // MARK: - Program Invitations
+
+    struct InviteResponse: Decodable {
+        let message: String
+    }
+
+    /// Sends a program invitation to a user by username.
+    /// Always returns success message for privacy (doesn't reveal if username exists).
+    func sendProgramInvite(token: String, programId: String, username: String) async throws -> InviteResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-memberships/invite"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+            "program_id": programId,
+            "username": username
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(InviteResponse.self, from: data)
+    }
+
+    /// DTO for pending program invites
+    struct PendingInviteDTO: Decodable, Identifiable {
+        let invite_id: String
+        let program_id: String
+        let program_name: String?
+        let program_status: String?
+        let program_start_date: String?
+        let program_end_date: String?
+        let invited_by_name: String?
+        let invited_at: String?
+        let expires_at: String?
+        // Admin-only fields (nil for standard users)
+        let invited_username: String?
+        let invited_member_name: String?
+        let invited_member_id: String?
+
+        var id: String { invite_id }
+
+        enum CodingKeys: String, CodingKey {
+            case invite_id, program_id, program_name, program_status
+            case program_start_date, program_end_date
+            case invited_by_name, invited_at, expires_at
+            case invited_username, invited_member_name, invited_member_id
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            invite_id = try container.decode(String.self, forKey: .invite_id)
+            program_id = try container.decode(String.self, forKey: .program_id)
+            program_name = try container.decodeIfPresent(String.self, forKey: .program_name)
+            program_status = try container.decodeIfPresent(String.self, forKey: .program_status)
+            program_start_date = try container.decodeIfPresent(String.self, forKey: .program_start_date)
+            program_end_date = try container.decodeIfPresent(String.self, forKey: .program_end_date)
+            invited_by_name = try container.decodeIfPresent(String.self, forKey: .invited_by_name)
+            invited_at = try container.decodeIfPresent(String.self, forKey: .invited_at)
+            expires_at = try container.decodeIfPresent(String.self, forKey: .expires_at)
+            invited_username = try container.decodeIfPresent(String.self, forKey: .invited_username)
+            invited_member_name = try container.decodeIfPresent(String.self, forKey: .invited_member_name)
+            invited_member_id = try container.decodeIfPresent(String.self, forKey: .invited_member_id)
+        }
+    }
+
+    /// Fetches pending invites for the logged-in user (standard users)
+    func fetchMyInvites(token: String) async throws -> [PendingInviteDTO] {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-memberships/my-invites"))
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let data = try await data(for: request)
+        return try JSONDecoder().decode([PendingInviteDTO].self, from: data)
+    }
+
+    /// Fetches ALL pending invites system-wide (global_admin only)
+    func fetchAllInvites(token: String) async throws -> [PendingInviteDTO] {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-memberships/all-invites"))
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let data = try await data(for: request)
+        return try JSONDecoder().decode([PendingInviteDTO].self, from: data)
+    }
+
+    /// Responds to a program invite (accept, decline, or revoke)
+    /// - Parameters:
+    ///   - action: "accept", "decline", or "revoke" (revoke is admin-only)
+    ///   - blockFuture: If true, blocks future invites from this program (only for decline)
+    func respondToInvite(token: String, inviteId: String, action: String, blockFuture: Bool = false) async throws -> InviteResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-memberships/invite-response"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        var body: [String: Any] = [
+            "invite_id": inviteId,
+            "action": action
+        ]
+        if blockFuture {
+            body["block_future"] = true
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(InviteResponse.self, from: data)
+    }
+
+    // MARK: - Account Management
+
+    struct DeleteAccountResponse: Decodable {
+        let message: String
+    }
+
+    struct ChangePasswordResponse: Decodable {
+        let message: String
+    }
+
+    /// Changes the password for the authenticated user
+    func changePassword(token: String, newPassword: String) async throws -> ChangePasswordResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("auth/change-password"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body = ["new_password": newPassword]
+        request.httpBody = try JSONEncoder().encode(body)
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(ChangePasswordResponse.self, from: data)
+    }
+
+    /// Permanently deletes the authenticated user's account and all associated data
+    func deleteAccount(token: String) async throws -> DeleteAccountResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("auth/account"))
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(DeleteAccountResponse.self, from: data)
+    }
+
+    // MARK: - Program Membership Actions
+
+    struct LeaveProgramResponse: Decodable {
+        let message: String
+        let program_id: String
+        let member_id: String
+    }
+
+    /// Leave a program (soft removal - data is preserved for potential rejoin)
+    func leaveProgram(token: String, programId: String) async throws -> LeaveProgramResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent("program-memberships/leave"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = ["program_id": programId]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        let data = try await data(for: request)
+        return try JSONDecoder().decode(LeaveProgramResponse.self, from: data)
     }
 
     // MARK: - Helpers

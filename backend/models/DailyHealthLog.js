@@ -31,7 +31,8 @@ const DailyHealthLog = sequelize.define("DailyHealthLog", {
     },
     food_quality: {
         type: DataTypes.SMALLINT,
-        allowNull: true
+        allowNull: true,
+        field: "diet_quality"
     }
 }, {
     tableName: "daily_health_logs",

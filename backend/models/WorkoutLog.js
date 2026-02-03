@@ -2,40 +2,45 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
 const WorkoutLog = sequelize.define("WorkoutLog", {
+    program_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        primaryKey: true,
+        references: {
+            model: "programs",
+            key: "id"
+        }
+    },
     member_id: {
         type: DataTypes.UUID,
         allowNull: false,
         primaryKey: true,
         references: {
             model: "members",
-            key: "id",
-        },
+            key: "id"
+        }
     },
-    workout_name: {
-        type: DataTypes.STRING,
+    program_workout_id: {
+        type: DataTypes.UUID,
         allowNull: false,
         primaryKey: true,
         references: {
-            model: "workouts",
-            key: "workout_name",
-        },
+            model: "program_workouts",
+            key: "id"
+        }
     },
-    date: {
-        type: DataTypes.STRING,
+    log_date: {
+        type: DataTypes.DATEONLY,
         allowNull: false,
-        primaryKey: true,
+        primaryKey: true
     },
     duration: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    program_id: {
-        type: DataTypes.UUID,
-        allowNull: true,
+        allowNull: true
     }
 }, {
     tableName: "workout_logs",
-    timestamps: false,
+    timestamps: true,
     underscored: true
 });
 

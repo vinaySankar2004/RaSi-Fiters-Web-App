@@ -12,6 +12,7 @@ router.get("/", authenticateToken, async (req, res) => {
     try {
         const requester = req.user;
         const isGlobalAdmin = requester?.global_role === "global_admin";
+        const requesterId = requester?.id;
 
         let programs;
 
@@ -27,8 +28,10 @@ router.get("/", authenticateToken, async (req, res) => {
                     p.is_deleted,
                     p.created_at,
                     p.updated_at,
-                    COALESCE(COUNT(DISTINCT pm.member_id), 0)::int AS total_members,
-                    COALESCE(COUNT(DISTINCT CASE WHEN pm.is_active = true THEN pm.member_id END), 0)::int AS active_members,
+                    COALESCE(COUNT(DISTINCT CASE WHEN pm.status = 'active' THEN pm.member_id END), 0)::int AS total_members,
+                    COALESCE(COUNT(DISTINCT CASE WHEN pm.status = 'active' THEN pm.member_id END), 0)::int AS active_members,
+                    pm_user.role AS my_role,
+                    pm_user.status AS my_status,
                     CASE 
                         WHEN p.start_date IS NOT NULL AND p.end_date IS NOT NULL 
                              AND p.end_date > p.start_date
@@ -40,10 +43,13 @@ router.get("/", authenticateToken, async (req, res) => {
                     END AS progress_percent
                 FROM programs p
                 LEFT JOIN program_memberships pm ON p.id = pm.program_id
+                LEFT JOIN program_memberships pm_user ON p.id = pm_user.program_id AND pm_user.member_id = :userId
                 WHERE p.is_deleted = false
-                GROUP BY p.id
+                GROUP BY p.id, pm_user.role, pm_user.status
                 ORDER BY p.start_date ASC
-            `);
+            `, {
+                replacements: { userId: requesterId }
+            });
             programs = results;
         } else {
             // Regular user sees only programs they are enrolled in
@@ -58,7 +64,9 @@ router.get("/", authenticateToken, async (req, res) => {
                     p.created_at,
                     p.updated_at,
                     COALESCE(COUNT(DISTINCT pm_all.member_id), 0)::int AS total_members,
-                    COALESCE(COUNT(DISTINCT CASE WHEN pm_all.is_active = true THEN pm_all.member_id END), 0)::int AS active_members,
+                    COALESCE(COUNT(DISTINCT pm_all.member_id), 0)::int AS active_members,
+                    pm_user.role AS my_role,
+                    pm_user.status AS my_status,
                     CASE 
                         WHEN p.start_date IS NOT NULL AND p.end_date IS NOT NULL 
                              AND p.end_date > p.start_date
@@ -69,17 +77,28 @@ router.get("/", authenticateToken, async (req, res) => {
                         ELSE 0
                     END AS progress_percent
                 FROM programs p
-                INNER JOIN program_memberships pm_user ON p.id = pm_user.program_id AND pm_user.member_id = :userId
-                LEFT JOIN program_memberships pm_all ON p.id = pm_all.program_id
+                INNER JOIN program_memberships pm_user 
+                    ON p.id = pm_user.program_id 
+                    AND pm_user.member_id = :userId
+                    AND pm_user.status IN ('active', 'invited', 'requested')
+                LEFT JOIN program_memberships pm_all 
+                    ON p.id = pm_all.program_id 
+                    AND pm_all.status = 'active'
                 WHERE p.is_deleted = false
-                GROUP BY p.id
+                GROUP BY p.id, pm_user.role, pm_user.status
                 ORDER BY p.start_date ASC
             `, {
-                replacements: { userId: requester?.id }
+                replacements: { userId: requesterId }
             });
             programs = results;
         }
 
+        // Debug logging: print my_role for each program
+        console.log(`[programs] Returning ${programs.length} programs for user ${requesterId} (global_role: ${requester?.global_role})`);
+        programs.forEach(p => {
+            console.log(`  - Program: ${p.name}, my_role: ${p.my_role || 'null'}, my_status: ${p.my_status || 'null'}`);
+        });
+        
         res.json(programs);
     } catch (err) {
         console.error("Error fetching programs:", err);
@@ -89,13 +108,9 @@ router.get("/", authenticateToken, async (req, res) => {
 
 // Create a new program - requires global_admin only
 router.post("/", authenticateToken, async (req, res) => {
+    const transaction = await sequelize.transaction();
     try {
         const requester = req.user;
-
-        // Only global_admin can create programs
-        if (requester?.global_role !== "global_admin") {
-            return res.status(403).json({ error: "Only global administrators can create programs." });
-        }
 
         const { name, status, start_date, end_date, description } = req.body;
 
@@ -115,8 +130,19 @@ router.post("/", authenticateToken, async (req, res) => {
             start_date: start_date || null,
             end_date: end_date || null,
             description: description || null,
+            created_by: requester?.id,
             is_deleted: false
-        });
+        }, { transaction });
+
+        await ProgramMembership.create({
+            program_id: program.id,
+            member_id: requester?.id,
+            role: "admin",
+            status: "active",
+            joined_at: new Date().toISOString().slice(0, 10)
+        }, { transaction });
+
+        await transaction.commit();
 
         res.status(201).json({
             id: program.id,
@@ -128,6 +154,7 @@ router.post("/", authenticateToken, async (req, res) => {
             message: "Program created successfully."
         });
     } catch (err) {
+        await transaction.rollback();
         console.error("Error creating program:", err);
         res.status(500).json({ error: "Failed to create program." });
     }
@@ -154,7 +181,8 @@ router.put("/:id", authenticateToken, async (req, res) => {
                 where: {
                     program_id: id,
                     member_id: requester?.id,
-                    role: "admin"
+                    role: "admin",
+                    status: "active"
                 }
             });
             if (!pm) {
@@ -192,9 +220,19 @@ router.delete("/:id", authenticateToken, async (req, res) => {
         const { id } = req.params;
         const requester = req.user;
 
-        // Only global_admin can delete programs
+        // Allow global_admin or program admin to delete
         if (requester?.global_role !== "global_admin") {
-            return res.status(403).json({ error: "Only global administrators can delete programs." });
+            const pm = await ProgramMembership.findOne({
+                where: {
+                    program_id: id,
+                    member_id: requester?.id,
+                    role: "admin",
+                    status: "active"
+                }
+            });
+            if (!pm) {
+                return res.status(403).json({ error: "Admin privileges required for this program." });
+            }
         }
 
         // Find the program (exclude already deleted)

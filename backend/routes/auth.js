@@ -2,7 +2,9 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { Member, RefreshToken } = require("../models/index");
+const { sequelize } = require("../config/database");
+const { Member, RefreshToken, MemberCredential, MemberEmail, Program, ProgramMembership, ProgramInvite } = require("../models/index");
+const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -32,45 +34,77 @@ const issueRefreshToken = async (memberId, clientType) => {
     return { rawToken, tokenHash };
 };
 
+const formatMemberName = (member) => member?.member_name || "";
+
 const buildLegacyPayload = (member) => ({
     id: member.id,
     userId: member.id, // Keeping for backward compatibility
     username: member.username,
-    member_name: member.member_name,
-    role: member.role,
+    member_name: formatMemberName(member),
+    role: member.global_role === "global_admin" ? "admin" : "member",
     date_joined: member.date_joined
 });
 
 const buildGlobalPayload = (member, globalRole) => ({
     id: member.id,
     username: member.username,
-    member_name: member.member_name,
+    member_name: formatMemberName(member),
     global_role: globalRole,
     date_joined: member.date_joined
 });
 
+const normalizeEmail = (email) => (email || "").trim().toLowerCase();
+
+const resolveMemberByIdentifier = async (identifier) => {
+    const trimmed = (identifier || "").trim();
+    if (!trimmed) return null;
+
+    const memberByUsername = await Member.findOne({ where: { username: trimmed } });
+    if (memberByUsername) return memberByUsername;
+
+    const email = normalizeEmail(trimmed);
+    const memberEmail = await MemberEmail.findOne({
+        where: { email },
+        include: [{ model: Member }]
+    });
+    return memberEmail?.Member || null;
+};
+
+const validatePassword = (password) => {
+    if (!password || password.length < 8) {
+        return "Password must be at least 8 characters long.";
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+        return "Password must include upper, lower, and a number.";
+    }
+    return null;
+};
+
 // Legacy login (kept intact for backward compatibility)
 router.post("/login", async (req, res) => {
-    const { username, password } = req.body;
-    console.log(`Login attempt for username: ${username}`);
+    const { identifier, username, password } = req.body;
+    const loginId = identifier || username;
+    console.log(`Login attempt for identifier: ${loginId}`);
 
     try {
-        // Find member by username
-        const member = await Member.findOne({
-            where: { username }
-        });
+        const member = await resolveMemberByIdentifier(loginId);
 
         if (!member) {
-            console.log(`User not found: ${username}`);
+            console.log(`User not found: ${loginId}`);
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        console.log(`User found: ${member.username}, role: ${member.role}`);
+        console.log(`User found: ${member.username}, role: ${member.global_role}`);
 
-        // Check password
-        const isMatch = await member.checkPassword(password);
+        const credential = await MemberCredential.findByPk(member.id);
+        if (!credential) {
+            console.log(`No credentials for member: ${member.id}`);
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        const isMatch = await bcrypt.compare(password, credential.password_hash);
         if (!isMatch) {
-            console.log(`Password mismatch for user: ${username}`);
+            console.log(`Password mismatch for user: ${loginId}`);
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
@@ -83,8 +117,8 @@ router.post("/login", async (req, res) => {
             token,
             refresh_token: refreshToken,
             username: member.username,
-            role: member.role,
-            member_name: member.member_name,
+            role: member.global_role === "global_admin" ? "admin" : "member",
+            member_name: formatMemberName(member),
             date_joined: member.date_joined, // Include date_joined in the response
             message: "Login successful!"
         });
@@ -96,20 +130,27 @@ router.post("/login", async (req, res) => {
 
 // Shared handler for app (mobile-first) and global login; keeps logic in one place.
 const handleAppLogin = async (req, res) => {
-    const { username, password } = req.body;
-    console.log(`[global login] attempt for username: ${username}`);
+    const { identifier, username, password } = req.body;
+    const loginId = identifier || username;
+    console.log(`[global login] attempt for identifier: ${loginId}`);
 
     try {
-        const member = await Member.findOne({ where: { username } });
+        const member = await resolveMemberByIdentifier(loginId);
 
         if (!member) {
-            console.log(`[global login] user not found: ${username}`);
+            console.log(`[global login] user not found: ${loginId}`);
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        const isMatch = await member.checkPassword(password);
+        const credential = await MemberCredential.findByPk(member.id);
+        if (!credential) {
+            console.log(`[global login] missing credentials for: ${member.id}`);
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        const isMatch = await bcrypt.compare(password, credential.password_hash);
         if (!isMatch) {
-            console.log(`[global login] password mismatch for user: ${username}`);
+            console.log(`[global login] password mismatch for user: ${loginId}`);
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
@@ -125,7 +166,7 @@ const handleAppLogin = async (req, res) => {
             refresh_token: refreshToken,
             member_id: member.id,
             username: member.username,
-            member_name: member.member_name,
+            member_name: formatMemberName(member),
             global_role: globalRole,
             message: "Login successful"
         });
@@ -216,46 +257,184 @@ router.post("/logout", async (req, res) => {
 
 // Registration endpoint
 router.post("/register", async (req, res) => {
-    const { username, password, member_name, gender, date_of_birth } = req.body;
+    const { username, password, first_name, last_name, email, gender } = req.body;
+    const transaction = await sequelize.transaction();
 
     try {
+        if (!username || !password || !first_name || !last_name || !email) {
+            await transaction.rollback();
+            return res.status(400).json({ error: "username, password, first_name, last_name, and email are required." });
+        }
+
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            await transaction.rollback();
+            return res.status(400).json({ error: passwordError });
+        }
+
         // Check if username already exists
         const existingMember = await Member.findOne({
-            where: { username }
+            where: { username },
+            transaction
         });
 
         if (existingMember) {
+            await transaction.rollback();
             return res.status(400).json({ error: "Username already exists" });
         }
 
-        // Check if member_name already exists
-        const memberNameExists = await Member.findOne({
-            where: { member_name }
+        const normalizedEmail = normalizeEmail(email);
+        const existingEmail = await MemberEmail.findOne({
+            where: { email: normalizedEmail },
+            transaction
         });
 
-        if (memberNameExists) {
-            return res.status(400).json({ error: "Member name already exists" });
+        if (existingEmail) {
+            await transaction.rollback();
+            return res.status(400).json({ error: "Email already exists" });
         }
 
-        // Create new member with user credentials
         const newMember = await Member.create({
             username,
-            password, // Will be hashed by the model's beforeSave hook
-            member_name,
-            gender: gender || null,
-            date_of_birth: date_of_birth || null,
-            date_joined: '2025-03-01', // Set the default join date
-            role: 'member'
-        });
+            first_name,
+            last_name,
+            gender: gender || null
+        }, { transaction });
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        await MemberCredential.create({
+            member_id: newMember.id,
+            password_hash: passwordHash
+        }, { transaction });
+
+        await MemberEmail.create({
+            member_id: newMember.id,
+            email: normalizedEmail,
+            is_primary: true
+        }, { transaction });
+
+        await transaction.commit();
 
         res.status(201).json({
             message: "Account created successfully",
             member_id: newMember.id,
-            date_joined: newMember.date_joined
+            username: newMember.username,
+            member_name: formatMemberName(newMember)
         });
     } catch (error) {
+        await transaction.rollback();
         console.error("Registration error:", error);
         res.status(500).json({ error: "Server error during registration" });
+    }
+});
+
+// PUT /auth/change-password - change password for authenticated user
+router.put("/change-password", authenticateToken, async (req, res) => {
+    const { new_password } = req.body;
+    const memberId = req.user.id;
+
+    try {
+        if (!new_password) {
+            return res.status(400).json({ error: "new_password is required." });
+        }
+
+        const passwordError = validatePassword(new_password);
+        if (passwordError) {
+            return res.status(400).json({ error: passwordError });
+        }
+
+        const credential = await MemberCredential.findByPk(memberId);
+        if (!credential) {
+            return res.status(404).json({ error: "Credentials not found." });
+        }
+
+        const passwordHash = await bcrypt.hash(new_password, 10);
+        await credential.update({ password_hash: passwordHash });
+
+        console.log(`[change-password] Password updated for member: ${memberId}`);
+        res.json({ message: "Password changed successfully." });
+    } catch (error) {
+        console.error("[change-password] error:", error);
+        res.status(500).json({ error: "Server error during password change." });
+    }
+});
+
+// DELETE account - permanently deletes the authenticated user's account and all associated data
+router.delete("/account", authenticateToken, async (req, res) => {
+    const transaction = await sequelize.transaction();
+    const memberId = req.user.id;
+
+    try {
+        const member = await Member.findByPk(memberId, { transaction });
+        if (!member) {
+            await transaction.rollback();
+            return res.status(404).json({ error: "Account not found." });
+        }
+
+        // Prevent global admins from deleting their accounts through this endpoint
+        if (member.global_role === "global_admin") {
+            await transaction.rollback();
+            return res.status(403).json({ error: "Global admin accounts cannot be deleted through this endpoint." });
+        }
+
+        console.log(`[delete-account] Starting account deletion for member: ${memberId}`);
+
+        // Step 1: Handle program_invites where invited_by = member_id (no CASCADE)
+        // Set invited_by to NULL for any invites this user sent
+        await ProgramInvite.update(
+            { invited_by: null },
+            { where: { invited_by: memberId }, transaction }
+        );
+        console.log(`[delete-account] Cleared invited_by references in program_invites`);
+
+        // Step 2: Check programs where created_by = member_id
+        // Find all programs created by this member
+        const createdPrograms = await Program.findAll({
+            where: { created_by: memberId, is_deleted: false },
+            transaction
+        });
+
+        for (const program of createdPrograms) {
+            // Check if there's another admin for this program
+            const otherAdmin = await ProgramMembership.findOne({
+                where: {
+                    program_id: program.id,
+                    role: "admin",
+                    status: "active",
+                    member_id: { [sequelize.Sequelize.Op.ne]: memberId }
+                },
+                transaction
+            });
+
+            if (otherAdmin) {
+                // Transfer ownership to another admin
+                await program.update({ created_by: otherAdmin.member_id }, { transaction });
+                console.log(`[delete-account] Transferred program '${program.name}' ownership to member ${otherAdmin.member_id}`);
+            } else {
+                // No other admin - soft delete the program
+                await program.update({ is_deleted: true }, { transaction });
+                console.log(`[delete-account] Soft-deleted program '${program.name}' (no other admin)`);
+            }
+        }
+
+        // Step 3: Delete the member record
+        // CASCADE will handle:
+        // - member_credentials
+        // - member_emails
+        // - auth_identities
+        // - refresh_tokens
+        // - program_invite_blocks
+        // - program_memberships (and cascade to workout_logs, daily_health_logs)
+        await member.destroy({ transaction });
+        console.log(`[delete-account] Member record deleted for: ${memberId}`);
+
+        await transaction.commit();
+
+        res.json({ message: "Account deleted successfully." });
+    } catch (error) {
+        await transaction.rollback();
+        console.error("[delete-account] error:", error);
+        res.status(500).json({ error: "Server error during account deletion." });
     }
 });
 

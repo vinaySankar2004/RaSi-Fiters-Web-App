@@ -15,7 +15,7 @@ const Program = sequelize.define("Program", {
     status: {
         type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: "Active"
+        defaultValue: "planned"
     },
     start_date: {
         type: DataTypes.DATEONLY,
@@ -24,6 +24,14 @@ const Program = sequelize.define("Program", {
     end_date: {
         type: DataTypes.DATEONLY,
         allowNull: true
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    created_by: {
+        type: DataTypes.UUID,
+        allowNull: false
     },
     is_deleted: {
         type: DataTypes.BOOLEAN,

@@ -4,13 +4,13 @@ const { sequelize } = require("../config/database");
 const { authenticateToken, isAdmin } = require("../middleware/auth");
 const router = express.Router();
 
-// GET all members - exclude admin users
+// GET all members - exclude global_admin users
 router.get("/", authenticateToken, async (req, res) => {
     try {
-        // Get all members with role 'member' (exclude admins)
+        // Get all members with global_role 'standard' (exclude global_admins)
         const members = await Member.findAll({
-            where: { role: 'member' },
-            order: [["member_name", "ASC"]],
+            where: { global_role: 'standard' },
+            order: [["first_name", "ASC"]],
         });
         res.json(members);
     } catch (err) {
@@ -33,9 +33,8 @@ router.get("/:id", authenticateToken, async (req, res) => {
             member_name: member.member_name,
             username: member.username,
             gender: member.gender,
-            date_of_birth: member.date_of_birth,
             date_joined: member.date_joined,
-            role: member.role,
+            global_role: member.global_role,
             created_at: member.created_at,
             updated_at: member.updated_at
         };
@@ -52,11 +51,11 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try {
-        const { member_name, gender, date_of_birth, age, password, date_joined } = req.body;
+        const { member_name, gender, password } = req.body;
 
-        if (!member_name || !gender || (!date_of_birth && !age) || !password) {
+        if (!member_name || !password) {
             await transaction.rollback();
-            return res.status(400).json({ error: "Required fields are missing." });
+            return res.status(400).json({ error: "member_name and password are required." });
         }
 
         // Generate username from member name (lowercase, no spaces)
@@ -77,24 +76,19 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
         const newMember = await Member.create({
             member_name,
             username,
-            password,
-            gender,
-            date_of_birth,
-            date_joined: date_joined || '2025-03-01', // Use provided date or default
-            role: 'member'
+            gender
         }, { transaction });
 
         await transaction.commit();
 
-        // Return the new member (excluding password)
+        // Return the new member
         const memberData = {
             id: newMember.id,
             member_name: newMember.member_name,
             username: newMember.username,
             gender: newMember.gender,
-            date_of_birth: newMember.date_of_birth,
             date_joined: newMember.date_joined,
-            role: newMember.role
+            global_role: newMember.global_role
         };
 
         res.status(201).json(memberData);
@@ -110,7 +104,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try {
-        const { date_of_birth, gender, password, date_joined } = req.body;
+        const { first_name, last_name, gender } = req.body;
         const member = await Member.findByPk(req.params.id, { transaction });
 
         if (!member) {
@@ -120,27 +114,31 @@ router.put("/:id", authenticateToken, async (req, res) => {
 
         // Check if user has permission to update this member
         const isOwnProfile = req.user.id === member.id;
-        const isAdmin = req.user.role === 'admin';
+        const isGlobalAdmin = req.user.global_role === 'global_admin';
 
-        if (!isOwnProfile && !isAdmin) {
+        if (!isOwnProfile && !isGlobalAdmin) {
             await transaction.rollback();
             return res.status(403).json({ error: "You can only update your own profile." });
         }
 
         // Create update object with fields that should be updated
         const updateData = {};
-        if (date_of_birth !== undefined) updateData.date_of_birth = date_of_birth;
+        if (first_name !== undefined) updateData.first_name = first_name.trim();
+        if (last_name !== undefined) updateData.last_name = last_name.trim();
         if (gender !== undefined) updateData.gender = gender;
-        if (password !== undefined) updateData.password = password;
-
-        // Only allow admins to update date_joined
-        if (isAdmin && date_joined !== undefined) updateData.date_joined = date_joined;
 
         // Update member
         await member.update(updateData, { transaction });
 
         await transaction.commit();
-        res.json({ message: "Profile updated successfully." });
+
+        // Return updated member info
+        res.json({ 
+            message: "Profile updated successfully.",
+            member_name: member.member_name,
+            first_name: member.first_name,
+            last_name: member.last_name
+        });
     } catch (err) {
         await transaction.rollback();
         console.error("Error updating member:", err);
@@ -148,7 +146,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE member
+// DELETE member (admin only)
 router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
     const transaction = await sequelize.transaction();
 
@@ -160,10 +158,10 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
             return res.status(404).json({ error: "Member not found." });
         }
 
-        // Check if trying to delete admin
-        if (member.role === 'admin') {
+        // Check if trying to delete global admin
+        if (member.global_role === 'global_admin') {
             await transaction.rollback();
-            return res.status(403).json({ error: "Cannot delete admin account." });
+            return res.status(403).json({ error: "Cannot delete global admin account." });
         }
 
         // Delete the member

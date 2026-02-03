@@ -8,7 +8,7 @@ final class SplashViewModel: ObservableObject {
     @Published var isCTAVisible: Bool = false
     @Published var isHeadlineComplete: Bool = false
 
-    private let headline = "Hi, welcome to RaSi Fit'ers"
+    private let headline = "Hi, welcome to RaSi Fiters"
     private let subheadline = "Track your fitness journey by logging workouts and monitoring your progress!"
 
     private var hasStarted = false

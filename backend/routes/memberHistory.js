@@ -25,15 +25,15 @@ router.get("/", authenticateToken, async (req, res) => {
             where: {
                 program_id: programId,
                 member_id: memberId,
-                date: { [Op.between]: [windowStart, windowEnd] }
+                log_date: { [Op.between]: [windowStart, windowEnd] }
             },
-            attributes: ["date"]
+            attributes: ["log_date"]
         });
 
         const buckets = buildBuckets(windowStart, windowEnd, bucketGranularity, labelMode);
 
         for (const log of logs) {
-            const key = bucketKey(new Date(log.date + "T00:00:00Z"), bucketGranularity);
+            const key = bucketKey(new Date(log.log_date + "T00:00:00Z"), bucketGranularity);
             if (!buckets.has(key)) continue;
             const bucket = buckets.get(key);
             bucket.workouts += 1;

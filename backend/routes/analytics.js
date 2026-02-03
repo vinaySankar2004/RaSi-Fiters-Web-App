@@ -1,6 +1,6 @@
 const express = require("express");
 const { Op, fn, col, literal } = require("sequelize");
-const { DailyHealthLog, WorkoutLog, Member, Program } = require("../models/index");
+const { DailyHealthLog, WorkoutLog, Member, Program, ProgramMembership, ProgramWorkout } = require("../models/index");
 const { authenticateToken } = require("../middleware/auth");
 const { getPeriodRange } = require("../utils/dateRange");
 
@@ -13,21 +13,48 @@ const percentChange = (current, previous) => {
     return Number((((current - previous) / previous) * 100).toFixed(1));
 };
 
+const activeMembershipInclude = (programId) => ({
+    model: ProgramMembership,
+    attributes: [],
+    required: true,
+    where: {
+        program_id: programId,
+        status: "active"
+    }
+});
+
+const toUTCDate = (isoDate) => {
+    if (!isoDate) return null;
+    const [year, month, day] = isoDate.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+};
+
+const diffDays = (start, end) => Math.floor((end - start) / 86400000);
+
 router.get("/summary", authenticateToken, async (req, res) => {
     try {
         const period = (req.query.period || "day").toLowerCase();
         const { programId } = req.query;
+        if (!programId) {
+            return res.status(400).json({ error: "programId is required" });
+        }
         const { current, previous, label } = getPeriodRange(period);
 
         const currentWhere = {
-            date: { [Op.between]: [current.start, current.end] }
+            program_id: programId,
+            log_date: { [Op.between]: [current.start, current.end] }
         };
         const previousWhere = {
-            date: { [Op.between]: [previous.start, previous.end] }
+            program_id: programId,
+            log_date: { [Op.between]: [previous.start, previous.end] }
         };
-        if (programId) {
-            currentWhere.program_id = programId;
-            previousWhere.program_id = programId;
+
+        const program = await Program.findOne({
+            where: { id: programId, is_deleted: false },
+            attributes: ["id", "status", "start_date", "end_date"]
+        });
+        if (!program) {
+            return res.status(404).json({ error: "Program not found." });
         }
 
         const [
@@ -41,53 +68,63 @@ router.get("/summary", authenticateToken, async (req, res) => {
             topWorkoutTypes,
             timeline
         ] = await Promise.all([
-            Member.count(),
-            WorkoutLog.count({ where: currentWhere }),
-            WorkoutLog.count({ where: previousWhere }),
-            WorkoutLog.sum("duration", { where: currentWhere }),
-            WorkoutLog.sum("duration", { where: previousWhere }),
+            ProgramMembership.count({ where: { program_id: programId, status: "active" } }),
+            WorkoutLog.count({ where: currentWhere, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.count({ where: previousWhere, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.sum("duration", { where: currentWhere, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.sum("duration", { where: previousWhere, include: [activeMembershipInclude(programId)] }),
             WorkoutLog.count({
                 where: currentWhere,
                 distinct: true,
-                col: "member_id"
+                col: "member_id",
+                include: [activeMembershipInclude(programId)]
             }),
             WorkoutLog.findAll({
                 where: currentWhere,
                 attributes: [
-                    "member_id",
+                    [col("WorkoutLog.member_id"), "member_id"],
                     [fn("COUNT", "*"), "workouts"],
                     [fn("SUM", col("duration")), "totalDuration"]
                 ],
                 include: [
+                    activeMembershipInclude(programId),
                     {
                         model: Member,
-                        attributes: ["member_name"]
+                        attributes: ["first_name", "last_name"]
                     }
                 ],
-                group: ["member_id", "Member.id"],
+                group: [col("WorkoutLog.member_id"), "Member.id", "Member.first_name", "Member.last_name"],
                 order: [[literal("workouts"), "DESC"]],
                 limit: 5
             }),
             WorkoutLog.findAll({
                 where: currentWhere,
                 attributes: [
-                    "workout_name",
+                    [col("ProgramWorkout.workout_name"), "workout_name"],
                     [fn("COUNT", "*"), "sessions"],
                     [fn("SUM", col("duration")), "duration"]
                 ],
-                group: ["workout_name"],
+                include: [
+                    activeMembershipInclude(programId),
+                    {
+                        model: ProgramWorkout,
+                        attributes: []
+                    }
+                ],
+                group: ["ProgramWorkout.workout_name"],
                 order: [[literal("sessions"), "DESC"]],
                 limit: 8
             }),
             WorkoutLog.findAll({
                 where: currentWhere,
                 attributes: [
-                    "date",
+                    "log_date",
                     [fn("COUNT", "*"), "workouts"],
                     [fn("SUM", col("duration")), "duration"]
                 ],
-                group: ["date"],
-                order: [["date", "ASC"]]
+                include: [activeMembershipInclude(programId)],
+                group: ["log_date"],
+                order: [["log_date", "ASC"]]
             })
         ]);
 
@@ -98,7 +135,7 @@ router.get("/summary", authenticateToken, async (req, res) => {
         const atRiskMembers = Math.max(totalMembers - activeMembers, 0);
 
         const timelineSeries = timeline.map((row) => ({
-            date: row.date,
+            date: row.log_date,
             workouts: Number(row.get("workouts")),
             duration: Number(row.get("duration"))
         }));
@@ -112,17 +149,37 @@ router.get("/summary", authenticateToken, async (req, res) => {
         }, {});
 
         const topPerformersFormatted = topPerformers.map((row) => ({
-            member_id: row.member_id,
-            member_name: row.Member?.member_name || "Unknown",
+            member_id: row.get("member_id"),
+            member_name: row.Member
+                ? `${row.Member.first_name || ""} ${row.Member.last_name || ""}`.trim() || "Unknown"
+                : "Unknown",
             workouts: Number(row.get("workouts")),
             total_duration: Number(row.get("totalDuration"))
         }));
 
         const topWorkoutTypesFormatted = topWorkoutTypes.map((row) => ({
-            workout_name: row.workout_name,
+            workout_name: row.get("workout_name"),
             sessions: Number(row.get("sessions")),
             duration: Number(row.get("duration"))
         }));
+
+        const startDate = program.start_date ? toUTCDate(program.start_date) : null;
+        const endDate = program.end_date ? toUTCDate(program.end_date) : null;
+        const today = new Date();
+        const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+        let totalDays = 0;
+        let elapsedDays = 0;
+        if (startDate && endDate && endDate > startDate) {
+            totalDays = Math.max(diffDays(startDate, endDate), 0);
+            if (todayUtc > startDate) {
+                elapsedDays = Math.min(diffDays(startDate, todayUtc), totalDays);
+            }
+        }
+        const remainingDays = Math.max(totalDays - elapsedDays, 0);
+        const progressPercent = totalDays > 0
+            ? Math.round((elapsedDays / totalDays) * 100)
+            : 0;
 
         res.json({
             period: label,
@@ -137,6 +194,16 @@ router.get("/summary", authenticateToken, async (req, res) => {
                 duration_change_pct: percentChange(totalDurationCurrent, totalDurationPrevious),
                 avg_duration_minutes: avgDuration,
                 avg_duration_change_pct: percentChange(avgDuration, avgDurationPrev)
+            },
+            program_progress: {
+                program_id: program.id,
+                status: program.status,
+                start_date: program.start_date,
+                end_date: program.end_date,
+                total_days: totalDays,
+                elapsed_days: elapsedDays,
+                remaining_days: remainingDays,
+                progress_percent: progressPercent
             },
             members: {
                 total: totalMembers,
@@ -170,7 +237,8 @@ router.get("/participation/mtd", authenticateToken, async (req, res) => {
         const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0); // last day prev month
 
         const whereCurrent = {
-            date: {
+            program_id: programId,
+            log_date: {
                 [Op.between]: [
                     currentStart.toISOString().slice(0, 10),
                     nextMonthStart.toISOString().slice(0, 10)
@@ -179,7 +247,8 @@ router.get("/participation/mtd", authenticateToken, async (req, res) => {
         };
 
         const wherePrev = {
-            date: {
+            program_id: programId,
+            log_date: {
                 [Op.between]: [
                     prevMonthStart.toISOString().slice(0, 10),
                     prevMonthEnd.toISOString().slice(0, 10)
@@ -187,13 +256,20 @@ router.get("/participation/mtd", authenticateToken, async (req, res) => {
             }
         };
 
-        whereCurrent.program_id = programId;
-        wherePrev.program_id = programId;
-
         const [totalMembers, activeCurrent, activePrev] = await Promise.all([
-            Member.count(),
-            WorkoutLog.count({ where: whereCurrent, distinct: true, col: "member_id" }),
-            WorkoutLog.count({ where: wherePrev, distinct: true, col: "member_id" })
+            ProgramMembership.count({ where: { program_id: programId, status: "active" } }),
+            WorkoutLog.count({
+                where: whereCurrent,
+                distinct: true,
+                col: "member_id",
+                include: [activeMembershipInclude(programId)]
+            }),
+            WorkoutLog.count({
+                where: wherePrev,
+                distinct: true,
+                col: "member_id",
+                include: [activeMembershipInclude(programId)]
+            })
         ]);
 
         const currentPct = totalMembers > 0 ? Number(((activeCurrent / totalMembers) * 100).toFixed(1)) : 0;
@@ -227,7 +303,7 @@ router.get("/workouts/total", authenticateToken, async (req, res) => {
 
         const whereCurrent = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     currentStart.toISOString().slice(0, 10),
                     nextMonthStart.toISOString().slice(0, 10)
@@ -237,7 +313,7 @@ router.get("/workouts/total", authenticateToken, async (req, res) => {
 
         const wherePrev = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     prevMonthStart.toISOString().slice(0, 10),
                     prevMonthEnd.toISOString().slice(0, 10)
@@ -246,8 +322,8 @@ router.get("/workouts/total", authenticateToken, async (req, res) => {
         };
 
         const [currentCount, previousCount] = await Promise.all([
-            WorkoutLog.count({ where: whereCurrent }),
-            WorkoutLog.count({ where: wherePrev })
+            WorkoutLog.count({ where: whereCurrent, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.count({ where: wherePrev, include: [activeMembershipInclude(programId)] })
         ]);
 
         res.json({
@@ -276,7 +352,7 @@ router.get("/duration/total", authenticateToken, async (req, res) => {
 
         const whereCurrent = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     currentStart.toISOString().slice(0, 10),
                     nextMonthStart.toISOString().slice(0, 10)
@@ -286,7 +362,7 @@ router.get("/duration/total", authenticateToken, async (req, res) => {
 
         const wherePrev = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     prevMonthStart.toISOString().slice(0, 10),
                     prevMonthEnd.toISOString().slice(0, 10)
@@ -295,8 +371,8 @@ router.get("/duration/total", authenticateToken, async (req, res) => {
         };
 
         const [currentMinutes, prevMinutes] = await Promise.all([
-            WorkoutLog.sum("duration", { where: whereCurrent }),
-            WorkoutLog.sum("duration", { where: wherePrev })
+            WorkoutLog.sum("duration", { where: whereCurrent, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.sum("duration", { where: wherePrev, include: [activeMembershipInclude(programId)] })
         ]);
 
         const currentTotal = Number(currentMinutes || 0);
@@ -326,17 +402,18 @@ router.get("/timeline", authenticateToken, async (req, res) => {
         const logs = await WorkoutLog.findAll({
             where: {
                 program_id: programId,
-                date: {
+                log_date: {
                     [Op.between]: [windowStart, windowEnd]
                 }
             },
-            attributes: ["date", "member_id"]
+            include: [activeMembershipInclude(programId)],
+            attributes: ["log_date", "member_id"]
         });
 
         const buckets = buildBuckets(windowStart, windowEnd, bucketGranularity, labelMode);
 
         for (const log of logs) {
-            const key = bucketKey(new Date(log.date + "T00:00:00Z"), bucketGranularity);
+            const key = bucketKey(new Date(log.log_date + "T00:00:00Z"), bucketGranularity);
             if (!buckets.has(key)) continue;
             const bucket = buckets.get(key);
             bucket.workouts += 1;
@@ -389,6 +466,7 @@ router.get("/health/timeline", authenticateToken, async (req, res) => {
 
         const logs = await DailyHealthLog.findAll({
             where: whereClause,
+            include: [activeMembershipInclude(programId)],
             attributes: ["log_date", "sleep_hours", "food_quality"]
         });
 
@@ -474,12 +552,13 @@ router.get("/distribution/day", authenticateToken, async (req, res) => {
         // Group by date first, then roll up to weekday in JS to stay portable across DBs.
         const rows = await WorkoutLog.findAll({
             where: { program_id: programId },
+            include: [activeMembershipInclude(programId)],
             attributes: [
-                "date",
+                "log_date",
                 [fn("COUNT", "*"), "workouts"]
             ],
-            group: ["date"],
-            order: [["date", "ASC"]]
+            group: ["log_date"],
+            order: [["log_date", "ASC"]]
         });
 
         const byDay = {
@@ -493,7 +572,7 @@ router.get("/distribution/day", authenticateToken, async (req, res) => {
         };
 
         for (const row of rows) {
-            const date = row.date;
+            const date = row.log_date;
             const count = Number(row.get("workouts")) || 0;
             const day = new Date(date + "T00:00:00Z").toLocaleDateString("en-US", { weekday: "long" });
             if (byDay[day] !== undefined) {
@@ -519,11 +598,18 @@ router.get("/workouts/types", authenticateToken, async (req, res) => {
         const rows = await WorkoutLog.findAll({
             where: memberId ? { program_id: programId, member_id: memberId } : { program_id: programId },
             attributes: [
-                "workout_name",
+                [col("ProgramWorkout.workout_name"), "workout_name"],
                 [fn("COUNT", "*"), "sessions"],
                 [fn("SUM", col("duration")), "duration"]
             ],
-            group: ["workout_name"],
+            include: [
+                activeMembershipInclude(programId),
+                {
+                    model: ProgramWorkout,
+                    attributes: []
+                }
+            ],
+            group: ["ProgramWorkout.workout_name"],
             order: [[literal("sessions"), "DESC"]],
             limit: Number(limit)
         });
@@ -533,7 +619,7 @@ router.get("/workouts/types", authenticateToken, async (req, res) => {
             const totalDuration = Number(row.get("duration")) || 0;
             const avgMinutes = sessions > 0 ? Math.round(totalDuration / sessions) : 0;
             return {
-                workout_name: row.workout_name,
+                workout_name: row.get("workout_name"),
                 sessions,
                 total_duration: totalDuration,
                 avg_duration_minutes: avgMinutes
@@ -691,7 +777,7 @@ router.get("/duration/average", authenticateToken, async (req, res) => {
 
         const whereCurrent = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     currentStart.toISOString().slice(0, 10),
                     nextMonthStart.toISOString().slice(0, 10)
@@ -701,7 +787,7 @@ router.get("/duration/average", authenticateToken, async (req, res) => {
 
         const wherePrev = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     prevMonthStart.toISOString().slice(0, 10),
                     prevMonthEnd.toISOString().slice(0, 10)
@@ -710,10 +796,10 @@ router.get("/duration/average", authenticateToken, async (req, res) => {
         };
 
         const [currentMinutes, currentSessions, prevMinutes, prevSessions] = await Promise.all([
-            WorkoutLog.sum("duration", { where: whereCurrent }),
-            WorkoutLog.count({ where: whereCurrent }),
-            WorkoutLog.sum("duration", { where: wherePrev }),
-            WorkoutLog.count({ where: wherePrev })
+            WorkoutLog.sum("duration", { where: whereCurrent, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.count({ where: whereCurrent, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.sum("duration", { where: wherePrev, include: [activeMembershipInclude(programId)] }),
+            WorkoutLog.count({ where: wherePrev, include: [activeMembershipInclude(programId)] })
         ]);
 
         const currentTotal = Number(currentMinutes || 0);

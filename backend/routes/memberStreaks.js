@@ -58,17 +58,17 @@ router.get("/", authenticateToken, async (req, res) => {
             where: {
                 program_id: programId,
                 member_id: memberId,
-                date: {
+                log_date: {
                     [Op.between]: [
                         start.toISOString().slice(0, 10),
                         end.toISOString().slice(0, 10)
                     ]
                 }
             },
-            attributes: ["date"]
+            attributes: ["log_date"]
         });
 
-        const dates = Array.from(new Set(logs.map(l => l.date)));
+        const dates = Array.from(new Set(logs.map(l => l.log_date)));
         const { current, longest } = computeStreaks(dates);
 
         const milestones = milestonesList.map(m => ({

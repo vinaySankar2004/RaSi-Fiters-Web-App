@@ -1,6 +1,6 @@
 const express = require("express");
 const { Op, fn, col, literal } = require("sequelize");
-const { WorkoutLog, Member, ProgramMembership } = require("../models");
+const { WorkoutLog, Member, ProgramMembership, ProgramWorkout } = require("../models");
 const { authenticateToken } = require("../middleware/auth");
 const { getPeriodRange } = require("../utils/dateRange");
 
@@ -13,6 +13,16 @@ const percentChange = (current, previous) => {
     return Number((((current - previous) / previous) * 100).toFixed(1));
 };
 
+const activeMembershipInclude = (programId) => ({
+    model: ProgramMembership,
+    attributes: [],
+    required: true,
+    where: {
+        program_id: programId,
+        status: "active"
+    }
+});
+
 // Summary (v2) — uses program_memberships for total members when programId is provided
 router.get("/summary", authenticateToken, async (req, res) => {
     try {
@@ -21,15 +31,16 @@ router.get("/summary", authenticateToken, async (req, res) => {
         const { current, previous } = getPeriodRange(period);
 
         const currentWhere = {
-            date: { [Op.between]: [current.start, current.end] }
+            log_date: { [Op.between]: [current.start, current.end] }
         };
         const previousWhere = {
-            date: { [Op.between]: [previous.start, previous.end] }
+            log_date: { [Op.between]: [previous.start, previous.end] }
         };
         if (programId) {
             currentWhere.program_id = programId;
             previousWhere.program_id = programId;
         }
+        const activeInclude = programId ? [activeMembershipInclude(programId)] : [];
 
         const [
             totalMembers,
@@ -43,16 +54,17 @@ router.get("/summary", authenticateToken, async (req, res) => {
             timeline
         ] = await Promise.all([
             programId
-                ? ProgramMembership.count({ where: { program_id: programId } })
+                ? ProgramMembership.count({ where: { program_id: programId, status: "active" } })
                 : Member.count(),
-            WorkoutLog.count({ where: currentWhere }),
-            WorkoutLog.count({ where: previousWhere }),
-            WorkoutLog.sum("duration", { where: currentWhere }),
-            WorkoutLog.sum("duration", { where: previousWhere }),
+            WorkoutLog.count({ where: currentWhere, include: activeInclude }),
+            WorkoutLog.count({ where: previousWhere, include: activeInclude }),
+            WorkoutLog.sum("duration", { where: currentWhere, include: activeInclude }),
+            WorkoutLog.sum("duration", { where: previousWhere, include: activeInclude }),
             WorkoutLog.count({
                 where: currentWhere,
                 distinct: true,
-                col: "member_id"
+                col: "member_id",
+                include: activeInclude
             }),
             WorkoutLog.findAll({
                 where: currentWhere,
@@ -62,6 +74,7 @@ router.get("/summary", authenticateToken, async (req, res) => {
                     [fn("SUM", col("duration")), "totalDuration"]
                 ],
                 include: [
+                    ...activeInclude,
                     {
                         model: Member,
                         attributes: ["member_name"]
@@ -74,23 +87,31 @@ router.get("/summary", authenticateToken, async (req, res) => {
             WorkoutLog.findAll({
                 where: currentWhere,
                 attributes: [
-                    "workout_name",
+                    [col("ProgramWorkout.workout_name"), "workout_name"],
                     [fn("COUNT", "*"), "sessions"],
                     [fn("SUM", col("duration")), "duration"]
                 ],
-                group: ["workout_name"],
+                include: [
+                    ...activeInclude,
+                    {
+                        model: ProgramWorkout,
+                        attributes: []
+                    }
+                ],
+                group: ["ProgramWorkout.workout_name"],
                 order: [[literal("sessions"), "DESC"]],
                 limit: 8
             }),
             WorkoutLog.findAll({
                 where: currentWhere,
                 attributes: [
-                    "date",
+                    "log_date",
                     [fn("COUNT", "*"), "workouts"],
                     [fn("SUM", col("duration")), "duration"]
                 ],
-                group: ["date"],
-                order: [["date", "ASC"]]
+                include: activeInclude,
+                group: ["log_date"],
+                order: [["log_date", "ASC"]]
             })
         ]);
 
@@ -101,7 +122,7 @@ router.get("/summary", authenticateToken, async (req, res) => {
         const atRiskMembers = Math.max(totalMembers - activeMembers, 0);
 
         const timelineSeries = timeline.map((row) => ({
-            date: row.date,
+            date: row.log_date,
             workouts: Number(row.get("workouts")),
             duration: Number(row.get("duration"))
         }));
@@ -122,7 +143,7 @@ router.get("/summary", authenticateToken, async (req, res) => {
         }));
 
         const topWorkoutTypesFormatted = topWorkoutTypes.map((row) => ({
-            workout_name: row.workout_name,
+            workout_name: row.get("workout_name"),
             sessions: Number(row.get("sessions")),
             total_duration: Number(row.get("duration"))
         }));
@@ -168,7 +189,7 @@ router.get("/participation/mtd", authenticateToken, async (req, res) => {
 
         const whereCurrent = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     currentStart.toISOString().slice(0, 10),
                     nextMonthStart.toISOString().slice(0, 10)
@@ -178,7 +199,7 @@ router.get("/participation/mtd", authenticateToken, async (req, res) => {
 
         const wherePrev = {
             program_id: programId,
-            date: {
+            log_date: {
                 [Op.between]: [
                     prevMonthStart.toISOString().slice(0, 10),
                     prevMonthEnd.toISOString().slice(0, 10)
@@ -187,9 +208,19 @@ router.get("/participation/mtd", authenticateToken, async (req, res) => {
         };
 
         const [totalMembers, activeCurrent, activePrev] = await Promise.all([
-            ProgramMembership.count({ where: { program_id: programId } }),
-            WorkoutLog.count({ where: whereCurrent, distinct: true, col: "member_id" }),
-            WorkoutLog.count({ where: wherePrev, distinct: true, col: "member_id" })
+            ProgramMembership.count({ where: { program_id: programId, status: "active" } }),
+            WorkoutLog.count({
+                where: whereCurrent,
+                distinct: true,
+                col: "member_id",
+                include: [activeMembershipInclude(programId)]
+            }),
+            WorkoutLog.count({
+                where: wherePrev,
+                distinct: true,
+                col: "member_id",
+                include: [activeMembershipInclude(programId)]
+            })
         ]);
 
         const currentPct = totalMembers > 0 ? Number(((activeCurrent / totalMembers) * 100).toFixed(1)) : 0;
@@ -215,13 +246,24 @@ router.get("/workouts/types/total", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "programId is required" });
         }
 
-        const totalTypes = await WorkoutLog.count({
+        // Use findAll with group to count distinct workout types
+        // (Sequelize count with distinct on included column doesn't work reliably)
+        const rows = await WorkoutLog.findAll({
             where: memberId ? { program_id: programId, member_id: memberId } : { program_id: programId },
-            distinct: true,
-            col: "workout_name"
+            attributes: [
+                [col("ProgramWorkout.workout_name"), "workout_name"]
+            ],
+            include: [
+                activeMembershipInclude(programId),
+                {
+                    model: ProgramWorkout,
+                    attributes: []
+                }
+            ],
+            group: ["ProgramWorkout.workout_name"]
         });
 
-        res.json({ total_types: totalTypes });
+        res.json({ total_types: rows.length });
     } catch (err) {
         console.error("Error computing total workout types:", err);
         res.status(500).json({ error: "Failed to compute total workout types." });
@@ -238,17 +280,24 @@ router.get("/workouts/types/most-popular", authenticateToken, async (req, res) =
         const rows = await WorkoutLog.findAll({
             where: memberId ? { program_id: programId, member_id: memberId } : { program_id: programId },
             attributes: [
-                "workout_name",
+                [col("ProgramWorkout.workout_name"), "workout_name"],
                 [fn("COUNT", "*"), "sessions"]
             ],
-            group: ["workout_name"],
+            include: [
+                activeMembershipInclude(programId),
+                {
+                    model: ProgramWorkout,
+                    attributes: []
+                }
+            ],
+            group: ["ProgramWorkout.workout_name"],
             order: [[literal("sessions"), "DESC"]],
             limit: 1
         });
 
         const top = rows[0];
         res.json({
-            workout_name: top?.workout_name ?? null,
+            workout_name: top?.get("workout_name") ?? null,
             sessions: Number(top?.get("sessions")) || 0
         });
     } catch (err) {
@@ -267,10 +316,17 @@ router.get("/workouts/types/longest-duration", authenticateToken, async (req, re
         const rows = await WorkoutLog.findAll({
             where: memberId ? { program_id: programId, member_id: memberId } : { program_id: programId },
             attributes: [
-                "workout_name",
+                [col("ProgramWorkout.workout_name"), "workout_name"],
                 [fn("AVG", col("duration")), "avg_duration"]
             ],
-            group: ["workout_name"],
+            include: [
+                activeMembershipInclude(programId),
+                {
+                    model: ProgramWorkout,
+                    attributes: []
+                }
+            ],
+            group: ["ProgramWorkout.workout_name"],
             order: [[literal("avg_duration"), "DESC"]],
             limit: 1
         });
@@ -279,7 +335,7 @@ router.get("/workouts/types/longest-duration", authenticateToken, async (req, re
         const longestAvg = Math.round(Number(longest?.get("avg_duration")) || 0);
 
         res.json({
-            workout_name: longest?.workout_name ?? null,
+            workout_name: longest?.get("workout_name") ?? null,
             avg_minutes: longestAvg
         });
     } catch (err) {
@@ -299,16 +355,24 @@ router.get("/workouts/types/highest-participation", authenticateToken, async (re
             const rows = await WorkoutLog.findAll({
                 where: { program_id: programId, member_id: memberId },
                 attributes: [
-                    "workout_name",
+                    [col("ProgramWorkout.workout_name"), "workout_name"],
                     [fn("COUNT", "*"), "sessions"]
                 ],
-                group: ["workout_name"],
+                include: [
+                    activeMembershipInclude(programId),
+                    {
+                        model: ProgramWorkout,
+                        attributes: []
+                    }
+                ],
+                group: ["ProgramWorkout.workout_name"],
                 order: [[literal("sessions"), "DESC"]],
                 limit: 1
             });
 
             const totalWorkouts = await WorkoutLog.count({
-                where: { program_id: programId, member_id: memberId }
+                where: { program_id: programId, member_id: memberId },
+                include: [activeMembershipInclude(programId)]
             });
 
             const top = rows[0];
@@ -318,7 +382,7 @@ router.get("/workouts/types/highest-participation", authenticateToken, async (re
                 : 0;
 
             return res.json({
-                workout_name: top?.workout_name ?? null,
+                workout_name: top?.get("workout_name") ?? null,
                 participants: sessions > 0 ? 1 : 0,
                 participation_pct: participationPct,
                 total_members: 1
@@ -326,14 +390,21 @@ router.get("/workouts/types/highest-participation", authenticateToken, async (re
         }
 
         const [totalMembers, rows] = await Promise.all([
-            ProgramMembership.count({ where: { program_id: programId } }),
+            ProgramMembership.count({ where: { program_id: programId, status: "active" } }),
             WorkoutLog.findAll({
                 where: { program_id: programId },
                 attributes: [
-                    "workout_name",
-                    [fn("COUNT", literal("DISTINCT member_id")), "participants"]
+                    [col("ProgramWorkout.workout_name"), "workout_name"],
+                    [fn("COUNT", literal('DISTINCT "WorkoutLog"."member_id"')), "participants"]
                 ],
-                group: ["workout_name"],
+                include: [
+                    activeMembershipInclude(programId),
+                    {
+                        model: ProgramWorkout,
+                        attributes: []
+                    }
+                ],
+                group: ["ProgramWorkout.workout_name"],
                 order: [[literal("participants"), "DESC"]],
                 limit: 1
             })
@@ -346,7 +417,7 @@ router.get("/workouts/types/highest-participation", authenticateToken, async (re
             : 0;
 
         res.json({
-            workout_name: top?.workout_name ?? null,
+            workout_name: top?.get("workout_name") ?? null,
             participants,
             participation_pct: participationPct,
             total_members: totalMembers

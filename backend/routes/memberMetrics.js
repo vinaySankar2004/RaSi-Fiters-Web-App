@@ -1,7 +1,7 @@
 const express = require("express");
 const { Op } = require("sequelize");
 const { authenticateToken } = require("../middleware/auth");
-const { ProgramMembership, Member, WorkoutLog, Program, DailyHealthLog } = require("../models");
+const { ProgramMembership, Member, WorkoutLog, Program, DailyHealthLog, ProgramWorkout } = require("../models");
 
 const router = express.Router();
 
@@ -134,7 +134,7 @@ router.get("/", authenticateToken, async (req, res) => {
             where: memberWhere,
             include: [{
                 model: Member,
-                attributes: ["id", "member_name", "username"]
+                attributes: ["id", "first_name", "last_name", "username"]
             }]
         });
 
@@ -146,7 +146,7 @@ router.get("/", authenticateToken, async (req, res) => {
                 program_id: programId,
                 member_id: { [Op.in]: memberIds },
                 ...(rangeStart && rangeEnd ? {
-                    date: {
+                    log_date: {
                         [Op.between]: [
                             rangeStart.toISOString().slice(0, 10),
                             rangeEnd.toISOString().slice(0, 10)
@@ -154,7 +154,11 @@ router.get("/", authenticateToken, async (req, res) => {
                     }
                 } : {})
             },
-            attributes: ["member_id", "date", "duration", "workout_name"]
+            attributes: ["member_id", "log_date", "duration", "program_workout_id"],
+            include: [{
+                model: ProgramWorkout,
+                attributes: ["workout_name"]
+            }]
         });
 
         const healthLogs = memberIds.length ? await DailyHealthLog.findAll({
@@ -176,9 +180,12 @@ router.get("/", authenticateToken, async (req, res) => {
         // Aggregate metrics
         const metricsMap = new Map(); // member_id -> metrics object
         for (const m of memberships) {
+            const firstName = m.Member?.first_name || "";
+            const lastName = m.Member?.last_name || "";
+            const memberName = `${firstName} ${lastName}`.trim() || "Unknown";
             metricsMap.set(m.member_id, {
                 member_id: m.member_id,
-                member_name: m.Member?.member_name || "Unknown",
+                member_name: memberName,
                 username: m.Member?.username || "",
                 workouts: 0,
                 total_duration: 0,
@@ -208,20 +215,20 @@ router.get("/", authenticateToken, async (req, res) => {
             if (!entry) continue;
             entry.workouts += 1;
             entry.total_duration += Number(log.duration || 0);
-            if (isInCurrentMonth(log.date)) {
+            if (isInCurrentMonth(log.log_date)) {
                 entry.mtd_workouts += 1;
             }
 
             if (!perMemberDates.has(log.member_id)) perMemberDates.set(log.member_id, new Set());
-            perMemberDates.get(log.member_id).add(log.date);
+            perMemberDates.get(log.member_id).add(log.log_date);
 
+            const workoutName = log.ProgramWorkout?.workout_name || "";
             if (!perMemberTypes.has(log.member_id)) perMemberTypes.set(log.member_id, new Set());
-            perMemberTypes.get(log.member_id).add(log.workout_name || "");
+            perMemberTypes.get(log.member_id).add(workoutName);
 
             if (!perMemberTypeCounts.has(log.member_id)) perMemberTypeCounts.set(log.member_id, new Map());
             const tmap = perMemberTypeCounts.get(log.member_id);
-            const key = log.workout_name || "";
-            tmap.set(key, (tmap.get(key) || 0) + 1);
+            tmap.set(workoutName, (tmap.get(workoutName) || 0) + 1);
         }
 
         for (const log of healthLogs) {

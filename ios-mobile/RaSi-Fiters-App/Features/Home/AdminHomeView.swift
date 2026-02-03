@@ -213,7 +213,7 @@ private struct MemberHealthCard: View {
                                     .foregroundColor(Color(.secondaryLabel))
                             }
                             Spacer()
-                            Text("Food \(foodLabel(item.foodQuality))")
+                            Text("Diet \(foodLabel(item.foodQuality))")
                                 .font(.subheadline.weight(.semibold))
                         }
                     }
@@ -825,7 +825,7 @@ private enum HealthSortField: String, CaseIterable {
         switch self {
         case .date: return "Date"
         case .sleep_hours: return "Sleep Hours"
-        case .food_quality: return "Food Quality"
+        case .food_quality: return "Diet Quality"
         }
     }
 
@@ -1088,7 +1088,7 @@ private struct MemberHealthDetail: View {
                     .foregroundColor(Color(.secondaryLabel))
             }
             Spacer()
-            Text("Food \(foodLabel(item.foodQuality))")
+            Text("Diet \(foodLabel(item.foodQuality))")
                 .font(.subheadline.weight(.semibold))
         }
         .padding(.vertical, 10)
@@ -1159,7 +1159,7 @@ private struct MemberHealthDetail: View {
         let exportMemberName = (memberName ?? "Member").replacingOccurrences(of: " ", with: "")
         let fileName = "HealthLogs_\(exportMemberName)_\(startLabel)_to_\(endLabel).csv"
 
-        var csv = "Date,Sleep Hours,Food Quality\n"
+        var csv = "Date,Sleep Hours,Diet Quality\n"
         for log in programContext.memberHealthLogs {
             let sleepValue = log.sleepHours.map { String(format: "%.1f", $0) } ?? ""
             let foodValue = log.foodQuality.map { "\($0)" } ?? ""
@@ -1379,7 +1379,7 @@ private struct DailyHealthEditSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Food quality")
+                    Text("Diet quality")
                         .font(.subheadline.weight(.semibold))
                     Menu {
                         ForEach(1...5, id: \.self) { rating in
@@ -1808,9 +1808,9 @@ private struct AdminMembersTab: View {
                         }
                         Spacer()
                         NavigationLink {
-                            AddMemberDetailView()
+                            InviteMemberView()
                         } label: {
-                            GlassButton(icon: "person.crop.circle.badge.plus")
+                            GlassButton(icon: "envelope.badge.person.crop")
                         }
                     }
                     .padding(.top, 24)
@@ -2158,7 +2158,7 @@ private struct StandardWorkoutTypesTab: View {
         await programContext.loadWorkoutTypesTotal(memberId: userId)
         await programContext.loadWorkoutTypeMostPopular(memberId: userId)
         await programContext.loadWorkoutTypeLongestDuration(memberId: userId)
-        await programContext.loadWorkoutTypeHighestParticipation(memberId: userId)
+        await programContext.loadWorkoutTypeHighestParticipation(memberId: nil)  // Always program-wide
         await programContext.loadWorkoutTypes(memberId: userId)
         await programContext.loadHealthTimeline(period: AdminHomeView.Period.week.apiValue, memberId: userId)
 
@@ -2295,7 +2295,7 @@ private struct AdminWorkoutTypesTab: View {
         await programContext.loadWorkoutTypesTotal(memberId: memberId)
         await programContext.loadWorkoutTypeMostPopular(memberId: memberId)
         await programContext.loadWorkoutTypeLongestDuration(memberId: memberId)
-        await programContext.loadWorkoutTypeHighestParticipation(memberId: memberId)
+        await programContext.loadWorkoutTypeHighestParticipation(memberId: nil)  // Always program-wide
         await programContext.loadWorkoutTypes(memberId: memberId)
         await programContext.loadHealthTimeline(period: AdminHomeView.Period.week.apiValue, memberId: memberId)
         errorMessage = programContext.errorMessage
@@ -2352,13 +2352,6 @@ private struct AdminWorkoutTypesTab: View {
 private struct AdminProgramTab: View {
     @EnvironmentObject var programContext: ProgramContext
     @State private var showSelectProgram = false
-    @State private var showMemberPicker = false
-    @State private var selectedViewAsMember: APIClient.MemberDTO?
-
-    // Only global_admin can use View As
-    private var canViewAs: Bool {
-        programContext.isGlobalAdmin
-    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -2373,11 +2366,6 @@ private struct AdminProgramTab: View {
                         status: programContext.status,
                         initials: programContext.adminInitials
                     )
-
-                    // View As selector - only for global_admin, right under header
-                    if canViewAs {
-                        viewAsSelector
-                    }
 
                     VStack(spacing: 16) {
                         // Program Info Section - everyone sees Select Program, only admins see Edit
@@ -2411,39 +2399,6 @@ private struct AdminProgramTab: View {
             await programContext.loadMembershipDetails()
         }
     }
-
-    private var viewAsSelector: some View {
-        Button {
-            showMemberPicker = true
-        } label: {
-            HStack {
-                Text("View as")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Color(.label))
-                Spacer()
-                Text(selectedViewAsMember?.member_name ?? "Admin")
-                    .font(.subheadline)
-                    .foregroundColor(Color(.secondaryLabel))
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.footnote.weight(.bold))
-                    .foregroundColor(Color(.tertiaryLabel))
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
-        }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showMemberPicker) {
-            MemberPickerView(
-                members: programContext.members,
-                selected: selectedViewAsMember,
-                onSelect: { member in
-                    selectedViewAsMember = member
-                    showMemberPicker = false
-                }
-            )
-        }
-    }
 }
 
 // MARK: - Program Info Section
@@ -2451,6 +2406,13 @@ private struct AdminProgramTab: View {
 private struct ProgramInfoSection: View {
     @EnvironmentObject var programContext: ProgramContext
     @Binding var showSelectProgram: Bool
+    @State private var showLeaveProgramConfirm = false
+    @State private var isLeavingProgram = false
+    @State private var leaveProgramError: String?
+
+    private var canLeaveProgram: Bool {
+        programContext.loggedInUserProgramRole != "admin" && !programContext.isGlobalAdmin
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -2534,6 +2496,48 @@ private struct ProgramInfoSection: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                if canLeaveProgram {
+                    // Leave Program
+                    Button {
+                        showLeaveProgramConfirm = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(.systemGray5))
+                                    .frame(width: 42, height: 42)
+                                Image(systemName: "arrow.left.circle")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(Color(.secondaryLabel))
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Leave Program")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(Color(.label))
+                                Text("Your data will be preserved")
+                                    .font(.caption)
+                                    .foregroundColor(Color(.secondaryLabel))
+                            }
+                            Spacer()
+                            if isLeavingProgram {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color(.systemBackground))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color(.systemGray4).opacity(0.6), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isLeavingProgram)
+                }
             }
         }
         .padding(16)
@@ -2546,152 +2550,33 @@ private struct ProgramInfoSection: View {
                 .stroke(Color(.systemGray4).opacity(0.5), lineWidth: 1)
         )
         .adaptiveShadow(radius: 8, y: 4)
-    }
-}
-
-private struct EditProgramInfoView: View {
-    @EnvironmentObject var programContext: ProgramContext
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var programName: String = ""
-    @State private var programStatus: String = "Active"
-    @State private var startDate: Date = Date()
-    @State private var endDate: Date = Date()
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    @State private var showSuccessAlert = false
-
-    private let statusOptions = ["active", "planned", "completed"]
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Edit Program")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(Color(.label))
-                    Text("Update program details")
-                        .font(.subheadline)
-                        .foregroundColor(Color(.secondaryLabel))
-                }
-
-                VStack(spacing: 14) {
-                    // Program Name
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Program name")
-                            .font(.subheadline.weight(.semibold))
-                        TextField("e.g. Winter Fitness Challenge", text: $programName)
-                            .autocorrectionDisabled()
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
-                    }
-
-                    // Status
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Status")
-                            .font(.subheadline.weight(.semibold))
-                        Menu {
-                            ForEach(statusOptions, id: \.self) { option in
-                                Button(option.capitalized) { programStatus = option }
-                            }
-                        } label: {
-                            HStack {
-                                Text(programStatus.capitalized)
-                                    .foregroundColor(Color(.label))
-                                Spacer()
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .foregroundColor(Color(.tertiaryLabel))
-                            }
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
-                        }
-                    }
-
-                    // Start Date
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Start date")
-                            .font(.subheadline.weight(.semibold))
-                        DatePicker("", selection: $startDate, displayedComponents: .date)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .padding(.horizontal)
-                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
-                    }
-
-                    // End Date
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("End date")
-                            .font(.subheadline.weight(.semibold))
-                        DatePicker("", selection: $endDate, displayedComponents: .date)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .padding(.horizontal)
-                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
-                    }
-                }
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.appRed)
-                        .font(.footnote.weight(.semibold))
-                }
-
-                Button(action: { Task { await save() } }) {
-                    if isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("Save changes")
-                            .font(.headline.weight(.semibold))
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.appOrange)
-                .foregroundColor(.black)
-                .cornerRadius(14)
-                .disabled(isSaving || programName.isEmpty)
+        .alert("Leave Program?", isPresented: $showLeaveProgramConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Leave", role: .destructive) {
+                Task { await leaveProgram() }
             }
-            .padding(20)
-        }
-        .adaptiveBackground(topLeading: true)
-        .navigationTitle("Edit Program")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            programName = programContext.name
-            programStatus = programContext.status.lowercased()
-            startDate = programContext.startDate
-            endDate = programContext.endDate
-        }
-        .alert("Saved", isPresented: $showSuccessAlert) {
-            Button("OK") { dismiss() }
         } message: {
-            Text("Program updated successfully")
+            Text("You will no longer have access to \(programContext.name). Your workout history and data will be preserved. If you're invited back and accept, your data will be restored.")
+        }
+        .alert("Error", isPresented: .constant(leaveProgramError != nil)) {
+            Button("OK") { leaveProgramError = nil }
+        } message: {
+            Text(leaveProgramError ?? "")
         }
     }
 
-    private func save() async {
-        isSaving = true
-        errorMessage = nil
+    private func leaveProgram() async {
+        isLeavingProgram = true
+        leaveProgramError = nil
 
         do {
-            try await programContext.updateProgram(
-                name: programName,
-                status: programStatus.lowercased(),
-                startDate: startDate,
-                endDate: endDate
-            )
-            showSuccessAlert = true
+            _ = try await programContext.leaveProgram()
+            // Success - UI will update automatically as programId is cleared
         } catch {
-            errorMessage = error.localizedDescription
+            leaveProgramError = error.localizedDescription
         }
 
-        isSaving = false
+        isLeavingProgram = false
     }
 }
 
@@ -2700,8 +2585,8 @@ private struct EditProgramInfoView: View {
 private struct ProgramMemberManagementSection: View {
     @EnvironmentObject var programContext: ProgramContext
 
-    // Only global_admin and program_admin can add members
-    private var canAddMember: Bool {
+    // Only global_admin and program_admin can invite members
+    private var canInviteMember: Bool {
         programContext.canEditProgramData
     }
 
@@ -2723,16 +2608,16 @@ private struct ProgramMemberManagementSection: View {
                 }
                 .buttonStyle(.plain)
 
-                // Add Member - only global_admin and program_admin
-                if canAddMember {
+                // Invite Member - only global_admin and program_admin
+                if canInviteMember {
                     NavigationLink {
-                        AddMemberDetailView()
+                        InviteMemberView()
                     } label: {
                         settingsRow(
-                            icon: "person.crop.circle.badge.plus",
+                            icon: "envelope.badge.person.crop",
                             color: .blue,
-                            title: "Add Member",
-                            subtitle: "Create and enroll new member"
+                            title: "Invite Member",
+                            subtitle: "Send program invitation"
                         )
                     }
                     .buttonStyle(.plain)
@@ -3176,9 +3061,17 @@ private struct ManageRolesView: View {
     @State private var isUpdating: String?
     @State private var errorMessage: String?
 
+    private var activeAdminCount: Int {
+        programContext.membershipDetails.filter { $0.program_role == "admin" && $0.status == "active" }.count
+    }
+
     var body: some View {
         List {
             ForEach(programContext.membershipDetails) { member in
+                let isLastActiveAdmin = member.program_role == "admin"
+                    && member.status == "active"
+                    && activeAdminCount <= 1
+
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
                         ZStack {
@@ -3214,7 +3107,8 @@ private struct ManageRolesView: View {
                             roleButton(
                                 title: "Admin",
                                 isSelected: member.program_role == "admin",
-                                color: .appOrange
+                                color: .appOrange,
+                                isDisabled: isLastActiveAdmin
                             ) {
                                 Task { await updateRole(for: member, to: "admin") }
                             }
@@ -3222,7 +3116,8 @@ private struct ManageRolesView: View {
                             roleButton(
                                 title: "Logger",
                                 isSelected: member.program_role == "logger",
-                                color: .blue
+                                color: .blue,
+                                isDisabled: isLastActiveAdmin
                             ) {
                                 Task { await updateRole(for: member, to: "logger") }
                             }
@@ -3230,7 +3125,8 @@ private struct ManageRolesView: View {
                             roleButton(
                                 title: "Member",
                                 isSelected: member.program_role == "member",
-                                color: .gray
+                                color: Color(.systemGray),
+                                isDisabled: isLastActiveAdmin
                             ) {
                                 Task { await updateRole(for: member, to: "member") }
                             }
@@ -3253,19 +3149,30 @@ private struct ManageRolesView: View {
     }
 
     @ViewBuilder
-    private func roleButton(title: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
+    private func roleButton(title: String, isSelected: Bool, color: Color, isDisabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(isSelected ? .white : color)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? color : color.opacity(0.1))
-                )
+            HStack(spacing: 4) {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption2.weight(.bold))
+                }
+                Text(title)
+                    .font(.caption.weight(isSelected ? .bold : .semibold))
+            }
+            .foregroundColor(isSelected ? .white : color)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(isSelected ? color : color.opacity(0.15))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(isSelected ? color.opacity(0.8) : color.opacity(0.3), lineWidth: isSelected ? 2 : 1)
+            )
         }
-        .disabled(isSelected)
+        .disabled(isSelected || isDisabled)
+        .opacity(isSelected || !isDisabled ? 1.0 : 0.55)
     }
 
     private func roleColor(for role: String) -> Color {
@@ -3317,14 +3224,12 @@ private struct ManageRolesView: View {
 private struct ProgramWorkoutTypesSection: View {
     @EnvironmentObject var programContext: ProgramContext
 
-    // Only global_admin can manage (edit/delete) workout types
-    private var canManageWorkoutTypes: Bool {
-        programContext.isGlobalAdmin
+    private var visibleCount: Int {
+        programContext.programWorkouts.filter { !$0.is_hidden }.count
     }
 
-    // Both global_admin and program_admin can add new workout types
-    private var canAddWorkoutType: Bool {
-        programContext.canEditProgramData
+    private var customCount: Int {
+        programContext.programWorkouts.filter { $0.isCustom }.count
     }
 
     var body: some View {
@@ -3332,48 +3237,20 @@ private struct ProgramWorkoutTypesSection: View {
             sectionHeader(title: "Workout Types", icon: "dumbbell.fill", color: .purple)
 
             VStack(spacing: 12) {
-                // View Workout Types - everyone can view
+                // View & Manage Workout Types - unified view
                 NavigationLink {
                     ViewWorkoutTypesListView()
                 } label: {
                     settingsRow(
                         icon: "list.bullet",
                         color: .purple,
-                        title: "View Workout Types",
-                        subtitle: "\(programContext.workouts.count) types available"
+                        title: "Workout Types",
+                        subtitle: customCount > 0
+                            ? "\(visibleCount) available, \(customCount) custom"
+                            : "\(visibleCount) types available"
                     )
                 }
                 .buttonStyle(.plain)
-
-                // Manage Workout Types - only global_admin can edit/delete
-                if canManageWorkoutTypes {
-                    NavigationLink {
-                        ManageWorkoutTypesView()
-                    } label: {
-                        settingsRow(
-                            icon: "gearshape.fill",
-                            color: .gray,
-                            title: "Manage Workout Types",
-                            subtitle: "Edit or delete workout types"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                // Add Workout Type - global_admin and program_admin
-                if canAddWorkoutType {
-                    NavigationLink {
-                        AddWorkoutTypeDetailView()
-                    } label: {
-                        settingsRow(
-                            icon: "plus.circle.fill",
-                            color: .green,
-                            title: "Add Workout Type",
-                            subtitle: "Create a new workout type"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
             }
         }
         .padding(16)
@@ -3386,88 +3263,69 @@ private struct ProgramWorkoutTypesSection: View {
                 .stroke(Color(.systemGray4).opacity(0.5), lineWidth: 1)
         )
         .adaptiveShadow(radius: 8, y: 4)
+        .task {
+            await programContext.loadProgramWorkouts()
+        }
     }
 }
 
-// View-only workout types list for everyone
+// Workout types list with swipe actions for program admins
 private struct ViewWorkoutTypesListView: View {
     @EnvironmentObject var programContext: ProgramContext
     @State private var searchText = ""
-
-    private var filteredWorkouts: [APIClient.WorkoutDTO] {
-        if searchText.isEmpty {
-            return programContext.workouts
-        }
-        return programContext.workouts.filter {
-            $0.workout_name.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-
-    var body: some View {
-        List {
-            ForEach(filteredWorkouts, id: \.workout_name) { workout in
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.appPurpleLight)
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "dumbbell.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.purple)
-                    }
-                    Text(workout.workout_name)
-                        .font(.subheadline.weight(.medium))
-                }
-            }
-        }
-        .searchable(text: $searchText, prompt: "Search workout types")
-        .navigationTitle("Workout Types")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private struct ManageWorkoutTypesView: View {
-    @EnvironmentObject var programContext: ProgramContext
-    @State private var searchText = ""
     @State private var showDeleteConfirm = false
-    @State private var workoutToDelete: APIClient.WorkoutDTO?
-    @State private var isDeleting = false
+    @State private var workoutToDelete: APIClient.ProgramWorkoutDTO?
+    @State private var workoutToEdit: APIClient.ProgramWorkoutDTO?
+    @State private var showAddSheet = false
+    @State private var newWorkoutName = ""
+    @State private var isProcessing = false
     @State private var errorMessage: String?
 
-    private var filteredWorkouts: [APIClient.WorkoutDTO] {
+    private var canManage: Bool {
+        programContext.canEditProgramData
+    }
+
+    private var filteredWorkouts: [APIClient.ProgramWorkoutDTO] {
+        let workouts = programContext.programWorkouts
         if searchText.isEmpty {
-            return programContext.workouts
+            return workouts
         }
-        return programContext.workouts.filter {
+        return workouts.filter {
             $0.workout_name.localizedCaseInsensitiveContains(searchText)
         }
     }
 
+    private var visibleWorkouts: [APIClient.ProgramWorkoutDTO] {
+        filteredWorkouts.filter { !$0.is_hidden }
+    }
+
+    private var hiddenWorkouts: [APIClient.ProgramWorkoutDTO] {
+        filteredWorkouts.filter { $0.is_hidden }
+    }
+
     var body: some View {
         List {
-            ForEach(filteredWorkouts, id: \.workout_name) { workout in
-                NavigationLink {
-                    EditWorkoutTypeView(workout: workout)
-                } label: {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.appPurpleLight)
-                                .frame(width: 40, height: 40)
-                            Image(systemName: "dumbbell.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.purple)
-                        }
-                        Text(workout.workout_name)
-                            .font(.subheadline.weight(.medium))
+            // Visible workouts section
+            if !visibleWorkouts.isEmpty {
+                Section {
+                    ForEach(visibleWorkouts) { workout in
+                        workoutRow(workout)
                     }
+                } header: {
+                    Text("Available (\(visibleWorkouts.count))")
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        workoutToDelete = workout
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+            }
+
+            // Hidden workouts section (only show to admins)
+            if canManage && !hiddenWorkouts.isEmpty {
+                Section {
+                    ForEach(hiddenWorkouts) { workout in
+                        workoutRow(workout)
+                    }
+                } header: {
+                    HStack {
+                        Image(systemName: "eye.slash")
+                        Text("Hidden (\(hiddenWorkouts.count))")
                     }
                 }
             }
@@ -3475,7 +3333,24 @@ private struct ManageWorkoutTypesView: View {
         .searchable(text: $searchText, prompt: "Search workout types")
         .navigationTitle("Workout Types")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Delete Workout Type?", isPresented: $showDeleteConfirm) {
+        .toolbar {
+            if canManage {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+        }
+        .task {
+            await programContext.loadProgramWorkouts()
+        }
+        .refreshable {
+            await programContext.loadProgramWorkouts()
+        }
+        .alert("Delete Custom Workout?", isPresented: $showDeleteConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 if let workout = workoutToDelete {
@@ -3483,95 +3358,233 @@ private struct ManageWorkoutTypesView: View {
                 }
             }
         } message: {
-            Text("This will delete \"\(workoutToDelete?.workout_name ?? "")\".")
+            Text("This will delete \"\(workoutToDelete?.workout_name ?? "")\" from this program.")
+        }
+        .sheet(isPresented: $showAddSheet) {
+            addCustomWorkoutSheet
+        }
+        .sheet(item: $workoutToEdit) { workout in
+            editCustomWorkoutSheet(workout)
         }
     }
 
-    private func deleteWorkout(_ workout: APIClient.WorkoutDTO) async {
-        isDeleting = true
-        do {
-            try await programContext.deleteWorkoutType(name: workout.workout_name)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isDeleting = false
-    }
-}
+    @ViewBuilder
+    private func workoutRow(_ workout: APIClient.ProgramWorkoutDTO) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(workout.isCustom ? Color.appGreenLight : Color.appPurpleLight)
+                    .frame(width: 40, height: 40)
+                Image(systemName: workout.isCustom ? "star.fill" : "dumbbell.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(workout.isCustom ? .green : .purple)
+            }
 
-private struct EditWorkoutTypeView: View {
-    @EnvironmentObject var programContext: ProgramContext
-    @Environment(\.dismiss) private var dismiss
-    let workout: APIClient.WorkoutDTO
-
-    @State private var workoutName: String = ""
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Edit Workout Type")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(Color(.label))
-                    Text("Rename this workout type")
-                        .font(.subheadline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(workout.workout_name)
+                    .font(.subheadline.weight(.medium))
+                HStack(spacing: 4) {
+                    Text(workout.isCustom ? "Custom" : "Standard")
+                        .font(.caption2)
                         .foregroundColor(Color(.secondaryLabel))
+                    if workout.is_hidden {
+                        Text("• Hidden")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
                 }
+            }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Workout name")
-                        .font(.subheadline.weight(.semibold))
-                    TextField("e.g. Running", text: $workoutName)
+            Spacer()
+        }
+        .opacity(workout.is_hidden ? 0.5 : 1.0)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if canManage {
+                if workout.isGlobal {
+                    // Global workout: toggle visibility only
+                    Button {
+                        Task { await toggleVisibility(workout) }
+                    } label: {
+                        Label(workout.is_hidden ? "Show" : "Hide", systemImage: workout.is_hidden ? "eye" : "eye.slash")
+                    }
+                    .tint(workout.is_hidden ? .green : .orange)
+                } else {
+                    // Custom workout: delete (will fail if has logs)
+                    Button(role: .destructive) {
+                        workoutToDelete = workout
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
+                    // Custom workout: toggle visibility (alternative to delete)
+                    Button {
+                        Task { await toggleCustomVisibility(workout) }
+                    } label: {
+                        Label(workout.is_hidden ? "Show" : "Hide", systemImage: workout.is_hidden ? "eye" : "eye.slash")
+                    }
+                    .tint(workout.is_hidden ? .green : .orange)
+                }
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            if canManage && workout.isCustom && !workout.is_hidden {
+                // Custom workout: edit (only if not hidden)
+                Button {
+                    workoutToEdit = workout
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .tint(.blue)
+            }
+        }
+    }
+
+    private var addCustomWorkoutSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Workout name", text: $newWorkoutName)
                         .autocorrectionDisabled()
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
+                } header: {
+                    Text("Add Custom Workout")
+                } footer: {
+                    Text("Create a custom workout type for this program only.")
                 }
 
                 if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.appRed)
-                        .font(.footnote.weight(.semibold))
-                }
-
-                Button(action: { Task { await save() } }) {
-                    if isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("Save changes")
-                            .font(.headline.weight(.semibold))
+                    Section {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(workoutName.isEmpty ? Color(.systemGray3) : Color.appOrange)
-                .foregroundColor(.black)
-                .cornerRadius(14)
-                .disabled(isSaving || workoutName.isEmpty)
             }
-            .padding(20)
+            .navigationTitle("New Workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        newWorkoutName = ""
+                        errorMessage = nil
+                        showAddSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        Task { await addCustomWorkout() }
+                    }
+                    .disabled(newWorkoutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isProcessing)
+                }
+            }
         }
-        .adaptiveBackground(topLeading: true)
-        .navigationTitle("Edit Workout")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            workoutName = workout.workout_name
-        }
+        .presentationDetents([.medium])
     }
 
-    private func save() async {
-        isSaving = true
-        errorMessage = nil
+    private func editCustomWorkoutSheet(_ workout: APIClient.ProgramWorkoutDTO) -> some View {
+        EditCustomWorkoutSheet(
+            workout: workout,
+            onSave: { newName in
+                Task {
+                    do {
+                        try await programContext.editCustomProgramWorkout(workoutId: workout.id, name: newName)
+                        workoutToEdit = nil
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                }
+            },
+            onCancel: {
+                workoutToEdit = nil
+            }
+        )
+    }
 
+    private func toggleVisibility(_ workout: APIClient.ProgramWorkoutDTO) async {
+        guard let libraryId = workout.library_workout_id else { return }
+        isProcessing = true
         do {
-            try await programContext.updateWorkoutType(oldName: workout.workout_name, newName: workoutName)
-            dismiss()
+            try await programContext.toggleWorkoutVisibility(libraryWorkoutId: libraryId)
         } catch {
             errorMessage = error.localizedDescription
         }
+        isProcessing = false
+    }
 
-        isSaving = false
+    private func toggleCustomVisibility(_ workout: APIClient.ProgramWorkoutDTO) async {
+        isProcessing = true
+        do {
+            try await programContext.toggleCustomWorkoutVisibility(workoutId: workout.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isProcessing = false
+    }
+
+    private func deleteWorkout(_ workout: APIClient.ProgramWorkoutDTO) async {
+        isProcessing = true
+        do {
+            try await programContext.deleteCustomProgramWorkout(workoutId: workout.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isProcessing = false
+    }
+
+    private func addCustomWorkout() async {
+        let name = newWorkoutName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        isProcessing = true
+        errorMessage = nil
+        do {
+            try await programContext.addCustomProgramWorkout(name: name)
+            newWorkoutName = ""
+            showAddSheet = false
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isProcessing = false
+    }
+}
+
+// Helper sheet for editing custom workout
+private struct EditCustomWorkoutSheet: View {
+    let workout: APIClient.ProgramWorkoutDTO
+    let onSave: (String) -> Void
+    let onCancel: () -> Void
+
+    @State private var workoutName: String = ""
+    @State private var isSaving = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Workout name", text: $workoutName)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("Edit Custom Workout")
+                }
+            }
+            .navigationTitle("Edit Workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        isSaving = true
+                        onSave(workoutName.trimmingCharacters(in: .whitespacesAndNewlines))
+                    }
+                    .disabled(workoutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                }
+            }
+            .onAppear {
+                workoutName = workout.workout_name
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 
@@ -3846,11 +3859,14 @@ private struct AppearanceSettingsView: View {
 
 private struct MyProfileView: View {
     @EnvironmentObject var programContext: ProgramContext
+    @State private var firstName: String = ""
+    @State private var lastName: String = ""
     @State private var gender: String = ""
-    @State private var dateOfBirth: Date = Date()
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var showSuccessAlert = false
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
 
     var body: some View {
         ScrollView {
@@ -3861,13 +3877,13 @@ private struct MyProfileView: View {
                         Circle()
                             .fill(Color.appOrangeLight)
                             .frame(width: 70, height: 70)
-                        Text(programContext.loggedInUserInitials)
+                        Text(initials)
                             .font(.title2.weight(.bold))
                             .foregroundColor(.appOrange)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(programContext.loggedInUserName ?? "")
+                        Text(fullName)
                             .font(.title3.weight(.bold))
                         Text("@\(programContext.loggedInUsername ?? "")")
                             .font(.subheadline)
@@ -3882,6 +3898,29 @@ private struct MyProfileView: View {
 
                 // Editable Fields
                 VStack(alignment: .leading, spacing: 14) {
+                    // First Name
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("First name")
+                            .font(.subheadline.weight(.semibold))
+                        TextField("Enter first name", text: $firstName)
+                            .textContentType(.givenName)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                    }
+
+                    // Last Name
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Last name")
+                            .font(.subheadline.weight(.semibold))
+                        TextField("Enter last name", text: $lastName)
+                            .textContentType(.familyName)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                    }
+
+                    // Gender
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Gender")
                             .font(.subheadline.weight(.semibold))
@@ -3902,18 +3941,6 @@ private struct MyProfileView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(12)
                         }
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Date of birth")
-                            .font(.subheadline.weight(.semibold))
-                        DatePicker("", selection: $dateOfBirth, displayedComponents: .date)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .padding(.horizontal)
-                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
                     }
                 }
 
@@ -3937,6 +3964,35 @@ private struct MyProfileView: View {
                 .foregroundColor(.black)
                 .cornerRadius(14)
                 .disabled(isSaving)
+
+                // Spacer to push delete button to bottom
+                Spacer()
+                    .frame(height: 40)
+
+                // Delete Account Section
+                if !programContext.isGlobalAdmin {
+                    VStack(spacing: 8) {
+                        Divider()
+                            .padding(.bottom, 8)
+
+                        Button(action: { showDeleteConfirmation = true }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                    .font(.subheadline)
+                                Text("Delete Account")
+                                    .font(.subheadline.weight(.medium))
+                            }
+                            .foregroundColor(.red.opacity(0.8))
+                        }
+                        .disabled(isDeleting)
+
+                        Text("This will permanently delete your account and all associated data.")
+                            .font(.caption)
+                            .foregroundColor(Color(.tertiaryLabel))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                }
             }
             .padding(20)
         }
@@ -3948,24 +4004,75 @@ private struct MyProfileView: View {
         } message: {
             Text("Profile updated successfully")
         }
+        .alert("Delete Account?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+        } message: {
+            Text("This action cannot be undone. All your data, including workout logs, health logs, and program memberships will be permanently deleted.")
+        }
+        .onAppear {
+            // Initialize fields from current values
+            if let name = programContext.loggedInUserName {
+                let parts = name.split(separator: " ", maxSplits: 1)
+                firstName = parts.first.map(String.init) ?? ""
+                lastName = parts.count > 1 ? String(parts[1]) : ""
+            }
+        }
+    }
+
+    private var fullName: String {
+        let name = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? (programContext.loggedInUserName ?? "") : name
+    }
+
+    private var initials: String {
+        let first = firstName.first.map { String($0).uppercased() } ?? ""
+        let last = lastName.first.map { String($0).uppercased() } ?? ""
+        let computed = "\(first)\(last)"
+        return computed.isEmpty ? programContext.loggedInUserInitials : computed
+    }
+
+    private func deleteAccount() async {
+        isDeleting = true
+        errorMessage = nil
+
+        do {
+            try await programContext.deleteAccount()
+            // After successful deletion, signOut is called automatically
+            // which will trigger navigation back to login
+        } catch {
+            errorMessage = error.localizedDescription
+            isDeleting = false
+        }
     }
 
     private func save() async {
         guard let userId = programContext.loggedInUserId else { return }
+
+        // Validate that names are not empty
+        let trimmedFirst = firstName.trimmingCharacters(in: .whitespaces)
+        let trimmedLast = lastName.trimmingCharacters(in: .whitespaces)
+
+        if trimmedFirst.isEmpty {
+            errorMessage = "First name is required"
+            return
+        }
+        if trimmedLast.isEmpty {
+            errorMessage = "Last name is required"
+            return
+        }
+
         isSaving = true
         errorMessage = nil
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dobString = formatter.string(from: dateOfBirth)
 
         do {
             try await programContext.updateMemberProfile(
                 memberId: userId,
-                gender: gender.isEmpty ? nil : gender,
-                dateOfBirth: dobString,
-                password: nil,
-                dateJoined: nil
+                firstName: trimmedFirst,
+                lastName: trimmedLast,
+                gender: gender.isEmpty ? nil : gender
             )
             showSuccessAlert = true
         } catch {
@@ -4081,18 +4188,11 @@ private struct ChangePasswordView: View {
     }
 
     private func save() async {
-        guard let userId = programContext.loggedInUserId else { return }
         isSaving = true
         errorMessage = nil
 
         do {
-            try await programContext.updateMemberProfile(
-                memberId: userId,
-                gender: nil,
-                dateOfBirth: nil,
-                password: newPassword,
-                dateJoined: nil
-            )
+            try await programContext.changePassword(newPassword: newPassword)
             showSuccessAlert = true
         } catch {
             errorMessage = error.localizedDescription
@@ -4603,7 +4703,8 @@ private struct WorkoutTypeMostPopularCard: View {
                 Text(name ?? "N/A")
                     .font(.title3.weight(.bold))
                     .foregroundColor(accent)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
 
                 Spacer()
 
@@ -4639,7 +4740,8 @@ private struct WorkoutTypeLongestDurationCard: View {
                 Text(name ?? "N/A")
                     .font(.title3.weight(.bold))
                     .foregroundColor(accent)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
 
                 Spacer()
 
@@ -4675,7 +4777,8 @@ private struct WorkoutTypeHighestParticipationCard: View {
                 Text(name ?? "N/A")
                     .font(.title3.weight(.bold))
                     .foregroundColor(accent)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
 
                 Spacer()
 
@@ -4937,7 +5040,7 @@ private struct LifestyleTimelineCardSummary: View {
                         Text("Lifestyle Timeline")
                             .font(.headline.weight(.semibold))
                             .foregroundColor(Color(.label))
-                        Text("Sleep · Food quality")
+                        Text("Sleep · Diet quality")
                             .font(.subheadline)
                             .foregroundColor(Color(.secondaryLabel))
                     }
@@ -4970,14 +5073,14 @@ private struct LifestyleTimelineCardSummary: View {
 
                                 LineMark(
                                     x: .value("Label", point.label),
-                                    y: .value("Food Quality", point.food_quality)
+                                    y: .value("Diet Quality", point.food_quality)
                                 )
                                 .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
                                 .foregroundStyle(Color.appGreen)
                                 .interpolationMethod(.catmullRom)
                                 PointMark(
                                     x: .value("Label", point.label),
-                                    y: .value("Food Quality", point.food_quality)
+                                    y: .value("Diet Quality", point.food_quality)
                                 )
                                 .symbolSize(22)
                                 .foregroundStyle(Color.appGreen)
@@ -5241,6 +5344,10 @@ private struct ActivityTimelineDetailView: View {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
+        
+        // Clear global error before calling to prevent stale errors from showing
+        programContext.errorMessage = nil
+        
         if let memberId {
             await programContext.loadMemberHistory(memberId: memberId, period: period.apiValue)
         } else if let customLoadHandler {
@@ -5248,7 +5355,12 @@ private struct ActivityTimelineDetailView: View {
         } else {
             await programContext.loadActivityTimeline(period: period.apiValue)
         }
-        errorMessage = programContext.errorMessage
+        
+        // Only set error if the timeline call specifically failed
+        if programContext.activityTimeline.isEmpty && programContext.errorMessage != nil {
+            errorMessage = programContext.errorMessage
+        }
+        
         isLoading = false
     }
 }
@@ -5296,7 +5408,7 @@ private struct LifestyleTimelineDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Lifestyle Timeline")
                     .font(.title3.weight(.semibold))
-                Text("Sleep · Food quality")
+                Text("Sleep · Diet quality")
                     .font(.subheadline)
                     .foregroundColor(Color(.secondaryLabel))
             }
@@ -5352,14 +5464,14 @@ private struct LifestyleTimelineDetailView: View {
 
                             LineMark(
                                 x: .value("Label", point.label),
-                                y: .value("Food Quality", point.food_quality)
+                                y: .value("Diet Quality", point.food_quality)
                             )
                             .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
                             .foregroundStyle(Color.appGreen)
                             .interpolationMethod(.catmullRom)
                             PointMark(
                                 x: .value("Label", point.label),
-                                y: .value("Food Quality", point.food_quality)
+                                y: .value("Diet Quality", point.food_quality)
                             )
                             .symbolSize(24)
                             .foregroundStyle(Color.appGreen)
@@ -5489,7 +5601,7 @@ private struct HealthHeaderStats: View {
                                 .foregroundColor(.appBlue)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Food")
+                            Text("Diet")
                                 .font(.caption2.weight(.semibold))
                                 .foregroundColor(Color(.secondaryLabel))
                             Text(foodValue)
@@ -5595,7 +5707,7 @@ private struct HealthCalloutView: View {
             .font(.caption2)
             HStack {
                 Circle().fill(Color.appGreen).frame(width: 6, height: 6)
-                Text("Food: \(foodValue)")
+                Text("Diet: \(foodValue)")
             }
             .font(.caption2)
         }
@@ -6019,7 +6131,7 @@ private struct MemberMetricsDetailView: View {
         let programName = programContext.name.replacingOccurrences(of: " ", with: "")
         let fileName = "MemberPerformanceMetrics_\(programName)_\(startLabel)_to_\(endLabel).csv"
 
-        var csv = "Name,Workouts,Total Duration,Avg Duration,Avg Sleep,Avg Food Quality,Active Days,Workout Types,Current Streak,Longest Streak\n"
+        var csv = "Name,Workouts,Total Duration,Avg Duration,Avg Sleep,Avg Diet Quality,Active Days,Workout Types,Current Streak,Longest Streak\n"
         for m in programContext.memberMetrics {
             let avgSleep = m.avg_sleep_hours.map { String(format: "%.1f", $0) } ?? ""
             let avgFood = m.avg_food_quality.map { "\($0)" } ?? ""
@@ -6376,7 +6488,7 @@ private enum SortField: String, CaseIterable, Hashable {
         case .workout_types: return "Workout Types"
         case .current_streak: return "Current Streak"
         case .longest_streak: return "Longest Streak"
-        case .avg_food_quality: return "Avg Food Quality"
+        case .avg_food_quality: return "Avg Diet Quality"
         }
     }
 
@@ -6386,7 +6498,7 @@ private enum SortField: String, CaseIterable, Hashable {
         case .active_days: return "Active Days"
         case .current_streak: return "Current Streak"
         case .avg_sleep_hours: return "Avg Sleep"
-        case .avg_food_quality: return "Avg Food"
+        case .avg_food_quality: return "Avg Diet"
         default: return label
         }
     }
@@ -6536,7 +6648,7 @@ private struct FilterSheet: View {
                 Section("Workout Types") { rangeFields(min: $filters.workoutTypesMin, max: $filters.workoutTypesMax, unit: "types") }
                 Section("Current Streak") { minField(title: "Min", value: $filters.currentStreakMin, unit: "days") }
                 Section("Longest Streak") { minField(title: "Min", value: $filters.longestStreakMin, unit: "days") }
-                Section("Avg Food Quality") { rangeFields(min: $filters.avgFoodQualityMin, max: $filters.avgFoodQualityMax, unit: "") }
+                Section("Avg Diet Quality") { rangeFields(min: $filters.avgFoodQualityMin, max: $filters.avgFoodQualityMax, unit: "") }
             }
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
@@ -6669,7 +6781,7 @@ private struct MemberMetricsCard: View {
             }
             HStack(spacing: 10) {
                 metricTile(title: "Avg Sleep", value: avgSleepValue, icon: "bed.double.fill")
-                metricTile(title: "Avg Food Quality", value: avgFoodValue, icon: "leaf.fill")
+                metricTile(title: "Avg Diet Quality", value: avgFoodValue, icon: "leaf.fill")
             }
         }
     }
@@ -7582,7 +7694,7 @@ private struct AddDailyHealthCard: View {
                 .font(.title3.weight(.bold))
                 .foregroundColor(.white)
 
-            Text("Track sleep hours and food quality for the day.")
+            Text("Track sleep hours and diet quality for the day.")
                 .font(.subheadline)
                 .foregroundColor(Color.white.opacity(0.75))
                 .padding(.bottom, 4)
@@ -7656,252 +7768,83 @@ private struct AnalyticsDetailView: View {
     }
 }
 
-private struct AddMemberDetailView: View {
-    enum AddMemberMode: String, CaseIterable {
-        case createNew = "Create New"
-        case addExisting = "Add Existing"
-    }
-
+private struct InviteMemberView: View {
     @EnvironmentObject var programContext: ProgramContext
     @Environment(\.dismiss) private var dismiss
 
-    // Mode toggle
-    @State private var mode: AddMemberMode = .createNew
-
-    // Create New mode fields
-    @State private var memberName: String = ""
-    @State private var password: String = ""
-    @State private var gender: String = ""
-    @State private var dateOfBirth: Date = Date()
-    @State private var dateJoined: Date = Date()
-    @State private var showPassword: Bool = false
-
-    // Add Existing mode fields
-    @State private var availableMembers: [APIClient.MemberDTO] = []
-    @State private var selectedMember: APIClient.MemberDTO?
-    @State private var isLoadingMembers = false
-    @State private var searchText: String = ""
-
-    // Shared state
-    @State private var isSaving = false
+    @State private var username: String = ""
+    @State private var isSending = false
+    @State private var showSuccessMessage = false
     @State private var errorMessage: String?
-    @State private var successMessage: String?
-    @State private var showSuccessAlert: Bool = false
-    @State private var lastCreatedUsername: String?
-
-    private var usernamePreview: String {
-        let slug = memberName
-            .lowercased()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "[^a-z0-9]", with: "", options: .regularExpression)
-        return slug.isEmpty ? "username" : slug
-    }
 
     private var isFormValid: Bool {
-        switch mode {
-        case .createNew:
-            return !memberName.trimmingCharacters(in: .whitespaces).isEmpty &&
-                   !password.isEmpty &&
-                   programContext.programId != nil
-        case .addExisting:
-            return selectedMember != nil && programContext.programId != nil
-        }
-    }
-
-    private var filteredMembers: [APIClient.MemberDTO] {
-        guard !searchText.isEmpty else { return availableMembers }
-        return availableMembers.filter {
-            $0.member_name.localizedCaseInsensitiveContains(searchText) ||
-            ($0.username?.localizedCaseInsensitiveContains(searchText) ?? false)
-        }
+        !username.trimmingCharacters(in: .whitespaces).isEmpty &&
+        programContext.programId != nil
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
                 header
-                modeSelector
-
-                if mode == .createNew {
-                    createNewFormFields
-                } else {
-                    existingMemberPicker
-                }
+                usernameField
+                infoNote
 
                 if let errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.appRed)
                         .font(.footnote.weight(.semibold))
                 }
-                if let successMessage {
-                    Text(successMessage)
-                        .foregroundColor(.green)
-                        .font(.footnote.weight(.semibold))
+
+                if showSuccessMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("Invitation sent")
+                            .foregroundColor(.green)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(12)
                 }
 
-                Button(action: { Task { await save() } }) {
-                    if isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text(mode == .createNew ? "Add member" : "Enroll member")
-                            .font(.headline.weight(.semibold))
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isFormValid ? Color.appOrange : Color(.systemGray3))
-                .foregroundColor(.black)
-                .cornerRadius(14)
-                .disabled(!isFormValid || isSaving)
+                sendButton
             }
             .padding(20)
         }
         .adaptiveBackground(topLeading: true)
-        .alert("Member added", isPresented: $showSuccessAlert) {
-            Button("OK") {
-                dismiss()
-            }
-        } message: {
-            Text(lastCreatedUsername ?? "Success")
-        }
-        .onChange(of: mode) { newMode in
-            if newMode == .addExisting && availableMembers.isEmpty {
-                Task { await loadAvailableMembers() }
-            }
-        }
+        .navigationTitle("Invite Member")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Add member")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Invite member")
                 .font(.title2.weight(.bold))
                 .foregroundColor(Color(.label))
-            Text(mode == .createNew
-                 ? "Create the member and enroll into this program."
-                 : "Select an existing member to enroll into this program.")
+            Text("Enter the exact username of the person you want to invite to this program.")
                 .font(.subheadline)
                 .foregroundColor(Color(.secondaryLabel))
         }
     }
 
-    private var modeSelector: some View {
-        Picker("Mode", selection: $mode) {
-            ForEach(AddMemberMode.allCases, id: \.self) { m in
-                Text(m.rawValue).tag(m)
-            }
-        }
-        .pickerStyle(.segmented)
-    }
-
-    private var createNewFormFields: some View {
-        VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Member name")
-                    .font(.subheadline.weight(.semibold))
-                TextField("e.g. Alex Smith", text: $memberName)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.words)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Username")
-                    .font(.subheadline.weight(.semibold))
-                HStack {
-                    Text(usernamePreview)
-                        .foregroundColor(Color(.secondaryLabel))
-                    Spacer()
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Password")
-                    .font(.subheadline.weight(.semibold))
-                HStack {
-                    if showPassword {
-                        TextField("••••••••", text: $password)
-                            .textContentType(.password)
-                    } else {
-                        SecureField("••••••••", text: $password)
-                    }
-                    Button {
-                        showPassword.toggle()
-                    } label: {
-                        Image(systemName: showPassword ? "eye.slash" : "eye")
-                            .foregroundColor(Color(.tertiaryLabel))
-                    }
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Gender")
-                    .font(.subheadline.weight(.semibold))
-                Menu {
-                    ForEach(["Male", "Female", "Non-binary", "Prefer not to say"], id: \.self) { option in
-                        Button(option) { gender = option }
-                    }
-                    Button("Clear") { gender = "" }
-                } label: {
-                    HStack {
-                        Text(gender.isEmpty ? "Select gender" : gender)
-                            .foregroundColor(gender.isEmpty ? Color(.tertiaryLabel) : Color(.label))
-                        Spacer()
-                        Image(systemName: "chevron.up.chevron.down")
-                            .foregroundColor(Color(.tertiaryLabel))
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Date of birth")
-                    .font(.subheadline.weight(.semibold))
-                DatePicker("", selection: $dateOfBirth, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Date joined")
-                    .font(.subheadline.weight(.semibold))
-                DatePicker("", selection: $dateJoined, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
-        }
-    }
-
-    private var existingMemberPicker: some View {
-        VStack(spacing: 14) {
-            // Search field
+    private var usernameField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Username")
+                .font(.subheadline.weight(.semibold))
             HStack {
-                Image(systemName: "magnifyingglass")
+                Text("@")
                     .foregroundColor(Color(.tertiaryLabel))
-                TextField("Search members...", text: $searchText)
+                    .font(.body.weight(.medium))
+                TextField("username", text: $username)
                     .autocorrectionDisabled()
-                if !searchText.isEmpty {
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.asciiCapable)
+                if !username.isEmpty {
                     Button {
-                        searchText = ""
+                        username = ""
+                        showSuccessMessage = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(Color(.tertiaryLabel))
@@ -7911,152 +7854,77 @@ private struct AddMemberDetailView: View {
             .padding()
             .background(Color(.systemGray6))
             .cornerRadius(12)
+        }
+    }
 
-            // Member list
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Select member")
-                    .font(.subheadline.weight(.semibold))
+    private var infoNote: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "info.circle.fill")
+                .foregroundColor(.blue)
+                .font(.subheadline)
+            Text("The user must have an account to receive the invitation. They will see your invite in their pending invitations.")
+                .font(.caption)
+                .foregroundColor(Color(.secondaryLabel))
+        }
+        .padding(12)
+        .background(Color.blue.opacity(0.08))
+        .cornerRadius(10)
+    }
 
-                if isLoadingMembers {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                    .padding()
-                } else if filteredMembers.isEmpty {
-                    HStack {
-                        Spacer()
-                        Text(availableMembers.isEmpty ? "No members available to add" : "No matching members")
-                            .foregroundColor(Color(.secondaryLabel))
-                            .font(.subheadline)
-                        Spacer()
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(filteredMembers, id: \.id) { member in
-                            Button {
-                                selectedMember = member
-                            } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(member.member_name)
-                                            .font(.body.weight(.medium))
-                                            .foregroundColor(Color(.label))
-                                        if let username = member.username {
-                                            Text("@\(username)")
-                                                .font(.caption)
-                                                .foregroundColor(Color(.secondaryLabel))
-                                        }
-                                    }
-                                    Spacer()
-                                    if selectedMember?.id == member.id {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.appOrange)
-                                    }
-                                }
-                                .padding()
-                                .background(selectedMember?.id == member.id ? Color.appOrange.opacity(0.1) : Color(.systemGray6))
-                            }
-
-                            if member.id != filteredMembers.last?.id {
-                                Divider()
-                                    .padding(.horizontal)
-                            }
-                        }
-                    }
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(.systemGray5), lineWidth: 1)
-                    )
+    private var sendButton: some View {
+        Button(action: { Task { await sendInvite() } }) {
+            if isSending {
+                ProgressView()
+                    .tint(.black)
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "paperplane.fill")
+                    Text("Send Invitation")
+                        .font(.headline.weight(.semibold))
                 }
             }
-
-            // Date joined picker for enrollment
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Date joined")
-                    .font(.subheadline.weight(.semibold))
-                DatePicker("", selection: $dateJoined, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
         }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(isFormValid ? Color.appOrange : Color(.systemGray3))
+        .foregroundColor(.black)
+        .cornerRadius(14)
+        .disabled(!isFormValid || isSending)
     }
 
-    private func loadAvailableMembers() async {
+    private func sendInvite() async {
         guard let token = programContext.authToken,
               let programId = programContext.programId else { return }
 
-        isLoadingMembers = true
-        do {
-            availableMembers = try await APIClient.shared.fetchAvailableMembers(token: token, programId: programId)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isLoadingMembers = false
-    }
-
-    private func save() async {
-        guard let token = programContext.authToken,
-              let programId = programContext.programId else { return }
-
-        isSaving = true
+        isSending = true
         errorMessage = nil
-        successMessage = nil
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        showSuccessMessage = false
 
         do {
-            switch mode {
-            case .createNew:
-                let dobString = formatter.string(from: dateOfBirth)
-                let joinedString = formatter.string(from: dateJoined)
+            let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            _ = try await APIClient.shared.sendProgramInvite(
+                token: token,
+                programId: programId,
+                username: trimmedUsername
+            )
 
-                let created = try await APIClient.shared.addMember(
-                    token: token,
-                    memberName: memberName.trimmingCharacters(in: .whitespacesAndNewlines),
-                    password: password,
-                    gender: gender.isEmpty ? nil : gender,
-                    dateOfBirth: dobString,
-                    dateJoined: joinedString,
-                    programId: programId
-                )
+            // Always show success (privacy-preserving)
+            showSuccessMessage = true
+            username = ""
 
-                await programContext.loadLookupData()
-                lastCreatedUsername = created.username
-                successMessage = "Member added. Username: \(created.username)"
-                showSuccessAlert = true
-
-            case .addExisting:
-                guard let member = selectedMember else { return }
-                let joinedString = formatter.string(from: dateJoined)
-
-                let enrolled = try await APIClient.shared.enrollExistingMember(
-                    token: token,
-                    memberId: member.id,
-                    programId: programId,
-                    joinedAt: joinedString
-                )
-
-                await programContext.loadLookupData()
-                lastCreatedUsername = "\(enrolled.member_name) enrolled"
-                successMessage = "Member enrolled successfully."
-                showSuccessAlert = true
-            }
         } catch {
-            errorMessage = error.localizedDescription
+            // Even on error, show success for privacy
+            // But if it's a network error, show that
+            if error.localizedDescription.contains("network") ||
+               error.localizedDescription.contains("connection") {
+                errorMessage = "Network error. Please try again."
+            } else {
+                showSuccessMessage = true
+                username = ""
+            }
         }
 
-        isSaving = false
+        isSending = false
     }
 }
 
@@ -8176,7 +8044,6 @@ private struct AddWorkoutDetailView: View {
     @State private var durationText: String = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var successMessage: String?
     @State private var showSuccessAlert = false
     @Environment(\.dismiss) private var dismiss
 
@@ -8188,11 +8055,6 @@ private struct AddWorkoutDetailView: View {
                 if let errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.appRed)
-                        .font(.footnote.weight(.semibold))
-                }
-                if let successMessage {
-                    Text(successMessage)
-                        .foregroundColor(.green)
                         .font(.footnote.weight(.semibold))
                 }
                 Button(action: { Task { await save() } }) {
@@ -8226,9 +8088,11 @@ private struct AddWorkoutDetailView: View {
     }
 
     private var canSelectAnyMember: Bool {
-        programContext.globalRole == "global_admin" ||
-        programContext.loggedInUserProgramRole == "admin" ||
-        programContext.loggedInUserProgramRole == "logger"
+        let result = programContext.globalRole == "global_admin" ||
+            programContext.loggedInUserProgramRole == "admin" ||
+            programContext.loggedInUserProgramRole == "logger"
+        print("[AddWorkout] canSelectAnyMember: \(result) | globalRole: '\(programContext.globalRole)' | programRole: '\(programContext.loggedInUserProgramRole)'")
+        return result
     }
 
     private var header: some View {
@@ -8286,6 +8150,7 @@ private struct AddWorkoutDetailView: View {
 
     @ViewBuilder
     private var memberField: some View {
+        let _ = print("[AddWorkout] memberField rendering - members count: \(programContext.members.count), workouts count: \(programContext.workouts.count)")
         VStack(alignment: .leading, spacing: 6) {
             Text("Member")
                 .font(.subheadline.weight(.semibold))
@@ -8360,7 +8225,6 @@ private struct AddWorkoutDetailView: View {
 
         isSaving = true
         errorMessage = nil
-        successMessage = nil
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let dateString = formatter.string(from: selectedDate)
@@ -8378,7 +8242,6 @@ private struct AddWorkoutDetailView: View {
                 programId: programUUID,
                 memberId: member.id
             )
-            successMessage = "Workout logged."
             showSuccessAlert = true
         } catch {
             errorMessage = error.localizedDescription
@@ -8387,14 +8250,23 @@ private struct AddWorkoutDetailView: View {
     }
 
     private func ensureLookups() async {
+        print("[AddWorkout] ensureLookups called - globalRole: '\(programContext.globalRole)' | programRole: '\(programContext.loggedInUserProgramRole)'")
+        print("[AddWorkout] Before load - members: \(programContext.members.count), workouts: \(programContext.workouts.count)")
         let needsProgramRefresh = programContext.membersProgramId != programContext.programId
         if programContext.members.isEmpty || programContext.workouts.isEmpty || needsProgramRefresh {
             await programContext.loadLookupData()
+            print("[AddWorkout] After loadLookupData - members: \(programContext.members.count), workouts: \(programContext.workouts.count)")
+        }
+        // Ensure membership details (including program role) are loaded
+        if programContext.membershipDetails.isEmpty || needsProgramRefresh {
+            await programContext.loadMembershipDetails()
+            print("[AddWorkout] After loadMembershipDetails - programRole: '\(programContext.loggedInUserProgramRole)'")
         }
         // Auto-select logged-in user if they can only log for themselves
         if !canSelectAnyMember, selectedMember == nil {
             if let userId = programContext.loggedInUserId {
                 selectedMember = programContext.members.first { $0.id == userId }
+                print("[AddWorkout] Auto-selected self because canSelectAnyMember=false")
             }
         }
     }
@@ -8489,7 +8361,7 @@ private struct AddDailyHealthDetailView: View {
             Text("Log daily health")
                 .font(.title2.weight(.bold))
                 .foregroundColor(Color(.label))
-            Text("Track sleep hours and food quality for today or past days.")
+            Text("Track sleep hours and diet quality for today or past days.")
                 .font(.subheadline)
                 .foregroundColor(Color(.secondaryLabel))
         }
@@ -8527,7 +8399,7 @@ private struct AddDailyHealthDetailView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Food quality")
+                Text("Diet quality")
                     .font(.subheadline.weight(.semibold))
                 Menu {
                     ForEach(1...5, id: \.self) { rating in
@@ -8636,6 +8508,10 @@ private struct AddDailyHealthDetailView: View {
         let needsProgramRefresh = programContext.membersProgramId != programContext.programId
         if programContext.members.isEmpty || needsProgramRefresh {
             await programContext.loadLookupData()
+        }
+        // Ensure membership details (including program role) are loaded
+        if programContext.membershipDetails.isEmpty || needsProgramRefresh {
+            await programContext.loadMembershipDetails()
         }
         if !canSelectAnyMember, selectedMember == nil {
             if let userId = programContext.loggedInUserId {
@@ -8869,6 +8745,9 @@ private struct LogoBadge: View {
 private struct StandardProgramTab: View {
     @EnvironmentObject var programContext: ProgramContext
     @State private var showSelectProgram = false
+    @State private var showLeaveProgramConfirm = false
+    @State private var isLeavingProgram = false
+    @State private var leaveProgramError: String?
 
     private var loggedInUserInitials: String {
         guard let name = programContext.loggedInUserName else { return "??" }
@@ -8922,6 +8801,9 @@ private struct StandardProgramTab: View {
                         // Switch Program Button
                         switchProgramButton
 
+                        // Leave Program Button
+                        leaveProgramButton
+
                         // My Account Section
                         ProgramMyAccountSection()
                     }
@@ -8933,6 +8815,19 @@ private struct StandardProgramTab: View {
             .navigationDestination(isPresented: $showSelectProgram) {
                 ProgramPickerView()
                     .navigationBarBackButtonHidden(true)
+            }
+            .alert("Leave Program?", isPresented: $showLeaveProgramConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Leave", role: .destructive) {
+                    Task { await leaveProgram() }
+                }
+            } message: {
+                Text("You will no longer have access to \(programContext.name). Your workout history and data will be preserved. If you're invited back and accept, your data will be restored.")
+            }
+            .alert("Error", isPresented: .constant(leaveProgramError != nil)) {
+                Button("OK") { leaveProgramError = nil }
+            } message: {
+                Text(leaveProgramError ?? "")
             }
         }
     }
@@ -9008,7 +8903,7 @@ private struct StandardProgramTab: View {
                     }
 
                     ProgressView(value: Double(programContext.completionPercent) / 100.0)
-                        .accentColor(.orange)
+                        .accentColor(statusColor(programContext.status))
                         .scaleEffect(x: 1, y: 1.5, anchor: .center)
 
                     HStack {
@@ -9097,13 +8992,66 @@ private struct StandardProgramTab: View {
         .buttonStyle(.plain)
     }
 
+    private var leaveProgramButton: some View {
+        Button {
+            showLeaveProgramConfirm = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Color(.systemGray5))
+                        .frame(width: 42, height: 42)
+                    Image(systemName: "arrow.left.circle")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(.secondaryLabel))
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Leave Program")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Color(.label))
+                    Text("Your data will be preserved")
+                        .font(.caption)
+                        .foregroundColor(Color(.secondaryLabel))
+                }
+                Spacer()
+                if isLeavingProgram {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.systemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color(.systemGray4).opacity(0.5), lineWidth: 1)
+            )
+            .adaptiveShadow(radius: 8, y: 4)
+        }
+        .buttonStyle(.plain)
+        .disabled(isLeavingProgram)
+    }
+
     private func statusColor(_ status: String) -> Color {
         switch status.lowercased() {
-        case "planned": return .blue
-        case "completed": return .green
-        case "draft": return .gray
-        default: return .orange
+        case "completed": return .appGreen
+        case "planned": return .appBlue
+        case "active": return .appOrange
+        default: return .appOrange
         }
+    }
+
+    private func leaveProgram() async {
+        isLeavingProgram = true
+        leaveProgramError = nil
+        do {
+            _ = try await programContext.leaveProgram()
+        } catch {
+            leaveProgramError = error.localizedDescription
+        }
+        isLeavingProgram = false
     }
 }
 

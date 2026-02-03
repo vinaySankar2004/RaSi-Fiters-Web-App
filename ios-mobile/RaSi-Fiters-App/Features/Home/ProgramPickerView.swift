@@ -9,66 +9,138 @@ struct ProgramPickerView: View {
     @State private var showDeleteConfirmation = false
     @State private var programToDelete: APIClient.ProgramDTO?
     @State private var isDeleting = false
-    @State private var showCreateProgram = false
+    @State private var showProgramActions = false
+    @State private var programToEdit: APIClient.ProgramDTO?
+    @State private var programToOpen: APIClient.ProgramDTO?
+    @State private var showSignOutConfirmation = false
+    
+    private var pendingInvitesCount: Int {
+        programContext.pendingInvites.count
+    }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             Color.appBackground
                 .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 18) {
-                    Color.clear.frame(height: 100)
+            List {
+                Color.clear
+                    .frame(height: 90)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
 
-                    if isLoading {
-                        ProgressView().padding(.top, 40)
-                    } else if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.appRed)
-                            .font(.footnote.weight(.semibold))
-                            .padding(.top, 20)
-                    } else if programContext.programs.isEmpty {
-                        emptyState
-                    } else {
-                        ForEach(programContext.programs, id: \.id) { program in
-                            NavigationLink {
-                                AdminHomeView()
-                                    .environmentObject(programContext)
-                            } label: {
-                                ProgramCard(
-                                    program: program,
-                                    showDeleteButton: programContext.isGlobalAdmin,
-                                    onDelete: {
-                                        programToDelete = program
-                                        showDeleteConfirmation = true
-                                    }
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .simultaneousGesture(
-                                TapGesture().onEnded {
+                if isLoading {
+                    ProgressView()
+                        .padding(.top, 12)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                } else if let errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.appRed)
+                        .font(.footnote.weight(.semibold))
+                        .padding(.top, 12)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                } else if programContext.programs.isEmpty {
+                    emptyState
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                } else {
+                    ForEach(programContext.programs, id: \.id) { program in
+                        let membershipStatus = program.my_status?.lowercased()
+                        let canOpen = programContext.isGlobalAdmin || membershipStatus == nil || membershipStatus == "active"
+                        let canManage = programContext.isGlobalAdmin || (membershipStatus == "active" && program.my_role == "admin")
+                        let card = ProgramCard(
+                            program: program,
+                            membershipStatus: membershipStatus,
+                            onAccept: membershipStatus == "invited" ? {
+                                _ = Task<Void, Never> { await respondToInvite(program: program, accept: true) }
+                            } : nil,
+                            onDecline: (membershipStatus == "invited" || membershipStatus == "requested") ? {
+                                _ = Task<Void, Never> { await respondToInvite(program: program, accept: false) }
+                            } : nil
+                        )
+
+                        card
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard canOpen else { return }
+                            applyProgram(program)
+                            programToOpen = program
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            if canManage {
+                                Button {
                                     applyProgram(program)
+                                    programToEdit = program
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
                                 }
-                            )
+                                .tint(.blue)
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if canManage {
+                                Button(role: .destructive) {
+                                    programToDelete = program
+                                    showDeleteConfirmation = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
-
-                    if programContext.isGlobalAdmin {
-                        createProgramButton
-                            .padding(.top, 4)
-                            .padding(.bottom, 20)
-                    }
                 }
-                .padding(.horizontal, 20)
+                
+                // Bottom padding for floating button
+                Color.clear
+                    .frame(height: 70)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
 
-            pickerHeader
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
+            // Header at top
+            VStack {
+                pickerHeader
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                Spacer()
+            }
+            
+            // Floating sign out button at bottom
+            VStack {
+                Spacer()
+                floatingSignOutButton
+                    .padding(.bottom, 24)
+            }
         }
         .navigationBarBackButtonHidden(true)
         .task {
             await loadPrograms()
+            await programContext.loadPendingInvites()
+        }
+        .sheet(isPresented: $showProgramActions) {
+            ProgramActionsSheet(onDismiss: {
+                // Refresh programs when sheet dismisses (in case user accepted an invite)
+                Task {
+                    await loadPrograms()
+                    await programContext.loadPendingInvites()
+                }
+            })
+            .environmentObject(programContext)
+        }
+        .navigationDestination(item: $programToOpen) { _ in
+            AdminHomeView()
+                .environmentObject(programContext)
+        }
+        .navigationDestination(item: $programToEdit) { _ in
+            EditProgramInfoView()
+                .environmentObject(programContext)
         }
         .alert("Delete Program?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
@@ -86,31 +158,79 @@ struct ProgramPickerView: View {
                 Text("Are you sure you want to delete \"\(program.name)\"? This action cannot be undone.")
             }
         }
+        .alert("Sign Out", isPresented: $showSignOutConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                programContext.signOut()
+            }
+        } message: {
+            Text("Are you sure you want to sign out?")
+        }
     }
 
     private var pickerHeader: some View {
         HStack(alignment: .center, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Select Program")
+                Text("My Programs")
                     .font(.largeTitle.weight(.bold))
                     .foregroundColor(Color(.label))
-                Text("Pick a program to manage")
+                Text("Manage your fitness programs")
                     .font(.headline.weight(.semibold))
                     .foregroundColor(Color(.secondaryLabel))
             }
 
             Spacer()
 
-            ZStack {
-                Circle()
-                    .fill(AppGradient.accent(for: colorScheme))
-                    .frame(width: 52, height: 52)
-                Text(programContext.loggedInUserInitials)
-                    .font(.headline.weight(.bold))
-                    .foregroundColor(.black)
+            Button {
+                showProgramActions = true
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(colorScheme == .dark ? Color(.white) : Color(.black))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(colorScheme == .dark ? .black : .white)
+                    
+                    // Badge for pending invites
+                    if pendingInvitesCount > 0 {
+                        Text("\(pendingInvitesCount)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(.white)
+                            .padding(5)
+                            .background(Circle().fill(Color.appRed))
+                            .offset(x: 16, y: -16)
+                    }
+                }
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 4)
+    }
+    
+    private var floatingSignOutButton: some View {
+        Button {
+            showSignOutConfirmation = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.subheadline.weight(.medium))
+                Text("Sign Out")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundColor(Color.appRed.opacity(0.9))
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                Capsule()
+                    .fill(Color.appRed.opacity(0.12))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.appRed.opacity(0.25), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func deleteProgram(_ program: APIClient.ProgramDTO) async {
@@ -125,31 +245,6 @@ struct ProgramPickerView: View {
             }
         }
         isDeleting = false
-    }
-
-    private var createProgramButton: some View {
-        Button {
-            showCreateProgram = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                Text("Create program")
-                    .font(.headline.weight(.semibold))
-            }
-            .foregroundColor(colorScheme == .dark ? .black : .white)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .background(
-                Capsule()
-                    .fill(Color(.label))
-            )
-            .adaptiveShadow(radius: 10, y: 5)
-        }
-        .sheet(isPresented: $showCreateProgram) {
-            CreateProgramView()
-                .environmentObject(programContext)
-        }
     }
 
     private var emptyState: some View {
@@ -170,12 +265,19 @@ struct ProgramPickerView: View {
     }
 
     private func applyProgram(_ program: APIClient.ProgramDTO) {
+        print("[ProgramPicker] applyProgram called - program: \(program.name), my_role from API: \(program.my_role ?? "nil")")
         programContext.name = program.name
         programContext.status = (program.status ?? "Active")
         programContext.programId = program.id
         programContext.activeMembers = program.active_members ?? 0
         programContext.totalWorkouts = 0
         programContext.atRiskMembers = 0
+        if let role = program.my_role {
+            programContext.loggedInUserProgramRole = role
+            print("[ProgramPicker] Set loggedInUserProgramRole to: '\(role)'")
+        } else {
+            print("[ProgramPicker] WARNING: my_role is nil, loggedInUserProgramRole unchanged: '\(programContext.loggedInUserProgramRole)'")
+        }
 
         let formatterIn = DateFormatter()
         formatterIn.dateFormat = "yyyy-MM-dd"
@@ -192,6 +294,18 @@ struct ProgramPickerView: View {
         Task {
             await programContext.loadMembershipDetails()
             await programContext.loadLookupData()
+        }
+    }
+
+    private func respondToInvite(program: APIClient.ProgramDTO, accept: Bool) async {
+        do {
+            let status = accept ? "active" : "removed"
+            try await programContext.updateMembershipStatus(programId: program.id, status: status)
+            await loadPrograms()
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -217,10 +331,22 @@ struct ProgramPickerView: View {
 }
 
 private struct ProgramCard: View {
-    @Environment(\.colorScheme) private var colorScheme
     let program: APIClient.ProgramDTO
-    let showDeleteButton: Bool
-    let onDelete: () -> Void
+    let membershipStatus: String?
+    let onAccept: (() -> Void)?
+    let onDecline: (() -> Void)?
+
+    private var normalizedStatus: String? {
+        membershipStatus?.lowercased()
+    }
+
+    private var isInvited: Bool {
+        normalizedStatus == "invited"
+    }
+
+    private var isRequested: Bool {
+        normalizedStatus == "requested"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -236,30 +362,46 @@ private struct ProgramCard: View {
                 .font(.subheadline)
                 .foregroundColor(Color(.secondaryLabel))
 
-            Text(membersSummary(program))
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(Color(.tertiaryLabel))
+            if isInvited || isRequested {
+                Text(isInvited ? "Invitation pending" : "Request pending approval")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(Color(.secondaryLabel))
+            } else {
+                Text(membersSummary(program))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(Color(.tertiaryLabel))
+            }
 
             ProgressView(value: progressValue(program))
                 .accentColor(statusColor(program.status))
                 .scaleEffect(x: 1, y: 1.1, anchor: .center)
 
-            HStack {
-                if showDeleteButton {
-                    Button {
-                        onDelete()
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.appRedSoft)
+            if isInvited || isRequested {
+                HStack(spacing: 10) {
+                    if let onAccept, isInvited {
+                        Button(action: onAccept) {
+                            Text("Accept")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(Color.appOrange))
+                                .foregroundColor(.black)
+                        }
                     }
-                    .buttonStyle(.plain)
+                    if let onDecline {
+                        Button(action: onDecline) {
+                            Text(isRequested ? "Cancel request" : "Decline")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(Color(.systemGray5)))
+                                .foregroundColor(Color(.label))
+                        }
+                    }
+                    Spacer()
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(.tertiaryLabel))
             }
+
         }
         .padding()
         .background(
@@ -268,9 +410,16 @@ private struct ProgramCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color(.systemGray4).opacity(0.5), lineWidth: 1)
+                .stroke(borderColor, lineWidth: 1)
         )
         .adaptiveShadow(radius: 12, y: 6)
+    }
+
+    private var borderColor: Color {
+        if isInvited || isRequested {
+            return Color.appOrange.opacity(0.35)
+        }
+        return Color(.systemGray4).opacity(0.5)
     }
 
     private func dateRange(_ program: APIClient.ProgramDTO) -> String {
@@ -298,8 +447,9 @@ private struct ProgramCard: View {
 
     private func statusColor(_ status: String?) -> Color {
         switch (status ?? "").lowercased() {
+        case "completed": return .appGreen
         case "planned": return .appBlue
-        case "draft": return .gray
+        case "active": return .appOrange
         default: return .appOrange
         }
     }
@@ -322,58 +472,55 @@ private struct StatusPill: View {
     }
 }
 
-private struct CreateProgramView: View {
+// MARK: - Program Actions Sheet (Tabbed)
+
+private struct ProgramActionsSheet: View {
     @EnvironmentObject var programContext: ProgramContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-
-    @State private var programName: String = ""
-    @State private var status: String = "planned"
-    @State private var startDate: Date = Date()
-    @State private var endDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    @State private var showSuccessAlert = false
-
-    private let statusOptions = ["planned", "active", "completed"]
-
-    private var isFormValid: Bool {
-        !programName.trimmingCharacters(in: .whitespaces).isEmpty
+    
+    let onDismiss: () -> Void
+    
+    @State private var selectedTab: Int = 0
+    
+    private var hasInvites: Bool {
+        !programContext.pendingInvites.isEmpty
     }
-
-    private var accentColor: Color {
-        Color.appOrange
+    
+    private var invitesTabLabel: String {
+        programContext.isGlobalAdmin ? "All Invites" : "My Invites"
     }
-
+    
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    formFields
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.appRed)
-                            .font(.footnote.weight(.semibold))
-                    }
-
-                    Button(action: { Task { await save() } }) {
-                        if isSaving {
-                            ProgressView().tint(colorScheme == .dark ? .black : .white)
-                        } else {
-                            Text("Create program")
-                                .font(.headline.weight(.semibold))
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isFormValid ? accentColor : Color(.systemGray3))
-                    .foregroundColor(.black)
-                    .cornerRadius(14)
-                    .disabled(!isFormValid || isSaving)
+            VStack(spacing: 0) {
+                // Tab picker
+                Picker("", selection: $selectedTab) {
+                    Label(invitesTabLabel, systemImage: "envelope.fill")
+                        .tag(0)
+                    Label("Create", systemImage: "plus")
+                        .tag(1)
                 }
-                .padding(20)
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+                
+                // Tab content
+                TabView(selection: $selectedTab) {
+                    InvitesTabView(onAccepted: {
+                        dismiss()
+                        onDismiss()
+                    })
+                    .tag(0)
+                    
+                    CreateProgramTabView(onCreated: {
+                        dismiss()
+                        onDismiss()
+                    })
+                    .tag(1)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
             }
             .background(
                 AppGradient.sheetBackground(for: colorScheme)
@@ -382,97 +529,533 @@ private struct CreateProgramView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("Done") {
                         dismiss()
+                        onDismiss()
                     }
                     .foregroundColor(Color(.label))
                 }
             }
-            .alert("Program created", isPresented: $showSuccessAlert) {
-                Button("OK") {
-                    dismiss()
-                }
-            } message: {
-                Text("Your new program has been created successfully.")
+        }
+        .onAppear {
+            // Default to invites tab if there are pending invites
+            if hasInvites {
+                selectedTab = 0
+            } else {
+                selectedTab = 1
             }
         }
     }
+}
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Create program")
-                .font(.title2.weight(.bold))
+// MARK: - Invites Tab View
+
+private struct InvitesTabView: View {
+    @EnvironmentObject var programContext: ProgramContext
+    @Environment(\.colorScheme) private var colorScheme
+    
+    let onAccepted: () -> Void
+    
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+    @State private var inviteToDecline: APIClient.PendingInviteDTO?
+    @State private var showDeclineConfirmation = false
+    @State private var blockFutureInvites = false
+    
+    private var isGlobalAdmin: Bool {
+        programContext.isGlobalAdmin
+    }
+    
+    private var headerTitle: String {
+        isGlobalAdmin ? "All Program Invitations" : "Program Invitations"
+    }
+    
+    private var headerSubtitle: String {
+        isGlobalAdmin ? "Manage invites across all programs" : "Accept invitations to join programs"
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(headerTitle)
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(Color(.label))
+                    Text(headerSubtitle)
+                        .font(.subheadline)
+                        .foregroundColor(Color(.secondaryLabel))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                
+                // Messages
+                if let errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.appRed)
+                        .font(.footnote.weight(.semibold))
+                        .padding(.horizontal, 20)
+                }
+                
+                if let successMessage {
+                    Text(successMessage)
+                        .foregroundColor(.appGreen)
+                        .font(.footnote.weight(.semibold))
+                        .padding(.horizontal, 20)
+                }
+                
+                // Content
+                if isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .padding(.top, 40)
+                } else if programContext.pendingInvites.isEmpty {
+                    emptyState
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                } else {
+                    // Invites list
+                    if isGlobalAdmin {
+                        adminInvitesList
+                    } else {
+                        standardInvitesList
+                    }
+                }
+                
+                Spacer(minLength: 40)
+            }
+        }
+        .task {
+            await refreshInvites()
+        }
+        .confirmationDialog(
+            "Decline Invitation",
+            isPresented: $showDeclineConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Decline", role: .destructive) {
+                if let invite = inviteToDecline {
+                    Task {
+                        await respondToInvite(invite, action: "decline", blockFuture: blockFutureInvites)
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                inviteToDecline = nil
+                blockFutureInvites = false
+            }
+        } message: {
+            if let invite = inviteToDecline {
+                Text("Decline invitation to \(invite.program_name ?? "this program")?\n\nYou can also block future invites from this program.")
+            }
+        }
+    }
+    
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "envelope.open")
+                .font(.system(size: 40))
+                .foregroundColor(Color(.tertiaryLabel))
+            Text("No pending invitations")
+                .font(.headline.weight(.semibold))
                 .foregroundColor(Color(.label))
-            Text("Set up a new fitness program.")
+            Text(isGlobalAdmin ? "There are no pending invites in the system." : "You don't have any program invitations right now.")
                 .font(.subheadline)
                 .foregroundColor(Color(.secondaryLabel))
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.systemGray6))
+        )
     }
-
-    private var formFields: some View {
-        VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Program name")
-                    .font(.subheadline.weight(.semibold))
-                TextField("e.g. Summer 2026 Challenge", text: $programName)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.words)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
+    
+    private var standardInvitesList: some View {
+        VStack(spacing: 12) {
+            ForEach(programContext.pendingInvites) { invite in
+                InviteCard(
+                    invite: invite,
+                    isAdmin: false,
+                    onAccept: {
+                        Task { await respondToInvite(invite, action: "accept") }
+                    },
+                    onDecline: {
+                        inviteToDecline = invite
+                        showDeclineConfirmation = true
+                    },
+                    onRevoke: nil
+                )
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Status")
-                    .font(.subheadline.weight(.semibold))
-                Menu {
-                    ForEach(statusOptions, id: \.self) { option in
-                        Button(option.capitalized) { status = option }
-                    }
-                } label: {
-                    HStack {
-                        Text(status.capitalized)
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var adminInvitesList: some View {
+        VStack(spacing: 16) {
+            // Group invites by program
+            let groupedInvites = Dictionary(grouping: programContext.pendingInvites) { $0.program_name ?? "Unknown Program" }
+            let sortedKeys = groupedInvites.keys.sorted()
+            
+            ForEach(sortedKeys, id: \.self) { programName in
+                if let invites = groupedInvites[programName] {
+                    VStack(alignment: .leading, spacing: 10) {
+                        // Program header
+                        Text(programName)
+                            .font(.headline.weight(.semibold))
                             .foregroundColor(Color(.label))
-                        Spacer()
-                        Image(systemName: "chevron.up.chevron.down")
-                            .foregroundColor(Color(.tertiaryLabel))
+                            .padding(.horizontal, 20)
+                        
+                        // Invites for this program
+                        ForEach(invites) { invite in
+                            InviteCard(
+                                invite: invite,
+                                isAdmin: true,
+                                onAccept: {
+                                    Task { await respondToInvite(invite, action: "accept") }
+                                },
+                                onDecline: {
+                                    inviteToDecline = invite
+                                    showDeclineConfirmation = true
+                                },
+                                onRevoke: {
+                                    Task { await respondToInvite(invite, action: "revoke") }
+                                }
+                            )
+                        }
+                        .padding(.horizontal, 20)
                     }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
                 }
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Start date")
-                    .font(.subheadline.weight(.semibold))
-                DatePicker("", selection: $startDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("End date")
-                    .font(.subheadline.weight(.semibold))
-                DatePicker("", selection: $endDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-            }
         }
     }
+    
+    private func refreshInvites() async {
+        isLoading = true
+        errorMessage = nil
+        await programContext.loadPendingInvites()
+        isLoading = false
+    }
+    
+    private func respondToInvite(_ invite: APIClient.PendingInviteDTO, action: String, blockFuture: Bool = false) async {
+        isLoading = true
+        errorMessage = nil
+        successMessage = nil
+        
+        do {
+            let message = try await programContext.respondToInvite(
+                inviteId: invite.invite_id,
+                action: action,
+                blockFuture: blockFuture
+            )
+            successMessage = message
+            
+            // If accepted, trigger the callback to dismiss and refresh
+            if action == "accept" {
+                try? await Task.sleep(nanoseconds: 500_000_000) // Brief delay to show success
+                onAccepted()
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        
+        inviteToDecline = nil
+        blockFutureInvites = false
+        isLoading = false
+    }
+}
 
+// MARK: - Invite Card
+
+private struct InviteCard: View {
+    let invite: APIClient.PendingInviteDTO
+    let isAdmin: Bool
+    let onAccept: () -> Void
+    let onDecline: () -> Void
+    let onRevoke: (() -> Void)?
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var statusColor: Color {
+        switch (invite.program_status ?? "").lowercased() {
+        case "completed": return .appGreen
+        case "planned": return .appBlue
+        case "active": return .appOrange
+        default: return .appOrange
+        }
+    }
+    
+    private var dateRangeText: String {
+        let formatterIn = DateFormatter()
+        formatterIn.dateFormat = "yyyy-MM-dd"
+        let formatterOut = DateFormatter()
+        formatterOut.dateFormat = "MMM d, yyyy"
+        
+        let start = invite.program_start_date.flatMap { formatterIn.date(from: $0) }.map { formatterOut.string(from: $0) } ?? "Start"
+        let end = invite.program_end_date.flatMap { formatterIn.date(from: $0) }.map { formatterOut.string(from: $0) } ?? "End"
+        return "\(start) – \(end)"
+    }
+    
+    private var invitedAtText: String {
+        guard let invitedAt = invite.invited_at else { return "" }
+        
+        // Try parsing ISO8601 format
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "MMM d, yyyy"
+        
+        if let date = isoFormatter.date(from: invitedAt) {
+            return "Invited on \(displayFormatter.string(from: date))"
+        }
+        
+        // Fallback: try without fractional seconds
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let date = isoFormatter.date(from: invitedAt) {
+            return "Invited on \(displayFormatter.string(from: date))"
+        }
+        
+        return "Invited recently"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header row
+            HStack {
+                if !isAdmin {
+                    Text(invite.program_name ?? "Unknown Program")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(Color(.label))
+                }
+                Spacer()
+                if let status = invite.program_status {
+                    StatusPill(text: status, color: statusColor)
+                }
+            }
+            
+            // Admin view: Show who the invite is TO
+            if isAdmin, let inviteeName = invite.invited_member_name ?? invite.invited_username {
+                HStack(spacing: 4) {
+                    Text("To:")
+                        .foregroundColor(Color(.secondaryLabel))
+                    Text(inviteeName)
+                        .foregroundColor(Color(.label))
+                    if let username = invite.invited_username, invite.invited_member_name != nil {
+                        Text("@\(username)")
+                            .foregroundColor(Color(.tertiaryLabel))
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+            }
+            
+            // Date range
+            Text(dateRangeText)
+                .font(.subheadline)
+                .foregroundColor(Color(.secondaryLabel))
+            
+            // Invited by and date
+            HStack {
+                if let invitedBy = invite.invited_by_name {
+                    Text("Invited by \(invitedBy)")
+                        .font(.footnote)
+                        .foregroundColor(Color(.tertiaryLabel))
+                }
+                Spacer()
+                Text(invitedAtText)
+                    .font(.footnote)
+                    .foregroundColor(Color(.tertiaryLabel))
+            }
+            
+            // Action buttons
+            HStack(spacing: 10) {
+                Button(action: onAccept) {
+                    Text("Accept")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(Color.appOrange))
+                        .foregroundColor(.black)
+                }
+                
+                Button(action: onDecline) {
+                    Text("Decline")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(Color(.systemGray5)))
+                        .foregroundColor(Color(.label))
+                }
+                
+                if isAdmin, let onRevoke {
+                    Button(action: onRevoke) {
+                        Text("Revoke")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Capsule().stroke(Color.appRed, lineWidth: 1.5))
+                            .foregroundColor(.appRed)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding(.top, 4)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.appBackgroundSecondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.appOrange.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Create Program Tab View
+
+private struct CreateProgramTabView: View {
+    @EnvironmentObject var programContext: ProgramContext
+    @Environment(\.colorScheme) private var colorScheme
+    
+    let onCreated: () -> Void
+    
+    @State private var programName: String = ""
+    @State private var status: String = "planned"
+    @State private var startDate: Date = Date()
+    @State private var endDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    @State private var showSuccessAlert = false
+    
+    private let statusOptions = ["planned", "active", "completed"]
+    
+    private var isFormValid: Bool {
+        !programName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+    
+    private var accentColor: Color {
+        Color.appOrange
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Create Program")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(Color(.label))
+                    Text("Set up a new fitness program.")
+                        .font(.subheadline)
+                        .foregroundColor(Color(.secondaryLabel))
+                }
+                
+                // Form fields
+                VStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Program name")
+                            .font(.subheadline.weight(.semibold))
+                        TextField("e.g. Summer 2026 Challenge", text: $programName)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.words)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Status")
+                            .font(.subheadline.weight(.semibold))
+                        Menu {
+                            ForEach(statusOptions, id: \.self) { option in
+                                Button(option.capitalized) { status = option }
+                            }
+                        } label: {
+                            HStack {
+                                Text(status.capitalized)
+                                    .foregroundColor(Color(.label))
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .foregroundColor(Color(.tertiaryLabel))
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Start date")
+                            .font(.subheadline.weight(.semibold))
+                        DatePicker("", selection: $startDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .padding(.horizontal)
+                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("End date")
+                            .font(.subheadline.weight(.semibold))
+                        DatePicker("", selection: $endDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .padding(.horizontal)
+                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                    }
+                }
+                
+                if let errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.appRed)
+                        .font(.footnote.weight(.semibold))
+                }
+                
+                Button(action: { Task { await save() } }) {
+                    if isSaving {
+                        ProgressView().tint(colorScheme == .dark ? .black : .white)
+                    } else {
+                        Text("Create Program")
+                            .font(.headline.weight(.semibold))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(isFormValid ? accentColor : Color(.systemGray3))
+                .foregroundColor(.black)
+                .cornerRadius(14)
+                .disabled(!isFormValid || isSaving)
+                
+                Spacer(minLength: 40)
+            }
+            .padding(20)
+        }
+        .alert("Program Created", isPresented: $showSuccessAlert) {
+            Button("OK") {
+                onCreated()
+            }
+        } message: {
+            Text("Your new program has been created successfully.")
+        }
+    }
+    
     private func save() async {
         isSaving = true
         errorMessage = nil
-
+        
         do {
             try await programContext.createProgram(
                 name: programName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -484,7 +1067,7 @@ private struct CreateProgramView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
-
+        
         isSaving = false
     }
 }

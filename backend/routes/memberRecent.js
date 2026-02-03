@@ -1,6 +1,6 @@
 const express = require("express");
 const { authenticateToken } = require("../middleware/auth");
-const { WorkoutLog } = require("../models");
+const { WorkoutLog, ProgramWorkout } = require("../models");
 const { Op } = require("sequelize");
 
 const router = express.Router();
@@ -29,38 +29,41 @@ router.get("/", authenticateToken, async (req, res) => {
 
         // Add date range filter if provided
         if (startDate || endDate) {
-            whereClause.date = {};
+            whereClause.log_date = {};
             if (startDate) {
-                whereClause.date[Op.gte] = startDate;
+                whereClause.log_date[Op.gte] = startDate;
             }
             if (endDate) {
-                whereClause.date[Op.lte] = endDate;
+                whereClause.log_date[Op.lte] = endDate;
             }
         }
 
         // Determine sort column
-        let orderColumn;
+        let orderSpec;
+        const orderDirection = sortDir.toLowerCase() === "asc" ? "ASC" : "DESC";
         switch (sortBy) {
             case "duration":
-                orderColumn = "duration";
+                orderSpec = [["duration", orderDirection]];
                 break;
             case "workoutType":
-                orderColumn = "workout_name";
+                // Sort by the associated ProgramWorkout's workout_name
+                orderSpec = [[ProgramWorkout, "workout_name", orderDirection]];
                 break;
             case "date":
             default:
-                orderColumn = "date";
+                orderSpec = [["log_date", orderDirection]];
                 break;
         }
-
-        // Determine sort direction
-        const orderDirection = sortDir.toLowerCase() === "asc" ? "ASC" : "DESC";
 
         // Build query options
         const queryOptions = {
             where: whereClause,
-            order: [[orderColumn, orderDirection]],
-            attributes: ["workout_name", "date", "duration", "member_id"]
+            order: orderSpec,
+            attributes: ["log_date", "duration", "member_id", "program_workout_id"],
+            include: [{
+                model: ProgramWorkout,
+                attributes: ["workout_name"]
+            }]
         };
 
         // Only apply limit if it's greater than 0
@@ -72,9 +75,9 @@ router.get("/", authenticateToken, async (req, res) => {
         const workouts = await WorkoutLog.findAll(queryOptions);
 
         const items = workouts.map((w, idx) => ({
-            id: `${w.member_id}-${w.workout_name}-${w.date}-${idx}`,
-            workoutType: w.workout_name,
-            workoutDate: w.date,
+            id: `${w.member_id}-${w.program_workout_id}-${w.log_date}-${idx}`,
+            workoutType: w.ProgramWorkout?.workout_name || "",
+            workoutDate: w.log_date,
             durationMinutes: Number(w.duration || 0)
         }));
 

@@ -1,5 +1,5 @@
 const express = require("express");
-const { WorkoutLog, Member } = require("../models/index");
+const { WorkoutLog, Member, ProgramWorkout, ProgramMembership } = require("../models/index");
 const { Op } = require("sequelize");
 const { authenticateToken, isAdmin, canModifyLog } = require("../middleware/auth");
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 // Get workout logs
 router.get("/", authenticateToken, async (req, res) => {
     try {
-        let { date } = req.query;
+        let { date, programId } = req.query;
         if (!date) {
             return res.status(400).json({ error: "Date is required." });
         }
@@ -16,8 +16,11 @@ router.get("/", authenticateToken, async (req, res) => {
 
         // Build query conditions
         const whereCondition = {
-            date: date
+            log_date: date
         };
+        if (programId) {
+            whereCondition.program_id = programId;
+        }
 
         // Get logs with member information using the association
         const logs = await WorkoutLog.findAll({
@@ -25,6 +28,9 @@ router.get("/", authenticateToken, async (req, res) => {
             include: [{
                 model: Member,
                 attributes: ['member_name'] // Only include member_name
+            }, {
+                model: ProgramWorkout,
+                attributes: ["workout_name"]
             }]
         });
 
@@ -34,8 +40,8 @@ router.get("/", authenticateToken, async (req, res) => {
         const formattedLogs = logs.map(log => ({
             member_id: log.member_id,
             member_name: log.Member ? log.Member.member_name : null, // Get member_name from the included Member model
-            workout_name: log.workout_name,
-            date: log.date,
+            workout_name: log.ProgramWorkout ? log.ProgramWorkout.workout_name : null,
+            date: log.log_date,
             duration: log.duration,
             canEdit: req.user.role === 'admin' || log.member_id === req.user.id
         }));
@@ -60,6 +66,9 @@ router.post("/", authenticateToken, async (req, res) => {
                 error: "All fields are required."
             });
         }
+        if (!program_id) {
+            return res.status(400).json({ error: "program_id is required." });
+        }
 
         // Validate duration is a number
         if (isNaN(duration)) {
@@ -69,25 +78,70 @@ router.post("/", authenticateToken, async (req, res) => {
         // Determine target member_id
         let member_id = req.user.id; // default to the authenticated user
 
-        const isAdminLike = req.user.role === 'admin' || req.user.global_role === 'global_admin';
+        const requester = req.user;
+        let canLogForAny = requester?.global_role === "global_admin";
 
-        if (bodyMemberId && isAdminLike) {
-            member_id = bodyMemberId;
-        } else if (member_name && member_name !== req.user.member_name && isAdminLike) {
+        if (!canLogForAny) {
+            const requesterMembership = await ProgramMembership.findOne({
+                where: { program_id, member_id: requester?.id }
+            });
+
+            if (!requesterMembership) {
+                return res.status(403).json({ error: "You are not enrolled in this program." });
+            }
+
+            if (["admin", "logger"].includes(requesterMembership.role)) {
+                canLogForAny = true;
+            }
+        }
+
+        if (bodyMemberId) {
+            if (!canLogForAny && bodyMemberId !== requester?.id) {
+                return res.status(403).json({ error: "You can only log your own workouts." });
+            }
+            if (canLogForAny) {
+                member_id = bodyMemberId;
+            }
+        } else if (member_name) {
+            if (!canLogForAny && member_name !== requester?.member_name) {
+                return res.status(403).json({ error: "You can only log your own workouts." });
+            }
             const member = await Member.findOne({ where: { member_name } });
             if (!member) {
                 return res.status(404).json({ error: "Member not found." });
             }
+            if (!canLogForAny && member.id !== requester?.id) {
+                return res.status(403).json({ error: "You can only log your own workouts." });
+            }
             member_id = member.id;
+        }
+
+        const targetMembership = await ProgramMembership.findOne({
+            where: { program_id, member_id, status: "active" }
+        });
+        if (!targetMembership) {
+            return res.status(404).json({ error: "Member is not an active participant in this program." });
+        }
+
+        const workoutName = workout_name.trim();
+        let programWorkout = await ProgramWorkout.findOne({
+            where: { program_id, workout_name: workoutName }
+        });
+        if (!programWorkout) {
+            programWorkout = await ProgramWorkout.create({
+                program_id,
+                workout_name: workoutName,
+                library_workout_id: null
+            });
         }
 
         // Create the workout log
         const newLog = await WorkoutLog.create({
+            program_id,
             member_id,
-            workout_name,
-            date,
-            duration: parseInt(duration, 10),
-            program_id: program_id || null
+            program_workout_id: programWorkout.id,
+            log_date: date,
+            duration: parseInt(duration, 10)
         });
 
         // Get the member info to include in response
@@ -95,7 +149,9 @@ router.post("/", authenticateToken, async (req, res) => {
 
         res.status(201).json({
             ...newLog.toJSON(),
-            member_name: member ? member.member_name : null
+            member_name: member ? member.member_name : null,
+            workout_name: workoutName,
+            date
         });
     } catch (err) {
         console.error("Error adding workout log:", err);
@@ -106,10 +162,13 @@ router.post("/", authenticateToken, async (req, res) => {
 // Update a workout log - check if user can modify this log
 router.put("/", authenticateToken, async (req, res) => {
     try {
-        const { member_name, workout_name, date, duration } = req.body;
+        const { member_name, workout_name, date, duration, program_id } = req.body;
 
         if (!workout_name || !date || !duration) {
             return res.status(400).json({ error: "Workout name, date, and duration are required." });
+        }
+        if (!program_id) {
+            return res.status(400).json({ error: "program_id is required." });
         }
 
         // Get member_id from member_name if provided
@@ -133,11 +192,19 @@ router.put("/", authenticateToken, async (req, res) => {
         }
 
         // Find the log
+        const programWorkout = await ProgramWorkout.findOne({
+            where: { program_id, workout_name: workout_name.trim() }
+        });
+        if (!programWorkout) {
+            return res.status(404).json({ error: "Workout type not found for program." });
+        }
+
         const log = await WorkoutLog.findOne({
             where: {
+                program_id,
                 member_id,
-                workout_name,
-                date
+                program_workout_id: programWorkout.id,
+                log_date: date
             }
         });
 
@@ -149,7 +216,11 @@ router.put("/", authenticateToken, async (req, res) => {
         log.duration = parseInt(duration, 10);
         await log.save();
 
-        res.json(log);
+        res.json({
+            ...log.toJSON(),
+            workout_name: workout_name.trim(),
+            date
+        });
     } catch (err) {
         console.error("Error updating workout log:", err);
         res.status(500).json({ error: "Failed to update workout log." });
@@ -159,18 +230,29 @@ router.put("/", authenticateToken, async (req, res) => {
 // Delete a workout log - check if user can modify this log
 router.delete("/", authenticateToken, async (req, res) => {
     try {
-        const { member_id, member_name, workout_name, date } = req.body;
+        const { member_id, member_name, workout_name, date, program_id } = req.body;
 
         console.log("Delete request received:", { member_id, member_name, workout_name, date });
 
         if (!workout_name || !date) {
             return res.status(400).json({ error: "Workout name and date are required." });
         }
+        if (!program_id) {
+            return res.status(400).json({ error: "program_id is required." });
+        }
 
         // Build the where condition
+        const programWorkout = await ProgramWorkout.findOne({
+            where: { program_id, workout_name: workout_name.trim() }
+        });
+        if (!programWorkout) {
+            return res.status(404).json({ error: "Workout type not found for program." });
+        }
+
         const whereCondition = {
-            workout_name,
-            date
+            program_id,
+            program_workout_id: programWorkout.id,
+            log_date: date
         };
 
         // If member_id is provided directly, use it
@@ -249,13 +331,19 @@ router.get("/member/:memberName", authenticateToken, async (req, res) => {
             where: {
                 member_id: member.id
             },
-            order: [["date", "DESC"]] // Sort by date in descending order
+            include: [{
+                model: ProgramWorkout,
+                attributes: ["workout_name"]
+            }],
+            order: [["log_date", "DESC"]] // Sort by date in descending order
         });
 
         // Format logs to include member_name for consistency with frontend
         const formattedLogs = logs.map(log => ({
             ...log.toJSON(),
-            member_name: memberName
+            member_name: memberName,
+            workout_name: log.ProgramWorkout ? log.ProgramWorkout.workout_name : null,
+            date: log.log_date
         }));
 
         res.json(formattedLogs);

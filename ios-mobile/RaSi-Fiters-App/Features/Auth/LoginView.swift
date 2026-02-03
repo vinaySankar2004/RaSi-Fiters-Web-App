@@ -3,7 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject var programContext: ProgramContext
     @Environment(\.colorScheme) private var colorScheme
-    @State private var username: String = ""
+    @State private var identifier: String = ""
     @State private var password: String = ""
     @State private var isPasswordVisible: Bool = false
     @State private var isLoading: Bool = false
@@ -41,8 +41,8 @@ struct LoginView: View {
 
                 VStack(spacing: 16) {
                     inputField(
-                        title: "Username",
-                        text: $username,
+                        title: "Username or Email",
+                        text: $identifier,
                         isSecure: false,
                         accessory: nil
                     )
@@ -78,7 +78,21 @@ struct LoginView: View {
                 }
                 .buttonStyle(.plain)
                 .adaptiveShadow(radius: 8, y: 4)
-                .disabled(isLoading || username.isEmpty || password.isEmpty)
+                .disabled(isLoading || identifier.isEmpty || password.isEmpty)
+
+                HStack(spacing: 6) {
+                    Text("New here?")
+                        .font(.footnote)
+                        .foregroundColor(Color(.secondaryLabel))
+
+                    NavigationLink {
+                        CreateAccountView()
+                    } label: {
+                        Text("Create an account")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(.appOrange)
+                    }
+                }
 
                 VStack(spacing: 4) {
                     Text("Training hard? Login to track your progress.")
@@ -174,7 +188,7 @@ struct LoginView: View {
         defer { isLoading = false }
 
         do {
-            let response = try await APIClient.shared.loginGlobal(username: username, password: password)
+            let response = try await APIClient.shared.loginGlobal(identifier: identifier, password: password)
             let role = (response.globalRole ?? "").lowercased()
             print("Token: \(response.token) | global_role: \(role)")
 
