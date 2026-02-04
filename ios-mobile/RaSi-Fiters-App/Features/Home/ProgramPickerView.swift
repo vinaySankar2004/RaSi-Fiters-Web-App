@@ -576,82 +576,81 @@ private struct InvitesTabView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(headerTitle)
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(Color(.label))
-                    Text(headerSubtitle)
-                        .font(.subheadline)
-                        .foregroundColor(Color(.secondaryLabel))
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                
-                // Messages
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.appRed)
-                        .font(.footnote.weight(.semibold))
-                        .padding(.horizontal, 20)
-                }
-                
-                if let successMessage {
-                    Text(successMessage)
-                        .foregroundColor(.appGreen)
-                        .font(.footnote.weight(.semibold))
-                        .padding(.horizontal, 20)
-                }
-                
-                // Content
-                if isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(headerTitle)
+                            .font(.title2.weight(.bold))
+                            .foregroundColor(Color(.label))
+                        Text(headerSubtitle)
+                            .font(.subheadline)
+                            .foregroundColor(Color(.secondaryLabel))
                     }
-                    .padding(.top, 40)
-                } else if programContext.pendingInvites.isEmpty {
-                    emptyState
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                } else {
-                    // Invites list
-                    if isGlobalAdmin {
-                        adminInvitesList
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    
+                    // Messages
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.appRed)
+                            .font(.footnote.weight(.semibold))
+                            .padding(.horizontal, 20)
+                    }
+                    
+                    if let successMessage {
+                        Text(successMessage)
+                            .foregroundColor(.appGreen)
+                            .font(.footnote.weight(.semibold))
+                            .padding(.horizontal, 20)
+                    }
+                    
+                    // Content
+                    if isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .padding(.top, 40)
+                    } else if programContext.pendingInvites.isEmpty {
+                        emptyState
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
                     } else {
-                        standardInvitesList
+                        // Invites list
+                        if isGlobalAdmin {
+                            adminInvitesList
+                        } else {
+                            standardInvitesList
+                        }
                     }
+                    
+                    Spacer(minLength: 40)
                 }
-                
-                Spacer(minLength: 40)
+            }
+            
+            if showDeclineConfirmation, let invite = inviteToDecline {
+                DeclineInviteDialog(
+                    programName: invite.program_name ?? "this program",
+                    blockFutureInvites: $blockFutureInvites,
+                    onDecline: {
+                        Task {
+                            await respondToInvite(invite, action: "decline", blockFuture: blockFutureInvites)
+                        }
+                    },
+                    onCancel: {
+                        inviteToDecline = nil
+                        blockFutureInvites = false
+                        showDeclineConfirmation = false
+                    }
+                )
+                .transition(.opacity)
             }
         }
         .task {
             await refreshInvites()
-        }
-        .confirmationDialog(
-            "Decline Invitation",
-            isPresented: $showDeclineConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Decline", role: .destructive) {
-                if let invite = inviteToDecline {
-                    Task {
-                        await respondToInvite(invite, action: "decline", blockFuture: blockFutureInvites)
-                    }
-                }
-            }
-            Button("Cancel", role: .cancel) {
-                inviteToDecline = nil
-                blockFutureInvites = false
-            }
-        } message: {
-            if let invite = inviteToDecline {
-                Text("Decline invitation to \(invite.program_name ?? "this program")?\n\nYou can also block future invites from this program.")
-            }
         }
     }
     
@@ -767,7 +766,118 @@ private struct InvitesTabView: View {
         
         inviteToDecline = nil
         blockFutureInvites = false
+        showDeclineConfirmation = false
         isLoading = false
+    }
+}
+
+private struct DeclineInviteDialog: View {
+    let programName: String
+    @Binding var blockFutureInvites: Bool
+    let onDecline: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    onCancel()
+                }
+            
+            VStack(spacing: 18) {
+                VStack(spacing: 6) {
+                    Text("Decline Invitation")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(Color(.label))
+                    Text("Decline invitation to \(programName)?")
+                        .font(.subheadline)
+                        .foregroundColor(Color(.secondaryLabel))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+                
+                Button {
+                    blockFutureInvites.toggle()
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(blockFutureInvites ? Color.appOrange : Color(.tertiaryLabel), lineWidth: 1.5)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(blockFutureInvites ? Color.appOrange.opacity(0.15) : Color.clear)
+                                )
+                                .frame(width: 22, height: 22)
+                            if blockFutureInvites {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.appOrange)
+                            }
+                        }
+                        Text("Block future invites from this program")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(Color(.label))
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color(.systemGray6))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(blockFutureInvites ? Color.appOrange.opacity(0.6) : Color.clear, lineWidth: 1)
+                    )
+                }
+                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                
+                VStack(spacing: 10) {
+                    Button(role: .destructive) {
+                        onDecline()
+                    } label: {
+                        Text("Decline")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color.appRed)
+                            )
+                    }
+                    
+                    Button {
+                        onCancel()
+                    } label: {
+                        Text("Cancel")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(Color(.label))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(.systemGray5))
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color(.systemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color(.separator).opacity(0.25), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.18), radius: 24, x: 0, y: 12)
+            .padding(.horizontal, 28)
+        }
+        .accessibilityElement(children: .contain)
     }
 }
 
