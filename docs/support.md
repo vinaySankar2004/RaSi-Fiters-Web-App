@@ -1,6 +1,6 @@
 # Support
 
-If you need help with RaSi Fit'ers, contact us at:
+If you need help with RaSi Fiters, contact us at:
 vinay.sankara@gmail.com
 
 Please include:
