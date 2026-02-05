@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Effective date: 2026-01-20
+Effective date: 2026-02-02
 
 RaSi Fiters ("we", "us", or "our") respects your privacy. This policy
 explains what information we collect, how we use it, and the choices you
@@ -9,9 +9,8 @@ services.
 
 Information we collect
 - Account information: name, email address, and password (stored securely).
-- Profile information: date of birth and other optional profile details
-  you provide.
-- Fitness and activity data: workouts, logs, and metrics you enter in the app.
+- Profile information: optional gender field.
+- Fitness and activity data: workout, sleep and diet quality which you log in the app.
 - Usage data: app interactions, feature usage, and diagnostic logs.
 - Device and network data: device type, OS version, and IP address.
 
