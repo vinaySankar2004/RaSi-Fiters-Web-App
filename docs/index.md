@@ -1,6 +1,4 @@
-# RaSi Fit'ers
-
-This site hosts the privacy policy for the RaSi Fit'ers app.
+This site hosts the privacy policy and support information for the RaSi Fiters app.
 
 - Privacy Policy: [View here](privacy-policy)
 
